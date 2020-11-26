@@ -1,0 +1,187 @@
+apply from: 'externalDependencies.gradle'
+
+// This defines the Gradle version to be used by this build.
+// The wrapper task can be executed with 'gradle wrapper'.
+// It creates the 'gradlew'/'gradlew.bat' files, as well as
+// required stub files in the 'gradle' directory.
+//
+// Using those scripts ensures that the correct Gradle version
+// is used (and downloaded automatically).
+wrapper {
+	gradleVersion = '6.6.1'
+}
+
+buildscript {
+	repositories {
+		maven {
+			url "https://plugins.gradle.org/m2/"
+		}
+	}
+
+	dependencies {
+		classpath "org.springframework.boot:spring-boot-gradle-plugin:2.3.0.RELEASE"
+		classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
+		classpath 'de.thetaphi:forbiddenapis:3.1'
+		classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+		classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:2.2.2"
+		classpath "gradle.plugin.org.cadixdev.gradle:licenser:0.5.0"
+	}
+}
+
+def globalSourceCompatibility = 1.8
+def globalTargetCompatibility = 1.8
+
+// the block below configures all projects, i.e. the rootProject
+// and all subprojects
+allprojects {
+	apply plugin: 'project-reports'
+	apply plugin: 'eclipse'
+	apply plugin: 'idea'
+
+	group = 'org.adealsystems'
+	version = '1.0.0'
+	def prereleaseIdentifier = System.properties.'prerelease'
+	if(prereleaseIdentifier) {
+		version = version + '-' + prereleaseIdentifier
+	} else if(!System.properties.'release') {
+		version = version + '-SNAPSHOT'
+	}
+
+	repositories {
+		mavenCentral()
+	}
+
+	// this applies different configurations to the Javadoc task
+	// depending on whether or not we are working with Java 8 or
+	// higher
+	tasks.each { task ->
+		if (task instanceof Javadoc) {
+			//println task
+			if (JavaVersion.current().isJava10Compatible()) {
+				task.options.optionFiles << rootProject.file('config/javadoc10.options')
+			} else {
+				task.options.optionFiles << rootProject.file('config/javadoc.options')
+			}
+		}
+	}
+
+	// the tasks to be executed if no tasks are given explicitly.
+	defaultTasks 'build', 'licenseCheck'
+}
+
+// the block below configures all subprojects, i.e. the rootProject
+// is excluded
+subprojects {
+	apply plugin: 'java-library'
+	apply plugin: 'groovy'
+	apply plugin: 'maven-publish'
+	apply plugin: 'de.thetaphi.forbiddenapis'
+	apply plugin: 'checkstyle'
+	apply plugin: 'pmd'
+	apply plugin: 'org.cadixdev.licenser'
+
+	license {
+		header = rootProject.file('license_header.txt')
+		include '**/*.java', '**/*.groovy'
+	}
+	
+	java {
+		withJavadocJar()
+		withSourcesJar()
+	}
+
+	publishing {
+		publications {
+			mavenJava(MavenPublication) {
+				from components.java
+			}
+		}
+	}
+
+	checkstyle {
+		configFile = rootProject.file('config/checkstyle/checkstyle.xml')
+		configProperties = [
+				'configDir': rootProject.file('config/checkstyle'),
+				'baseDir': rootDir,
+			]
+		toolVersion = '8.36.2'
+		//ignoreFailures = true
+	}
+	
+	pmd {
+		ruleSetFiles = files(rootProject.file('config/pmd/ruleSet.xml'))
+		ruleSets = []
+		toolVersion = '6.28.0'
+		incrementalAnalysis = true
+		//ignoreFailures = true
+	}
+
+	forbiddenApis {
+		bundledSignatures = [
+			'jdk-unsafe-1.8',
+			'jdk-deprecated-1.8',
+			'jdk-internal-1.8',
+			'jdk-non-portable',
+			//'jdk-system-out',
+			'jdk-reflection',
+			//'commons-io-unsafe-2.5',
+			]
+		ignoreFailures = false
+		//failOnUnresolvableSignatures = false
+	}
+
+	sourceCompatibility = globalSourceCompatibility
+	targetCompatibility = globalTargetCompatibility
+
+	// -Xlint:-options disables the
+	// "warning: [options] bootstrap class path not set in conjunction with -source 1.x"
+	// for now
+	def compilerArgs = ['-Xlint:unchecked', '-Xlint:-options', '-Xlint:deprecation', '-g']
+
+	// configure the compiler arguments of the various compile tasks
+	compileJava.options.compilerArgs = compilerArgs
+	compileTestJava.options.compilerArgs = compilerArgs
+	compileGroovy.options.compilerArgs = compilerArgs
+	compileTestGroovy.options.compilerArgs = compilerArgs
+
+	def sourceEncoding = 'UTF-8'
+
+	// configure the source encoding of the various compile tasks
+	compileJava.options.encoding = sourceEncoding
+	compileTestJava.options.encoding = sourceEncoding
+	compileGroovy.options.encoding = sourceEncoding
+	compileTestGroovy.options.encoding = sourceEncoding
+
+	// global exclude of "bad" dependencies
+	configurations {
+		all*.exclude group: 'commons-logging', module: 'commons-logging'
+		all*.exclude group: 'org.codehaus.groovy', module: 'groovy-all'
+	}
+
+	// this gives all subprojects a default set of test dependencies
+	dependencies {
+		testImplementation libraries.'byte-buddy'
+		testImplementation libraries.'groovy'
+		testImplementation libraries.'junit'
+		testImplementation libraries.'slf4j-api'
+		testImplementation libraries.'spock-core', {
+			exclude group: 'org.codehaus.groovy', module: 'groovy-all'
+		}
+		//testRuntimeOnly libraries.'logback-classic'
+	}
+}
+
+def getResolvedArtifacts(Set<ResolvedArtifact> artifacts) {
+    Set<String> resolvedArtifacts = [] as Set
+    artifacts.each {
+        // add current artifact
+        resolvedArtifacts << "${it.moduleGroup}:${it.moduleName}:${it.moduleVersion}"
+
+        // recursion to add children
+        resolvedArtifacts += getResolvedArtifacts(it.children)
+    }
+    return resolvedArtifacts
+}
+
+// the configuration of the subprojects is located in the file referenced below
+apply from: 'projects.gradle'

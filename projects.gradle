@@ -1,0 +1,132 @@
+// This file contains the configuration of all subprojects.
+//
+// The libraries, i.e. the definition of external dependencies
+// (group, artifact, version) are located in externalDependencies.gradle
+//
+// Be aware that subprojects must also be specified in settings.gradle!
+// Otherwise Gradle won't pick them up!
+
+project(':org.adealsystems.platform') {
+    dependencies {
+        implementation libraries.'slf4j-api'
+    }
+}
+
+project(':org.adealsystems.platform.spark') {
+    dependencies {
+        implementation project(':org.adealsystems.platform')
+        implementation libraries.'slf4j-api'
+        compileOnly libraries.'spark-core'
+        compileOnly libraries.'spark-sql' // for SparkSession m(
+        testImplementation libraries.'spark-sql' // for SparkSession m(
+        testImplementation project(':org.adealsystems.platform.spark.test')
+    }
+}
+
+project(':org.adealsystems.platform.spark.test') {
+    dependencies {
+        implementation project(':org.adealsystems.platform')
+        implementation libraries.'slf4j-api'
+        implementation libraries.'spark-core'
+        implementation libraries.'spark-sql' // for SparkSession m(
+        implementation libraries.'junit'
+        implementation libraries.'spock-core', {
+            exclude group: 'org.codehaus.groovy', module: 'groovy-all'
+        }
+    }
+}
+
+project(':org.adealsystems.platform.spark.udf') {
+    dependencies {
+        implementation project(':org.adealsystems.platform')
+        compileOnly libraries.'spark-sql'
+        testImplementation libraries.'spark-sql'
+    }
+}
+
+project(':org.adealsystems.platform.spark.example') {
+    dependencies {
+        implementation project(':org.adealsystems.platform')
+        implementation project(':org.adealsystems.platform.spark')
+        implementation project(':org.adealsystems.platform.spark.udf')
+        implementation libraries.'slf4j-api'
+        compileOnly libraries.'spark-core'
+        compileOnly libraries.'spark-sql' // for SparkSession m(
+        testImplementation project(':org.adealsystems.platform.spark.test')
+        testImplementation libraries.'spark-sql' // for SparkSession m(
+    }
+}
+
+project(':org.adealsystems.platform.spark.config.example') {
+    dependencies {
+        implementation project(':org.adealsystems.platform')
+        implementation project(':org.adealsystems.platform.spark')
+        implementation project(':org.adealsystems.platform.spark.example')
+        implementation libraries.'spring-context'
+    }
+}
+
+project(':org.adealsystems.platform.spark.main') {
+    dependencies {
+        implementation project(':org.adealsystems.platform')
+        implementation project(':org.adealsystems.platform.spark')
+        implementation libraries.'spring-context'
+        compileOnly libraries.'spark-core'
+        compileOnly libraries.'spark-sql' // for SparkSession m(
+    }
+}
+
+project(':org.adealsystems.platform.spark.app.example') {
+    apply plugin: 'application'
+    apply plugin: 'com.gorylenko.gradle-git-properties'
+    apply plugin: 'com.github.johnrengelman.shadow'
+
+    gitProperties {
+        gitPropertiesName = 'adeal-platform-git.properties'
+        keys = ['git.dirty', 'git.commit.id', 'git.commit.id.abbrev', 'git.commit.time']
+        customProperty 'build.name', { project.name }
+        customProperty 'build.version', { project.version }
+    }
+
+    configurations {
+        // see https://stackoverflow.com/questions/51048644/exclude-a-specific-dependency-from-springboots-bootjar-gradle-task/51109759
+        runtimeExcludedFromBootJar
+        runtime.extendsFrom runtimeExcludedFromBootJar
+    }
+
+    mainClassName = 'org.adealsystems.platform.spark.main.Application'
+
+    dependencies {
+        runtimeOnly project(':org.adealsystems.platform.spark.main')
+        runtimeOnly project(':org.adealsystems.platform.spark.config.example')
+        runtimeExcludedFromBootJar libraries.'spark-core'
+        runtimeExcludedFromBootJar libraries.'spark-sql' // for SparkSession m(
+        runtimeOnly 'org.codehaus.janino:janino:3.0.9' // Spark sucks
+        runtimeOnly 'org.codehaus.janino:commons-compiler:3.0.9' // Spark sucks
+    }
+
+    def firstLevelProvided = project.configurations.runtimeExcludedFromBootJar.getResolvedConfiguration().getFirstLevelModuleDependencies()
+    def artifactsToExclude = getResolvedArtifacts(firstLevelProvided)
+    artifactsToExclude.each { artifact ->
+        project.logger.info "Excluding ${artifact} from being bundled into the shadow jar."
+        shadowJar {
+            dependencies {
+                exclude(dependency(artifact))
+            }
+        }
+    }
+
+    // javadoc: error - No public or protected classes found to document.
+    // 1 error
+    // seinfeld.gif
+    javadoc.enabled = false
+
+    // disable anything we don't actually need.
+    distZip.enabled = false
+    distTar.enabled = false
+    shadowDistZip.enabled = false
+    shadowDistTar.enabled = false
+    //jar.enabled = false
+    sourcesJar.enabled = false
+    javadocJar.enabled = false
+}

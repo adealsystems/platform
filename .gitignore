@@ -1,0 +1,14 @@
+.gradle
+build
+out
+*.iml
+.DS_Store
+*.ipr
+*.iws
+.project
+.classpath
+*.class
+**/bin
+org.eclipse.buildship.core.prefs
+org.eclipse.jdt.core.prefs
+**/org.eclipse.jdt.groovy.core.prefs
