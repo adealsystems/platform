@@ -16,7 +16,7 @@ project.ext.libraries = [
         'commons-lang':           'org.apache.commons:commons-lang3:3.11',
         'groovy':                 "org.codehaus.groovy:groovy:${versions.groovy}",
         'jcl-over-slf4j':         "org.slf4j:jcl-over-slf4j:${versions.slf4j}",
-        'junit':                  'junit:junit:4.13',
+        'junit':                  'junit:junit:4.13.1',
         'logback-classic':        "ch.qos.logback:logback-classic:${versions.logback}",
 //'picocli':                "info.picocli:picocli:${versions.picocli}",
         'slf4j-api':              "org.slf4j:slf4j-api:${versions.slf4j}",
