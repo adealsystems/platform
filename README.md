@@ -75,7 +75,6 @@ The configuration of Checkstyle is located at `config/checkstyle`.
 - [Signatures](https://github.com/policeman-tools/forbidden-apis/wiki/BundledSignatures)
 
 ### AWS
-- [AWS Login](https://adeal-systems.signin.aws.amazon.com/console)
 - EMR logs are located at `(log-base-dir)/containers/application_(timestamp)/container_(timestamp)_01_000001/stderr`
 
 ## Dependencies
