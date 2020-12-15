@@ -1,5 +1,16 @@
 # Example App
 
+## Preparing execution
+The `application.properties` in module's root contains paths to input & output 
+folders of batch jobs.
+
+`data.location.base.directory.input=./data/export`
+`data.location.base.directory.output=./data/batch`
+
+A sample input file for the `ExampleBatchJob` is available in `./data/export/...` folder.
+
+Before start a job, verify if all needed files are available on specified paths.
+
 ## Execute without any arguments
 This will fail if more than one job has been defined. It will print a list of all valid
 job identifiers in that case.  
