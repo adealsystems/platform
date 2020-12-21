@@ -128,8 +128,18 @@ subprojects {
 					developers {
 						developer {
 							id = 'robFifth'
-							name = 'robert virga'
+							name = 'Robert Virga'
 							email = 'robert.virga@adeal-systems.com'
+						}
+						developer {
+							id = 'huxi'
+							name = 'Joern Huxhorn'
+							email = 'joern.huxhorn@adeal-systems.com'
+						}
+						developer {
+							id = 'vlad'
+							name = 'Vlad Satanovski'
+							email = 'vlad.satanovski@adeal-systems.com'
 						}
 					}
 				}
