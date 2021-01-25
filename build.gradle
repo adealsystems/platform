@@ -52,7 +52,7 @@ allprojects {
 		mavenCentral()
 	}
 
-	// this applies different configurations to the Javadoc task
+	// this applies to different configurations to the Javadoc task
 	// depending on whether or not we are working with Java 8 or
 	// higher
 	tasks.each { task ->
