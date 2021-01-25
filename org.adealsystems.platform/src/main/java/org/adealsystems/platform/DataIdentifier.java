@@ -26,7 +26,7 @@ public final class DataIdentifier implements Comparable<DataIdentifier> {
     static final String PATTERN_STRING = "[a-z][0-9a-z]*(_[0-9a-z]+)*";
     private static final Pattern PATTERN = Pattern.compile(PATTERN_STRING);
     private final String source;
-    private final String useCase;
+    private final String useCase; // not mandatory...
     private final String configuration;
     private final DataFormat dataFormat;
 
