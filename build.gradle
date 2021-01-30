@@ -100,8 +100,8 @@ subprojects {
 				def snapshotRepo = "https://oss.sonatype.org/content/repositories/snapshots/"
 				url = isReleaseVersion ? releaseRepo : snapshotRepo
 				credentials {
-					username = ossrhUsername
-					password = ossrhPassword
+					username = findProperty('ossrhUsername')
+					password = findProperty('ossrhPassword')
 				}
 			}
 		}
