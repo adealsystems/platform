@@ -67,7 +67,7 @@ public final class DataInstances {
         File dataFile = null;
         for (File file : files) {
             String fileName = file.getName();
-            if (fileName.equals(SUCCESS_FILE)) {
+            if (SUCCESS_FILE.equals(fileName)) {
                 success = true;
                 continue;
             }
