@@ -19,8 +19,6 @@ package org.adealsystems.platform
 import static org.adealsystems.platform.DataFormat.CSV_COMMA
 import static org.adealsystems.platform.DataFormat.CSV_SEMICOLON
 
-import org.adealsystems.platform.DataIdentifier
-
 import spock.lang.Specification
 import spock.lang.Unroll
 

@@ -27,7 +27,7 @@ public final class DataIdentifier implements Comparable<DataIdentifier> {
     private static final Pattern PATTERN = Pattern.compile(PATTERN_STRING);
 
     private final String source;
-    private final String useCase; // only available in the curated zone
+    private final String useCase;
     private final String configuration;
     private final DataFormat dataFormat;
 
