@@ -20,32 +20,52 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 public class DataLocation {
-    static final String PATTERN_STRING = "[a-z][0-9a-z]*(-[0-9a-z]+)*";
-    private static final Pattern PATTERN = Pattern.compile(PATTERN_STRING);
+    static final String NAME_PATTERN_STRING = "[a-z][0-9a-z]*(-[0-9a-z]+)*";
+    private static final Pattern NAME_PATTERN = Pattern.compile(NAME_PATTERN_STRING);
+
+    static final String ID_PATTERN_STRING = "[a-z]{2,3}";
+    private static final Pattern ID_PATTERN = Pattern.compile(ID_PATTERN_STRING);
 
     /**
      * Generic input location
      */
-    public static final DataLocation INPUT = new DataLocation("input");
+    public static final DataLocation INPUT = new DataLocation("input", "in");
 
     /**
      * Generic output location
      */
-    public static final DataLocation OUTPUT = new DataLocation("output");
-
+    public static final DataLocation OUTPUT = new DataLocation("output", "out");
 
     private final String name;
+    private final String id;
 
     public DataLocation(String name) {
         Objects.requireNonNull(name, "name must not be null!");
-        if (!PATTERN.matcher(name).matches()) {
-            throw new IllegalArgumentException("name value '" + name + "' doesn't match the pattern '" + PATTERN_STRING + "'!");
+        if (!NAME_PATTERN.matcher(name).matches()) {
+            throw new IllegalArgumentException("name value '" + name + "' doesn't match the pattern '" + NAME_PATTERN_STRING + "'!");
         }
         this.name = name;
+        this.id = name.substring(0, 3);
+    }
+
+    public DataLocation(String name, String id) {
+        Objects.requireNonNull(name, "name must not be null!");
+        if (!NAME_PATTERN.matcher(name).matches()) {
+            throw new IllegalArgumentException("name value '" + name + "' doesn't match the pattern '" + NAME_PATTERN_STRING + "'!");
+        }
+        if (!ID_PATTERN.matcher(id).matches()) {
+            throw new IllegalArgumentException("id value '" + id + "' doesn't match the pattern '" + ID_PATTERN_STRING + "'!");
+        }
+        this.name = name;
+        this.id = id;
     }
 
     public String getName() {
         return name;
+    }
+
+    public String getId() {
+        return id;
     }
 
     @Override
@@ -53,12 +73,12 @@ public class DataLocation {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         DataLocation that = (DataLocation) o;
-        return name.equals(that.name);
+        return Objects.equals(name, that.name) && Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name);
+        return Objects.hash(name, id);
     }
 
     @Override
