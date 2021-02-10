@@ -28,8 +28,11 @@ import org.adealsystems.platform.exceptions.DuplicateUniqueIdentifierException;
 import org.adealsystems.platform.exceptions.UnregisteredDataIdentifierException;
 import org.adealsystems.platform.exceptions.UnregisteredDataResolverException;
 import org.adealsystems.platform.exceptions.UnsupportedDataFormatException;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
+import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
@@ -38,9 +41,11 @@ import org.apache.spark.sql.UDFRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -56,6 +61,7 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
     private final DataIdentifier outputIdentifier;
     private final DataInstanceRegistry dataInstanceRegistry = new DataInstanceRegistry();
     private final Map<String, Object> writerOptions = new HashMap<>();
+    private final boolean storeAsSingleFile;
     private final LocalDate invocationDate;
     private final DatasetLogger datasetLogger;
 
@@ -67,16 +73,22 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
     private Broadcast<LocalDateTime> broadInvocationIdentifier;
     private final Logger logger;
 
-    public AbstractSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, DataIdentifier outputIdentifier, LocalDate invocationDate) {
+    public AbstractSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, DataIdentifier outputIdentifier, LocalDate invocationDate, boolean storeAsSingleFile) {
         this.invocationDate = Objects.requireNonNull(invocationDate, "invocationDate must not be null!");
         this.dataResolverRegistry = Objects.requireNonNull(dataResolverRegistry, "dataResolverRegistry must not be null!");
         this.outputLocation = Objects.requireNonNull(outputLocation, "outputLocation must not be null!");
         this.outputIdentifier = Objects.requireNonNull(outputIdentifier, "outputIdentifier must not be null!");
+        this.storeAsSingleFile = storeAsSingleFile;
+
         this.logger = LoggerFactory.getLogger(getClass());
         setWriteMode(WriteMode.DATE);
         DatasetLogger.Context dlc = DatasetLogger.newContext();
         dlc.setLogger(logger);
         this.datasetLogger = new DatasetLogger(dlc);
+    }
+
+    public AbstractSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, DataIdentifier outputIdentifier, LocalDate invocationDate) {
+        this(dataResolverRegistry, outputLocation, outputIdentifier, invocationDate, false);
     }
 
     protected final void setWriteMode(WriteMode writeMode) {
@@ -377,16 +389,16 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
         DataFormat dataFormat = dataInstance.getDataFormat();
         switch (dataFormat) {
             case CSV_COMMA:
-                writeDatasetAsCsv(COMMA, result, path);
+                writeDatasetAsCsv(COMMA, result, path, storeAsSingleFile, sparkContext, writerOptions);
                 return;
             case CSV_SEMICOLON:
-                writeDatasetAsCsv(SEMICOLON, result, path);
+                writeDatasetAsCsv(SEMICOLON, result, path, storeAsSingleFile, sparkContext, writerOptions);
                 return;
             case JSON:
-                writeDatasetAsJson(result, path);
+                writeDatasetAsJson(result, path, storeAsSingleFile, sparkContext, writerOptions);
                 return;
             case AVRO:
-                writeDatasetAsAvro(result, path);
+                writeDatasetAsAvro(result, path, storeAsSingleFile, sparkContext, writerOptions);
                 return;
             default:
                 throw new UnsupportedDataFormatException(dataFormat);
@@ -429,15 +441,26 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
                 .load(fileName);
     }
 
-    private static void writeDatasetAsCsv(String delimiter, Dataset<Row> dataset, String fileName) {
-        // TODO: option names
+    private static void writeDatasetAsCsv(
+            String delimiter,
+            Dataset<Row> dataset,
+            String fileName,
+            boolean storeAsSingleFile,
+            JavaSparkContext sparkContext,
+            Map<String, Object> writerOptions
+    ) {
+        String targetPath = fileName;
+        if (storeAsSingleFile) {
+            targetPath = fileName + "__temp";
+        }
+
         // https://spark.apache.org/docs/2.4.3/api/java/org/apache/spark/sql/DataFrameWriter.html#csv-java.lang.String-
-        dataset.write() //
-                .mode(SaveMode.Overwrite) //
-                .option("header", "true") //
+        DataFrameWriter<Row> writer = dataset.write()
+                .mode(SaveMode.Overwrite)
+                .option("header", "true")
                 .option("delimiter", delimiter) // TODO: option names
-                .option("emptyValue", "") // TODO: option names
-                .csv(fileName);
+                .option("emptyValue", ""); // TODO: option names
+
         for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
             Object value = option.getValue();
             Class<?> valueClass = value.getClass();
@@ -451,12 +474,29 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
                 writer.option(option.getKey(), (String) value);
             }
         }
+
+        writer.csv(targetPath);
+
+        if (storeAsSingleFile) {
+            try (FileSystem fs = FileSystem.get(sparkContext.hadoopConfiguration())) {
+                Path targetFilePath = fs.globStatus(new Path(targetPath + "/part-*"))[0].getPath();
+                fs.rename(targetFilePath, new Path(fileName));
+                fs.delete(new Path(targetPath), true);
+            } catch (IOException ex) {
+                throw new IllegalStateException("Unable to rename result file!", ex);
+            }
+        }
     }
 
-    private static void writeDatasetAsJson(Dataset<Row> dataset, String fileName) {
-        dataset.write() //
-                .mode(SaveMode.Overwrite) //
-                .json(fileName);
+    private static void writeDatasetAsJson(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
+        String targetPath = fileName;
+        if (storeAsSingleFile) {
+            targetPath = fileName + "__temp";
+        }
+
+        DataFrameWriter<Row> writer = dataset.write()
+                .mode(SaveMode.Overwrite);
+
         for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
             Object value = option.getValue();
             Class<?> valueClass = value.getClass();
@@ -470,13 +510,30 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
                 writer.option(option.getKey(), (String) value);
             }
         }
+
+        writer.json(targetPath);
+
+        if (storeAsSingleFile) {
+            try (FileSystem fs = FileSystem.get(sparkContext.hadoopConfiguration())) {
+                Path targetFilePath = fs.globStatus(new Path(targetPath + "/part-*"))[0].getPath();
+                fs.rename(targetFilePath, new Path(fileName));
+                fs.delete(new Path(targetPath), true);
+            } catch (IOException ex) {
+                throw new IllegalStateException("Unable to rename result file!", ex);
+            }
+        }
     }
 
-    private static void writeDatasetAsAvro(Dataset<Row> dataset, String fileName) {
-        dataset.write() //
-                .mode(SaveMode.Overwrite) //
-                .format("avro") //
-                .save(fileName);
+    private static void writeDatasetAsAvro(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
+        String targetPath = fileName;
+        if (storeAsSingleFile) {
+            targetPath = fileName + "__temp";
+        }
+
+        DataFrameWriter<Row> writer = dataset.write()
+                .mode(SaveMode.Overwrite)
+                .format("avro");
+
         for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
             Object value = option.getValue();
             Class<?> valueClass = value.getClass();
@@ -488,6 +545,18 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
                 writer.option(option.getKey(), (boolean) value);
             } else {
                 writer.option(option.getKey(), (String) value);
+            }
+        }
+
+        writer.save(targetPath);
+
+        if (storeAsSingleFile) {
+            try (FileSystem fs = FileSystem.get(sparkContext.hadoopConfiguration())) {
+                Path targetFilePath = fs.globStatus(new Path(targetPath + "/part-*"))[0].getPath();
+                fs.rename(targetFilePath, new Path(fileName));
+                fs.delete(new Path(targetPath), true);
+            } catch (IOException ex) {
+                throw new IllegalStateException("Unable to rename result file!", ex);
             }
         }
     }
