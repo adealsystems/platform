@@ -55,6 +55,7 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
     private final DataLocation outputLocation;
     private final DataIdentifier outputIdentifier;
     private final DataInstanceRegistry dataInstanceRegistry = new DataInstanceRegistry();
+    private final Map<String, Object> writerOptions = new HashMap<>();
     private final LocalDate invocationDate;
     private final DatasetLogger datasetLogger;
 
@@ -93,6 +94,24 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
         registerUdfs(this.sparkSession.udf());
         dataInstanceRegistry.clear(); // get rid of inputs from previous run
         registerInputs();
+    }
+
+    @Override
+    public Map<String, Object> getWriterOptions() {
+        return new HashMap<>(writerOptions);
+    }
+
+    @Override
+    public void setWriterOptions(Map<String, Object> options) {
+        Objects.requireNonNull(options, "options must not be null!");
+        writerOptions.putAll(options);
+    }
+
+    @Override
+    public void setWriterOption(String name, Object value) {
+        Objects.requireNonNull(name, "option name must not be null!");
+        Objects.requireNonNull(value, "option value must not be null!");
+        writerOptions.put(name, value);
     }
 
     protected LocalDateTime getInvocationIdentifier() {
@@ -419,12 +438,38 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
                 .option("delimiter", delimiter) // TODO: option names
                 .option("emptyValue", "") // TODO: option names
                 .csv(fileName);
+        for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
+            Object value = option.getValue();
+            Class<?> valueClass = value.getClass();
+            if (Long.class.isAssignableFrom(valueClass)) {
+                writer.option(option.getKey(), (long) value);
+            } else if (Double.class.isAssignableFrom(valueClass)) {
+                writer.option(option.getKey(), (double) value);
+            } else if (Boolean.class.isAssignableFrom(valueClass)) {
+                writer.option(option.getKey(), (boolean) value);
+            } else {
+                writer.option(option.getKey(), (String) value);
+            }
+        }
     }
 
     private static void writeDatasetAsJson(Dataset<Row> dataset, String fileName) {
         dataset.write() //
                 .mode(SaveMode.Overwrite) //
                 .json(fileName);
+        for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
+            Object value = option.getValue();
+            Class<?> valueClass = value.getClass();
+            if (Long.class.isAssignableFrom(valueClass)) {
+                writer.option(option.getKey(), (long) value);
+            } else if (Double.class.isAssignableFrom(valueClass)) {
+                writer.option(option.getKey(), (double) value);
+            } else if (Boolean.class.isAssignableFrom(valueClass)) {
+                writer.option(option.getKey(), (boolean) value);
+            } else {
+                writer.option(option.getKey(), (String) value);
+            }
+        }
     }
 
     private static void writeDatasetAsAvro(Dataset<Row> dataset, String fileName) {
@@ -432,6 +477,19 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
                 .mode(SaveMode.Overwrite) //
                 .format("avro") //
                 .save(fileName);
+        for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
+            Object value = option.getValue();
+            Class<?> valueClass = value.getClass();
+            if (Long.class.isAssignableFrom(valueClass)) {
+                writer.option(option.getKey(), (long) value);
+            } else if (Double.class.isAssignableFrom(valueClass)) {
+                writer.option(option.getKey(), (double) value);
+            } else if (Boolean.class.isAssignableFrom(valueClass)) {
+                writer.option(option.getKey(), (boolean) value);
+            } else {
+                writer.option(option.getKey(), (String) value);
+            }
+        }
     }
 
     protected enum WriteMode {

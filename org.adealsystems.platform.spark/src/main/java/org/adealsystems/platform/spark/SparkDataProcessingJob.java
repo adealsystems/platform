@@ -19,6 +19,14 @@ package org.adealsystems.platform.spark;
 import org.adealsystems.platform.DataProcessingJob;
 import org.apache.spark.sql.SparkSession;
 
+import java.util.Map;
+
 public interface SparkDataProcessingJob extends DataProcessingJob, AutoCloseable {
     void init(SparkSession sparkSession);
+
+    Map<String, Object> getWriterOptions();
+
+    void setWriterOptions(Map<String, Object> options);
+
+    void setWriterOption(String name, Object value);
 }
