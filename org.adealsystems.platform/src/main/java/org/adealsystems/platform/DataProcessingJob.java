@@ -22,7 +22,7 @@ import java.util.Set;
 public interface DataProcessingJob {
     Map<DataIdentifier, Set<DataInstance>> getInputInstances();
 
-    DataIdentifier getOutputIdentifier();
+    Set<DataIdentifier> getOutputIdentifiers();
 
     void execute();
 }

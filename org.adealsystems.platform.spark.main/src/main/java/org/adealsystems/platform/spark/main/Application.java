@@ -203,7 +203,7 @@ public class Application {
 
 
     private static void processJob(SparkDataProcessingJob sparkJob, SparkSession sparkSession) {
-        LOGGER.info("\n\n## Starting batch job {}...\n#### Class : {}", sparkJob.getOutputIdentifier(), sparkJob.getClass());
+        LOGGER.info("\n\n## Starting batch job {}...\n#### Class : {}", sparkJob.getOutputIdentifiers(), sparkJob.getClass());
         sparkJob.init(sparkSession); // no, sparkSession.newSession() does not help. m(
         if (LOGGER.isInfoEnabled()) {
             StringBuilder builder = new StringBuilder();
@@ -216,7 +216,7 @@ public class Application {
             LOGGER.info(builder.toString());
         }
         sparkJob.execute();
-        LOGGER.info("\n## Finished batch job {}", sparkJob.getOutputIdentifier());
+        LOGGER.info("\n## Finished batch job {}", sparkJob.getOutputIdentifiers());
     }
 
     private static ParsedArgs processArgs(String[] args) {
@@ -264,10 +264,17 @@ public class Application {
         Map<DataIdentifier, SparkDataProcessingJob> result = new HashMap<>();
         for (Map.Entry<String, SparkDataProcessingJob> entry : jobs.entrySet()) {
             SparkDataProcessingJob value = entry.getValue();
-            DataIdentifier outputIdentifier = value.getOutputIdentifier();
-            SparkDataProcessingJob previous = result.put(outputIdentifier, value);
-            if (previous != null) {
-                throw new IllegalStateException("Duplicate entries for " + outputIdentifier + "! previous: " + previous.getClass() + ",  current: " + value.getClass());
+            Set<DataIdentifier> outputIdentifiers = value.getOutputIdentifiers();
+            if (outputIdentifiers == null || outputIdentifiers.isEmpty()) {
+                LOGGER.warn("Found a processing job {} without any output data identifier configured!", value);
+                continue;
+            }
+
+            for (DataIdentifier outputIdentifier : outputIdentifiers) {
+                SparkDataProcessingJob previous = result.put(outputIdentifier, value);
+                if (previous != null) {
+                    throw new IllegalStateException("Duplicate entries for " + outputIdentifier + "! previous: " + previous.getClass() + ",  current: " + value.getClass());
+                }
             }
         }
         return result;

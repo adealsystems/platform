@@ -74,7 +74,7 @@ public class ExampleBatchJobTest extends AbstractBatchJobTest {
         try (ExampleBatchJob instance = new ExampleBatchJob(dataResolverRegistry, TODAY)) {
             // when:
             instance.init(sparkSession);
-            outputIdentifier = instance.getOutputIdentifier();
+            outputIdentifier = instance.getOutputIdentifiers().iterator().next();
             instance.execute();
         }
 

@@ -20,7 +20,7 @@ import org.adealsystems.platform.DataFormat;
 import org.adealsystems.platform.DataIdentifier;
 import org.adealsystems.platform.DataLocation;
 import org.adealsystems.platform.DataResolverRegistry;
-import org.adealsystems.platform.spark.AbstractSparkBatchJob;
+import org.adealsystems.platform.spark.AbstractSingleOutputSparkBatchJob;
 import org.adealsystems.platform.spark.DatasetLogger;
 import org.adealsystems.platform.spark.udf.SomethingToLocalDateStringUDF;
 import org.adealsystems.platform.spark.udf.WeekOfYearOfDateUDF;
@@ -35,7 +35,7 @@ import java.util.Locale;
 import static org.apache.spark.sql.functions.callUDF;
 import static org.apache.spark.sql.functions.col;
 
-public class ExampleBatchJob extends AbstractSparkBatchJob {
+public class ExampleBatchJob extends AbstractSingleOutputSparkBatchJob {
 
     private static final DataIdentifier OUTPUT_IDENTIFIER = new DataIdentifier("example", "output", DataFormat.CSV_SEMICOLON);
     private static final DataIdentifier INPUT_IDENTIFIER = new DataIdentifier("some_exporter", "input", DataFormat.CSV_SEMICOLON);

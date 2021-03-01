@@ -46,6 +46,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,12 +54,14 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
+public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProcessingJob {
     private static final String SEMICOLON = ";";
     private static final String COMMA = ",";
+    private static final String PIPE = "|";
+
     private final DataResolverRegistry dataResolverRegistry;
     private final DataLocation outputLocation;
-    private final DataIdentifier outputIdentifier;
+    private final Set<DataIdentifier> outputIdentifiers;
     private final DataInstanceRegistry dataInstanceRegistry = new DataInstanceRegistry();
     private final Map<String, Object> writerOptions = new HashMap<>();
     private final boolean storeAsSingleFile;
@@ -73,11 +76,14 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
     private Broadcast<LocalDateTime> broadInvocationIdentifier;
     private final Logger logger;
 
-    public AbstractSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, DataIdentifier outputIdentifier, LocalDate invocationDate, boolean storeAsSingleFile) {
+    public AbstractSingleOutputSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, DataIdentifier outputIdentifier, LocalDate invocationDate, boolean storeAsSingleFile) {
         this.invocationDate = Objects.requireNonNull(invocationDate, "invocationDate must not be null!");
         this.dataResolverRegistry = Objects.requireNonNull(dataResolverRegistry, "dataResolverRegistry must not be null!");
         this.outputLocation = Objects.requireNonNull(outputLocation, "outputLocation must not be null!");
-        this.outputIdentifier = Objects.requireNonNull(outputIdentifier, "outputIdentifier must not be null!");
+
+        this.outputIdentifiers = new HashSet<>(1);
+        this.outputIdentifiers.add(Objects.requireNonNull(outputIdentifier, "outputIdentifier must not be null!"));
+
         this.storeAsSingleFile = storeAsSingleFile;
 
         this.logger = LoggerFactory.getLogger(getClass());
@@ -87,7 +93,7 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
         this.datasetLogger = new DatasetLogger(dlc);
     }
 
-    public AbstractSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, DataIdentifier outputIdentifier, LocalDate invocationDate) {
+    public AbstractSingleOutputSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, DataIdentifier outputIdentifier, LocalDate invocationDate) {
         this(dataResolverRegistry, outputLocation, outputIdentifier, invocationDate, false);
     }
 
@@ -150,7 +156,7 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
      * <p>
      * Inputs may differ if outputIdentifier contains a configuration.
      *
-     * @see #getOutputIdentifier() method to access the output DataIdentifier.
+     * @see #getOutputIdentifiers() method to access the output DataIdentifier.
      */
     protected abstract void registerInputs();
 
@@ -168,10 +174,9 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
         writeOutput(processData());
     }
 
-
     @Override
-    public DataIdentifier getOutputIdentifier() {
-        return outputIdentifier;
+    public Set<DataIdentifier> getOutputIdentifiers() {
+        return outputIdentifiers;
     }
 
     @Override
@@ -356,6 +361,8 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
                 return readCsvAsDataset(COMMA, path);
             case CSV_SEMICOLON:
                 return readCsvAsDataset(SEMICOLON, path);
+            case CSV_PIPE:
+                return readCsvAsDataset(PIPE, path);
             case JSON:
                 return readJsonAsDataset(path);
             case AVRO:
@@ -367,6 +374,13 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
 
     private void writeOutput(Dataset<Row> outputDataset) {
         Objects.requireNonNull(outputDataset, "outputDataset must not be null!");
+
+        if (outputIdentifiers.size() != 1) {
+            throw new IllegalArgumentException("More than one output identifier configured! Please write your output with specifying a corresponding identifier!");
+        }
+        // use the only one configured output identifier
+        DataIdentifier outputIdentifier = outputIdentifiers.iterator().next();
+
         DataResolver dataResolver = dataResolverRegistry.getResolverFor(outputLocation);
 
         getDatasetLogger().showInfo("About to write the following data for " + outputIdentifier, outputDataset);
@@ -393,6 +407,9 @@ public abstract class AbstractSparkBatchJob implements SparkDataProcessingJob {
                 return;
             case CSV_SEMICOLON:
                 writeDatasetAsCsv(SEMICOLON, result, path, storeAsSingleFile, sparkContext, writerOptions);
+                return;
+            case CSV_PIPE:
+                writeDatasetAsCsv(PIPE, result, path, storeAsSingleFile, sparkContext, writerOptions);
                 return;
             case JSON:
                 writeDatasetAsJson(result, path, storeAsSingleFile, sparkContext, writerOptions);

@@ -68,7 +68,7 @@ class AbstractSparkBatchJobSpec extends AbstractBatchJobSpec {
         someDate.get() == SOME_DATE
     }
 
-    static class TestBatchJob extends AbstractSparkBatchJob {
+    static class TestBatchJob extends AbstractSingleOutputSparkBatchJob {
         static final DataIdentifier CURRENT_INPUT_IDENTIFIER = new DataIdentifier("input", "without_date", DataFormat.CSV_SEMICOLON)
         static final DataIdentifier TODAY_INPUT_IDENTIFIER = new DataIdentifier("input", "with_today_date", DataFormat.CSV_SEMICOLON)
         static final DataIdentifier SOME_DATE_INPUT_IDENTIFIER = new DataIdentifier("input", "with_some_date", DataFormat.CSV_SEMICOLON)

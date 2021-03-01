@@ -65,7 +65,7 @@ class ExampleBatchJobSpec extends AbstractBatchJobSpec {
         instance.close()
 
         then:
-        def outputIdentifier = instance.getOutputIdentifier()
+        def outputIdentifier = instance.getOutputIdentifiers().iterator().next()
         def dataResolver = dataResolverRegistry.getResolverFor(DataLocation.OUTPUT)
         def outputInstance = dataResolver.createCurrentInstance(outputIdentifier)
         def outputLines = readBatchLines(outputInstance)
