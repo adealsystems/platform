@@ -21,6 +21,7 @@ import java.util.Objects;
 public enum DataFormat {
     CSV_COMMA(".csv"),
     CSV_SEMICOLON(".csv"),
+    CSV_PIPE(".csv"),
     JSON(".json"),
     AVRO(".avro");
 
