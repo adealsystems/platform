@@ -58,7 +58,7 @@ class DataIdentifierSpec extends Specification {
         "source"  | "use_case" | "config"      | null       | NullPointerException     | "dataFormat must not be null!"
         "_broken" | "use_case" | "config"      | CSV_COMMA  | IllegalArgumentException | "source value '_broken' doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!"
         "source"  | "_broken"  | "config"      | CSV_COMMA  | IllegalArgumentException | "useCase value '_broken' doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!"
-        "source"  | "use_case" | "_broken"     | CSV_COMMA  | IllegalArgumentException | "configuration value '_broken' doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!"
+        "source"  | "use_case" | "_broken"     | CSV_COMMA  | IllegalArgumentException | "configuration value '_broken' doesn't match the pattern '" + DataIdentifier.CONFIGURATION_PATTERN_STRING + "'!"
     }
 
     @Unroll

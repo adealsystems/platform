@@ -256,6 +256,28 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
     }
 
     /**
+     * Registers inputs for the given location, identifier and date.
+     *
+     * @param dataLocation     the DataLocation
+     * @param inputIdentifiers DataIdentifier of the input
+     * @param date             the date to be associated with the data instance
+     * @throws NullPointerException                   if either dataLocation, inputIdentifier or date are null
+     * @throws UnregisteredDataResolverException      if no DataResolver has been registered for the given DataLocation
+     * @throws DuplicateInstanceRegistrationException if the data instance was already registered
+     */
+    protected void registerInputs(DataLocation dataLocation, Collection<DataIdentifier> inputIdentifiers, LocalDate date) {
+        Objects.requireNonNull(dataLocation, "dataLocation must not be null!");
+        Objects.requireNonNull(inputIdentifiers, "inputIdentifiers must not be null!");
+        Objects.requireNonNull(date, "date must not be null!");
+
+        DataResolver inputDataResolver = dataResolverRegistry.getResolverFor(dataLocation);
+
+        for (DataIdentifier inputIdentifier : inputIdentifiers) {
+            dataInstanceRegistry.register(inputDataResolver.createDateInstance(inputIdentifier, date));
+        }
+    }
+
+    /**
      * Reads the Dataset registered for the given data identifier.
      * <p>
      * This method throws an exception if more than one DataInstance was
@@ -276,6 +298,37 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
             return readInput(dataInstance);
         }
         throw new UnregisteredDataIdentifierException(dataIdentifier);
+    }
+
+    /**
+     * Reads Datasets registered for the given data identifier and combines all of them to one Dataset.
+     * <p>
+     * This method throws an exception if more than one DataInstance was
+     * registered for the given DataIdentifier or if no DataIdentifier was
+     * registered for the given DataIdentifier at all.
+     * <p>
+     * Any exception happening during reading of the Dataset is propagated to the caller.
+     *
+     * @param dataIdentifiers data identifiers used to resolve the data instance
+     * @return the (unique) Dataset for given DataIdentifiers
+     * @throws NullPointerException                if dataIdentifiers is null
+     * @throws DuplicateUniqueIdentifierException  if more than one DataInstance was registered for the given DataIdentifier
+     * @throws UnregisteredDataIdentifierException if no DataInstance was registered for the given DataIdentifier
+     */
+    protected Dataset<Row> readInputs(Collection<DataIdentifier> dataIdentifiers) {
+        Dataset<Row> dataset = null;
+
+        for (DataIdentifier dataIdentifier : dataIdentifiers) {
+            Dataset<Row> currentDataset = readInput(dataIdentifier);
+
+            if (dataset == null) {
+                dataset = currentDataset;
+            } else {
+                dataset = dataset.union(currentDataset);
+            }
+        }
+
+        return dataset;
     }
 
     /**
@@ -308,6 +361,45 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
             }
         }
         throw new UnregisteredDataIdentifierException(dataIdentifier);
+    }
+
+    /**
+     * Reads Datasets registered for the given data identifier.
+     * <p>
+     * This method throws an exception if more than one DataInstance was
+     * registered for the given DataIdentifier or if no DataIdentifier was
+     * registered for the given DataIdentifier at all.
+     * <p>
+     * Any exception happening during reading of the Dataset is silently ignored
+     * and Optional.empty() is returned instead.
+     *
+     * @param dataIdentifiers data identifiers used to resolve the data instance
+     * @return the (unique) Dataset for given DataIdentifiers
+     * @throws NullPointerException                if dataIdentifiers is null
+     * @throws DuplicateUniqueIdentifierException  if more than one DataInstance was registered for the given DataIdentifier
+     * @throws UnregisteredDataIdentifierException if no DataInstance was registered for the given DataIdentifier
+     */
+    protected Optional<Dataset<Row>> readOptionalInputs(Collection<DataIdentifier> dataIdentifiers) {
+        Dataset<Row> dataset = null;
+
+        for (DataIdentifier dataIdentifier : dataIdentifiers) {
+            Optional<Dataset<Row>> oCurrentDataset = readOptionalInput(dataIdentifier);
+            if (!oCurrentDataset.isPresent()) {
+                continue;
+            }
+
+            if (dataset == null) {
+                dataset = oCurrentDataset.get();
+            } else {
+                dataset = dataset.union(oCurrentDataset.get());
+            }
+        }
+
+        if (dataset == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(dataset);
     }
 
     /**
