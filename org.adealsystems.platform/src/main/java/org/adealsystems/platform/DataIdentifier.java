@@ -24,7 +24,9 @@ import java.util.regex.Pattern;
 public final class DataIdentifier implements Comparable<DataIdentifier> {
     public static final String SEPARATOR = ":";
     static final String PATTERN_STRING = "[a-z][0-9a-z]*(_[0-9a-z]+)*";
+    static final String CONFIGURATION_PATTERN_STRING = "[a-zA-Z][0-9a-zA-Z]*([\\_\\-\\.0-9a-zA-Z]+)*";
     private static final Pattern PATTERN = Pattern.compile(PATTERN_STRING);
+    private static final Pattern CONFIGURATION_PATTERN = Pattern.compile(CONFIGURATION_PATTERN_STRING);
 
     private final String source;
     private final String useCase;
@@ -36,21 +38,25 @@ public final class DataIdentifier implements Comparable<DataIdentifier> {
     }
 
     public DataIdentifier(String source, String useCase, String configuration, DataFormat dataFormat) {
-        this.source = checkElement("source", source, false);
-        this.useCase = checkElement("useCase", useCase, false);
-        this.configuration = checkElement("configuration", configuration, true);
+        this.source = checkElement("source", source, PATTERN, false);
+        this.useCase = checkElement("useCase", useCase, PATTERN, false);
+        this.configuration = checkElement("configuration", configuration, CONFIGURATION_PATTERN, true);
         this.dataFormat = Objects.requireNonNull(dataFormat, "dataFormat must not be null!");
     }
 
     static String checkElement(String name, String value, boolean optional) {
+        return checkElement(name, value, PATTERN, optional);
+    }
+
+    static String checkElement(String name, String value, Pattern pattern, boolean optional) {
         Objects.requireNonNull(name, "name must not be null!");
         if (optional && value == null) {
             return null;
         }
 
         Objects.requireNonNull(value, name + " must not be null!");
-        if (!PATTERN.matcher(value).matches()) {
-            throw new IllegalArgumentException(name + " value '" + value + "' doesn't match the pattern '" + PATTERN_STRING + "'!");
+        if (!pattern.matcher(value).matches()) {
+            throw new IllegalArgumentException(name + " value '" + value + "' doesn't match the pattern '" + pattern.pattern() + "'!");
         }
 
         return value;
