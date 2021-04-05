@@ -76,6 +76,8 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
     private SparkSession sparkSession;
     private JavaSparkContext sparkContext;
 
+    private SparkResultWriterInterceptor sparkResultWriterInterceptor;
+
     private Broadcast<LocalDateTime> broadInvocationIdentifier;
     private final Logger logger;
 
@@ -98,6 +100,10 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
     public AbstractMultipleOutputSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, Collection<DataIdentifier> outputIdentifiers, LocalDate invocationDate) {
         this(dataResolverRegistry, outputLocation, outputIdentifiers, invocationDate, false);
+    }
+
+    public void setSparkResultWriterInterceptor(SparkResultWriterInterceptor sparkResultWriterInterceptor) {
+        this.sparkResultWriterInterceptor = sparkResultWriterInterceptor;
     }
 
     protected final void setWriteMode(WriteMode writeMode) {
@@ -388,6 +394,10 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         outputDataset = outputDataset.repartition(1); // always repartition(1) before writing!
         if (writeMode == WriteMode.DATE || writeMode == WriteMode.BOTH) {
             DataInstance dateInstance = dataResolver.createDateInstance(outputIdentifier, invocationDate);
+            if (sparkResultWriterInterceptor != null) {
+                logger.info("Registering result of {} by sparkResultWriterInterceptor.", dateInstance);
+                sparkResultWriterInterceptor.registerResult(outputLocation, dateInstance, outputDataset);
+            }
             writeOutput(dateInstance, outputDataset);
         }
 
@@ -500,7 +510,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
             Path batchResultDir = new Path(targetPath);
             Configuration hadoopConfig = sparkContext.hadoopConfiguration();
             try (FileSystem fs = batchResultDir.getFileSystem(hadoopConfig)) {
-                Path targetFilePath = fs.globStatus(new Path(batchResultDir,"part-*"))[0].getPath(); // TODO: multi-partition handling
+                Path targetFilePath = fs.globStatus(new Path(batchResultDir, "part-*"))[0].getPath(); // TODO: multi-partition handling
                 FileUtil.copy(fs, targetFilePath, fs, targetFile, true, true, hadoopConfig);
                 // fs.rename(targetFilePath, targetFile);
                 fs.delete(batchResultDir, true);
