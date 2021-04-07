@@ -42,9 +42,9 @@ public class FileDataResolutionStrategy implements DataResolutionStrategy {
         Objects.requireNonNull(baseDirectory, "baseDirectory must not be null!");
         if (!baseDirectory.exists()) {
             if (baseDirectory.mkdirs()) {
-                LOGGER.debug("Created base-directory '{}'.", baseDirectory.getAbsolutePath());
+                if(LOGGER.isDebugEnabled()) LOGGER.debug("Created base-directory '{}'.", baseDirectory.getAbsolutePath());
             } else {
-                LOGGER.warn("Failed to create base-directory '{}'!", baseDirectory.getAbsolutePath());
+                if(LOGGER.isWarnEnabled()) LOGGER.warn("Failed to create base-directory '{}'!", baseDirectory.getAbsolutePath());
             }
         }
         if (!baseDirectory.isDirectory()) {
@@ -64,9 +64,9 @@ public class FileDataResolutionStrategy implements DataResolutionStrategy {
         File parent = file.getParentFile();
         if (!parent.exists()) {
             if (parent.mkdirs()) {
-                LOGGER.debug("Created parent '{}'.", parent.getAbsolutePath());
+                if(LOGGER.isDebugEnabled()) LOGGER.debug("Created parent '{}'.", parent.getAbsolutePath());
             } else {
-                LOGGER.warn("Failed to create parent '{}'!", parent.getAbsolutePath());
+                if(LOGGER.isWarnEnabled()) LOGGER.warn("Failed to create parent '{}'!", parent.getAbsolutePath());
             }
         }
         return Files.newOutputStream(Paths.get(file.getAbsolutePath()));

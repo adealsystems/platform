@@ -203,7 +203,7 @@ public class Application {
 
 
     private static void processJob(SparkDataProcessingJob sparkJob, SparkSession sparkSession) {
-        LOGGER.info("\n\n## Starting batch job {}...\n#### Class : {}", sparkJob.getOutputIdentifiers(), sparkJob.getClass());
+        if(LOGGER.isInfoEnabled()) LOGGER.info("\n\n## Starting batch job {}...\n#### Class : {}", sparkJob.getOutputIdentifiers(), sparkJob.getClass());
         sparkJob.init(sparkSession); // no, sparkSession.newSession() does not help. m(
         if (LOGGER.isInfoEnabled()) {
             StringBuilder builder = new StringBuilder();
@@ -216,7 +216,7 @@ public class Application {
             LOGGER.info(builder.toString());
         }
         sparkJob.execute();
-        LOGGER.info("\n## Finished batch job {}", sparkJob.getOutputIdentifiers());
+        if(LOGGER.isInfoEnabled()) LOGGER.info("\n## Finished batch job {}", sparkJob.getOutputIdentifiers());
     }
 
     private static ParsedArgs processArgs(String[] args) {

@@ -34,6 +34,6 @@ public class DatasetLoggerInit implements ApplicationListener<ContextRefreshedEv
     @Override
     public void onApplicationEvent(ContextRefreshedEvent ignored) {
         DatasetLogger.setDisabledGlobally(datasetLoggerDisabled);
-        LOGGER.info("DatasetLogger.isDisabledGlobally(): {}", DatasetLogger.isDisabledGlobally());
+        if(LOGGER.isInfoEnabled()) LOGGER.info("DatasetLogger.isDisabledGlobally(): {}", DatasetLogger.isDisabledGlobally());
     }
 }

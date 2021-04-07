@@ -619,6 +619,7 @@ public class DatasetLogger {
             // use DatasetLogger.newContext() factory method
         }
 
+        @SuppressWarnings("PMD.UnusedPrivateMethod") // false positive PMD 6.33.0
         private static Context getDefaultContext() {
             return DEFAULT_CONTEXT;
         }
