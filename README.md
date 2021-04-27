@@ -32,6 +32,9 @@ This is NOT done by default because building Javadoc, Javadoc-JARs and Source-JA
 
 ## Quality
 
+### License
+The `licenseFormat` task applies/updates the license of all relevant files.
+
 ### Javadoc
 Generate documentation by executing `./gradlew javadoc`.
 
