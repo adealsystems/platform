@@ -22,6 +22,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * Drains to a contained List.
+ *
+ * @param <E> the type this Drain can handle.
+ */
 public class ListDrain<E> implements Drain<E> {
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -44,7 +49,7 @@ public class ListDrain<E> implements Drain<E> {
 
     @Override
     @SuppressWarnings("PMD.AvoidCatchingNPE")
-    public void addAll(Collection<? extends E> collection) {
+    public void addAll(Collection<E> collection) {
         Objects.requireNonNull(collection, "collection must not be null!");
         if (collection.isEmpty()) {
             return;
@@ -92,5 +97,12 @@ public class ListDrain<E> implements Drain<E> {
         } finally {
             lock.unlock();
         }
+    }
+
+    @Override
+    public String toString() {
+        return "ListDrain{" +
+                "content=" + content +
+                '}';
     }
 }

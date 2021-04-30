@@ -12,6 +12,20 @@ project(':org.adealsystems.platform') {
     }
 }
 
+project(':org.adealsystems.platform.io') {
+    dependencies {
+        implementation libraries.'slf4j-api'
+    }
+}
+
+project(':org.adealsystems.platform.io.json') {
+    dependencies {
+        implementation project(':org.adealsystems.platform.io')
+        implementation libraries.'jackson-databind'
+        implementation libraries.'commons-compress'
+    }
+}
+
 project(':org.adealsystems.platform.spark') {
     dependencies {
         implementation project(':org.adealsystems.platform')
@@ -129,4 +143,16 @@ project(':org.adealsystems.platform.spark.app.example') {
     //jar.enabled = false
     sourcesJar.enabled = false
     javadocJar.enabled = false
+}
+
+project(':org.adealsystems.platform.webcollector') {
+    dependencies {
+        implementation project(':org.adealsystems.platform.io')
+        implementation libraries.'slf4j-api'
+        implementation libraries.'httpclient'
+        runtimeOnly libraries.'httpcore'
+        testImplementation libraries.'jackson-databind'
+        testRuntimeOnly libraries.'logback-classic'
+        testRuntimeOnly libraries.'jcl-over-slf4j'
+    }
 }

@@ -40,5 +40,5 @@ public interface Drain<E> extends AutoCloseable {
      * @throws NullPointerException  if the given collection is null.
      * @throws IllegalStateException if this method is called after the Drain was closed.
      */
-    void addAll(Collection<? extends E> collection);
+    void addAll(Collection<E> collection);
 }

@@ -16,8 +16,6 @@
 
 package org.adealsystems.platform.io
 
-import org.adealsystems.platform.io.ListDrain
-
 import spock.lang.Specification
 
 class ListDrainSpec extends Specification {

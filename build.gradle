@@ -226,7 +226,8 @@ subprojects {
 		testImplementation libraries.'spock-core', {
 			exclude group: 'org.codehaus.groovy', module: 'groovy-all'
 		}
-		//testRuntimeOnly libraries.'logback-classic'
+        testRuntimeOnly libraries.'jcl-over-slf4j'
+		testRuntimeOnly libraries.'logback-classic'
 	}
 }
 
