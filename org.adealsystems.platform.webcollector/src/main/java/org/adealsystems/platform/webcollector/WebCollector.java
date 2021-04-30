@@ -104,11 +104,11 @@ public class WebCollector<Q, R> {
             // this means that every producer has seen the sentinel value
             producerExecutorService.shutdown();
 
-            if (LOGGER.isInfoEnabled()) LOGGER.info("Waiting for shutdown of producers...");
+            if (LOGGER.isDebugEnabled()) LOGGER.debug("Waiting for shutdown of producers...");
             if (!producerExecutorService.awaitTermination(1, TimeUnit.DAYS)) {
                 if (LOGGER.isWarnEnabled()) LOGGER.warn("Awaiting termination failed!");
             } else {
-                if (LOGGER.isInfoEnabled()) LOGGER.info("All producers are done!");
+                if (LOGGER.isDebugEnabled()) LOGGER.debug("All producers are done!");
             }
         } catch (InterruptedException e) {
             if (LOGGER.isWarnEnabled()) LOGGER.warn("Awaiting termination interrupted!", e);
@@ -123,9 +123,9 @@ public class WebCollector<Q, R> {
         }
 
         try {
-            if (LOGGER.isInfoEnabled()) LOGGER.info("Waiting for shutdown of consumer thread...");
+            if (LOGGER.isDebugEnabled()) LOGGER.debug("Waiting for shutdown of consumer thread...");
             consumerThread.join();
-            if (LOGGER.isInfoEnabled()) LOGGER.info("Consumer is done!");
+            if (LOGGER.isDebugEnabled()) LOGGER.debug("Consumer is done!");
         } catch (InterruptedException e) {
             if (LOGGER.isWarnEnabled()) LOGGER.warn("Interrupted while waiting for consumer thread!", e);
         }
@@ -311,7 +311,7 @@ public class WebCollector<Q, R> {
                     if (queryEntity.isSentinel()) {
                         // we are done.
                         incomingQueue.put(queryEntity); // put it back for other workers...
-                        if (LOGGER.isInfoEnabled()) LOGGER.info("Thread {} is done.", Thread.currentThread());
+                        if (LOGGER.isDebugEnabled()) LOGGER.debug("Thread {} is done.", Thread.currentThread());
                         break;
                     }
                     if (failure.get()) {
@@ -382,7 +382,7 @@ public class WebCollector<Q, R> {
                     // check sentinel value
                     if (queryEntity.isSentinel()) {
                         // we are done.
-                        if (LOGGER.isInfoEnabled()) LOGGER.info("Thread {} is done.", Thread.currentThread());
+                        if (LOGGER.isDebugEnabled()) LOGGER.debug("Thread {} is done.", Thread.currentThread());
                         return;
                     }
                     totalQueries++;
@@ -398,8 +398,8 @@ public class WebCollector<Q, R> {
                     if (result != null) {
                         resultDrain.addAll(result);
                         totalResults += result.size();
-                        if (LOGGER.isInfoEnabled())
-                            LOGGER.info("Drained {} results for query {}.", result.size(), queryEntity);
+                        if (LOGGER.isDebugEnabled())
+                            LOGGER.debug("Drained {} results for query {}.", result.size(), queryEntity);
 
                         drainMetrics(queryEntity, metricsDrain);
                     }
