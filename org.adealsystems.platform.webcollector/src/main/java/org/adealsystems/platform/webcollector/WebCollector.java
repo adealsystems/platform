@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -63,11 +62,11 @@ public class WebCollector<Q, R> {
         failure.set(false);
     }
 
-    public synchronized void execute(Collection<Q> queries, Drain<R> resultDrain) {
+    public synchronized void execute(Iterable<Q> queries, Drain<R> resultDrain) {
         execute(queries, resultDrain, null);
     }
 
-    public synchronized void execute(Collection<Q> queries, Drain<R> resultDrain, Drain<Metrics<Q>> metricsDrain) {
+    public synchronized void execute(Iterable<Q> queries, Drain<R> resultDrain, Drain<Metrics<Q>> metricsDrain) {
         Objects.requireNonNull(queries, "queries must not be null!");
 
         // clearing queues to enable multiple calls
@@ -81,12 +80,12 @@ public class WebCollector<Q, R> {
         if (LOGGER.isDebugEnabled()) LOGGER.debug("Started consumer thread.");
 
         long startTime = System.nanoTime();
-        for (Q queryTemplate : queries) {
+        for (Q query : queries) {
             if (failure.get()) {
                 break;
             }
             try {
-                incomingQueue.put(new QueryEntity(queryTemplate));
+                incomingQueue.put(new QueryEntity(query));
             } catch (InterruptedException e) {
                 if (LOGGER.isWarnEnabled()) LOGGER.warn("Interrupted!", e);
                 break;
