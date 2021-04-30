@@ -8,24 +8,24 @@ apply from: 'externalDependencies.gradle'
 // Using those scripts ensures that the correct Gradle version
 // is used (and downloaded automatically).
 wrapper {
-	gradleVersion = '7.0'
+    gradleVersion = '7.0'
 }
 
 buildscript {
-	repositories {
-		maven {
-			url "https://plugins.gradle.org/m2/"
-		}
-	}
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
 
-	dependencies {
-		classpath "org.springframework.boot:spring-boot-gradle-plugin:2.3.0.RELEASE"
-		classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
-		classpath "de.thetaphi:forbiddenapis:3.1"
-		classpath "gradle.plugin.com.github.jengelman.gradle.plugins:shadow:7.0.0"
-		classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:2.2.2"
-		classpath "gradle.plugin.org.cadixdev.gradle:licenser:0.5.0"
-	}
+    dependencies {
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:2.3.0.RELEASE"
+        classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
+        classpath "de.thetaphi:forbiddenapis:3.1"
+        classpath "gradle.plugin.com.github.jengelman.gradle.plugins:shadow:7.0.0"
+        classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:2.2.2"
+        classpath "gradle.plugin.org.cadixdev.gradle:licenser:0.5.0"
+    }
 }
 
 def globalSourceCompatibility = 1.8
@@ -34,201 +34,201 @@ def globalTargetCompatibility = 1.8
 // the block below configures all projects, i.e. the rootProject
 // and all subprojects
 allprojects {
-	apply plugin: 'project-reports'
-	apply plugin: 'eclipse'
-	apply plugin: 'idea'
-	apply plugin: 'signing'
+    apply plugin: 'project-reports'
+    apply plugin: 'eclipse'
+    apply plugin: 'idea'
+    apply plugin: 'signing'
 
-	group = 'org.adealsystems'
-	version = '1.0.0'
-	def prereleaseIdentifier = System.properties.'prerelease'
-	if(prereleaseIdentifier) {
-		version = version + '-' + prereleaseIdentifier
-	} else if(!System.properties.'release') {
-		version = version + '-SNAPSHOT'
-	}
+    group = 'org.adealsystems'
+    version = '1.0.0'
+    def prereleaseIdentifier = System.properties.'prerelease'
+    if (prereleaseIdentifier) {
+        version = version + '-' + prereleaseIdentifier
+    } else if (!System.properties.'release') {
+        version = version + '-SNAPSHOT'
+    }
 
-	repositories {
-		mavenCentral()
-	}
+    repositories {
+        mavenCentral()
+    }
 
-	// this applies to different configurations to the Javadoc task
-	// depending on whether or not we are working with Java 8 or
-	// higher
-	tasks.each { task ->
-		if (task instanceof Javadoc) {
-			//println task
-			if (JavaVersion.current().isJava10Compatible()) {
-				task.options.optionFiles << rootProject.file('config/javadoc10.options')
-			} else {
-				task.options.optionFiles << rootProject.file('config/javadoc.options')
-			}
-		}
-	}
+    // this applies to different configurations to the Javadoc task
+    // depending on whether or not we are working with Java 8 or
+    // higher
+    tasks.each { task ->
+        if (task instanceof Javadoc) {
+            //println task
+            if (JavaVersion.current().isJava10Compatible()) {
+                task.options.optionFiles << rootProject.file('config/javadoc10.options')
+            } else {
+                task.options.optionFiles << rootProject.file('config/javadoc.options')
+            }
+        }
+    }
 
-	// the tasks to be executed if no tasks are given explicitly.
-	defaultTasks 'build', 'licenseCheck'
+    // the tasks to be executed if no tasks are given explicitly.
+    defaultTasks 'build', 'licenseCheck'
 }
 
 // the block below configures all subprojects, i.e. the rootProject
 // is excluded
 subprojects {
-	apply plugin: 'java-library'
-	apply plugin: 'groovy'
-	apply plugin: 'maven-publish'
-	apply plugin: 'de.thetaphi.forbiddenapis'
-	apply plugin: 'checkstyle'
-	apply plugin: 'pmd'
-	apply plugin: 'org.cadixdev.licenser'
+    apply plugin: 'java-library'
+    apply plugin: 'groovy'
+    apply plugin: 'maven-publish'
+    apply plugin: 'de.thetaphi.forbiddenapis'
+    apply plugin: 'checkstyle'
+    apply plugin: 'pmd'
+    apply plugin: 'org.cadixdev.licenser'
 
-	license {
-		header = rootProject.file('license_header.txt')
-		include '**/*.java', '**/*.groovy'
-	}
-	
-	java {
-		withJavadocJar()
-		withSourcesJar()
-	}
+    license {
+        header = rootProject.file('license_header.txt')
+        include '**/*.java', '**/*.groovy'
+    }
 
-	ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
-	
-	publishing {
-		repositories {
-			maven {
-				def releaseRepo = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-				def snapshotRepo = "https://oss.sonatype.org/content/repositories/snapshots/"
-				url = isReleaseVersion ? releaseRepo : snapshotRepo
-				credentials {
-					username = findProperty('ossrhUsername')
-					password = findProperty('ossrhPassword')
-				}
-			}
-		}
-	
-		publications {
-			mavenJava(MavenPublication) {
-				pom {
-					groupId = 'org.adealsystems'
-					url = 'https://github.com/adealsystems/platform/'
-					from components.java
-					licenses {
-						license {
-							name = 'The Apache License, Version 2.0'
-							url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-						}
-					}
-					scm {
-						connection = 'scm:git:git@github.com:adealsystems/platform.git'
-						developerConnection = 'scm:git:git@github.com:adealsystems/platform.git'
-						url = 'https://github.com/adealsystems/platform/'
-					}
-					name = project.name
-					description = project.name
-					developers {
-						developer {
-							id = 'robFifth'
-							name = 'Robert Virga'
-							email = 'robert.virga@adeal-systems.com'
-						}
-						developer {
-							id = 'huxi'
-							name = 'Joern Huxhorn'
-							email = 'joern.huxhorn@adeal-systems.com'
-						}
-						developer {
-							id = 'vlad'
-							name = 'Vlad Satanovski'
-							email = 'vlad.satanovski@adeal-systems.com'
-						}
-					}
-				}
-			}
-		}
-	}
-	
-	signing {
-		// signed jar, source und javadoc
-		// erst, nachdem alles gesigned ist, wurde auch das release entsprechend ins OSS Repo gepublished
-		sign publishing.publications.mavenJava
-	}
-	
-	tasks.withType(Sign) {
-		onlyIf { isReleaseVersion }
-	}
+    java {
+        withJavadocJar()
+        withSourcesJar()
+    }
 
-	checkstyle {
-		configFile = rootProject.file('config/checkstyle/checkstyle.xml')
-		configProperties = [
-				'configDir': rootProject.file('config/checkstyle'),
-				'baseDir': rootDir,
-			]
-		toolVersion = '8.42'
-		//ignoreFailures = true
-	}
-	
-	pmd {
-		ruleSetFiles = files(rootProject.file('config/pmd/ruleSet.xml'))
-		ruleSets = []
-		toolVersion = '6.34.0'
-		incrementalAnalysis = true
-		//ignoreFailures = true
-	}
+    ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
-	forbiddenApis {
-		bundledSignatures = [
-			'jdk-unsafe-1.8',
-			'jdk-deprecated-1.8',
-			'jdk-internal-1.8',
-			'jdk-non-portable',
-			//'jdk-system-out',
-			'jdk-reflection',
-			//'commons-io-unsafe-2.5',
-			]
-		ignoreFailures = false
-		//failOnUnresolvableSignatures = false
-	}
+    publishing {
+        repositories {
+            maven {
+                def releaseRepo = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+                def snapshotRepo = "https://oss.sonatype.org/content/repositories/snapshots/"
+                url = isReleaseVersion ? releaseRepo : snapshotRepo
+                credentials {
+                    username = findProperty('ossrhUsername')
+                    password = findProperty('ossrhPassword')
+                }
+            }
+        }
 
-	sourceCompatibility = globalSourceCompatibility
-	targetCompatibility = globalTargetCompatibility
+        publications {
+            mavenJava(MavenPublication) {
+                pom {
+                    groupId = 'org.adealsystems'
+                    url = 'https://github.com/adealsystems/platform/'
+                    from components.java
+                    licenses {
+                        license {
+                            name = 'The Apache License, Version 2.0'
+                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+                    scm {
+                        connection = 'scm:git:git@github.com:adealsystems/platform.git'
+                        developerConnection = 'scm:git:git@github.com:adealsystems/platform.git'
+                        url = 'https://github.com/adealsystems/platform/'
+                    }
+                    name = project.name
+                    description = project.name
+                    developers {
+                        developer {
+                            id = 'robFifth'
+                            name = 'Robert Virga'
+                            email = 'robert.virga@adeal-systems.com'
+                        }
+                        developer {
+                            id = 'huxi'
+                            name = 'Joern Huxhorn'
+                            email = 'joern.huxhorn@adeal-systems.com'
+                        }
+                        developer {
+                            id = 'vlad'
+                            name = 'Vlad Satanovski'
+                            email = 'vlad.satanovski@adeal-systems.com'
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-	// -Xlint:-options disables the
-	// "warning: [options] bootstrap class path not set in conjunction with -source 1.x"
-	// for now
-	def compilerArgs = ['-Xlint:unchecked', '-Xlint:-options', '-Xlint:deprecation', '-g']
+    signing {
+        // signed jar, source und javadoc
+        // erst, nachdem alles gesigned ist, wurde auch das release entsprechend ins OSS Repo gepublished
+        sign publishing.publications.mavenJava
+    }
 
-	// configure the compiler arguments of the various compile tasks
-	compileJava.options.compilerArgs = compilerArgs
-	compileTestJava.options.compilerArgs = compilerArgs
-	compileGroovy.options.compilerArgs = compilerArgs
-	compileTestGroovy.options.compilerArgs = compilerArgs
+    tasks.withType(Sign) {
+        onlyIf { isReleaseVersion }
+    }
 
-	def sourceEncoding = 'UTF-8'
+    checkstyle {
+        configFile = rootProject.file('config/checkstyle/checkstyle.xml')
+        configProperties = [
+                'configDir': rootProject.file('config/checkstyle'),
+                'baseDir'  : rootDir,
+        ]
+        toolVersion = '8.42'
+        //ignoreFailures = true
+    }
 
-	// configure the source encoding of the various compile tasks
-	compileJava.options.encoding = sourceEncoding
-	compileTestJava.options.encoding = sourceEncoding
-	compileGroovy.options.encoding = sourceEncoding
-	compileTestGroovy.options.encoding = sourceEncoding
+    pmd {
+        ruleSetFiles = files(rootProject.file('config/pmd/ruleSet.xml'))
+        ruleSets = []
+        toolVersion = '6.34.0'
+        incrementalAnalysis = true
+        //ignoreFailures = true
+    }
 
-	// global exclude of "bad" dependencies
-	configurations {
-		all*.exclude group: 'commons-logging', module: 'commons-logging'
-		all*.exclude group: 'org.codehaus.groovy', module: 'groovy-all'
-	}
+    forbiddenApis {
+        bundledSignatures = [
+                'jdk-unsafe-1.8',
+                'jdk-deprecated-1.8',
+                'jdk-internal-1.8',
+                'jdk-non-portable',
+                //'jdk-system-out',
+                'jdk-reflection',
+                //'commons-io-unsafe-2.5',
+        ]
+        ignoreFailures = false
+        //failOnUnresolvableSignatures = false
+    }
 
-	// this gives all subprojects a default set of test dependencies
-	dependencies {
-		testImplementation libraries.'byte-buddy'
-		testImplementation libraries.'groovy'
-		testImplementation libraries.'junit'
-		testImplementation libraries.'slf4j-api'
-		testImplementation libraries.'spock-core', {
-			exclude group: 'org.codehaus.groovy', module: 'groovy-all'
-		}
+    sourceCompatibility = globalSourceCompatibility
+    targetCompatibility = globalTargetCompatibility
+
+    // -Xlint:-options disables the
+    // "warning: [options] bootstrap class path not set in conjunction with -source 1.x"
+    // for now
+    def compilerArgs = ['-Xlint:unchecked', '-Xlint:-options', '-Xlint:deprecation', '-g']
+
+    // configure the compiler arguments of the various compile tasks
+    compileJava.options.compilerArgs = compilerArgs
+    compileTestJava.options.compilerArgs = compilerArgs
+    compileGroovy.options.compilerArgs = compilerArgs
+    compileTestGroovy.options.compilerArgs = compilerArgs
+
+    def sourceEncoding = 'UTF-8'
+
+    // configure the source encoding of the various compile tasks
+    compileJava.options.encoding = sourceEncoding
+    compileTestJava.options.encoding = sourceEncoding
+    compileGroovy.options.encoding = sourceEncoding
+    compileTestGroovy.options.encoding = sourceEncoding
+
+    // global exclude of "bad" dependencies
+    configurations {
+        all*.exclude group: 'commons-logging', module: 'commons-logging'
+        all*.exclude group: 'org.codehaus.groovy', module: 'groovy-all'
+    }
+
+    // this gives all subprojects a default set of test dependencies
+    dependencies {
+        testImplementation libraries.'byte-buddy'
+        testImplementation libraries.'groovy'
+        testImplementation libraries.'junit'
+        testImplementation libraries.'slf4j-api'
+        testImplementation libraries.'spock-core', {
+            exclude group: 'org.codehaus.groovy', module: 'groovy-all'
+        }
         testRuntimeOnly libraries.'jcl-over-slf4j'
-		testRuntimeOnly libraries.'logback-classic'
-	}
+        testRuntimeOnly libraries.'logback-classic'
+    }
 }
 
 def getResolvedArtifacts(Set<ResolvedArtifact> artifacts) {
