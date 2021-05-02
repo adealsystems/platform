@@ -18,11 +18,18 @@ project(':org.adealsystems.platform.io') {
     }
 }
 
+project(':org.adealsystems.platform.io.compression') {
+    dependencies {
+        implementation libraries.'slf4j-api'
+        implementation libraries.'commons-compress'
+    }
+}
+
 project(':org.adealsystems.platform.io.json') {
     dependencies {
         implementation project(':org.adealsystems.platform.io')
+        implementation project(':org.adealsystems.platform.io.compression')
         implementation libraries.'jackson-databind'
-        implementation libraries.'commons-compress'
     }
 }
 

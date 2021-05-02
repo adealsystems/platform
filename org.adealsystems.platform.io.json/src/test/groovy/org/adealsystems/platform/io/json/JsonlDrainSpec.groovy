@@ -18,12 +18,9 @@ package org.adealsystems.platform.io.json
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
-import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
+import org.adealsystems.platform.io.compression.Compression
 import spock.lang.Specification
 import spock.lang.Unroll
-
-import java.nio.charset.StandardCharsets
-import java.util.zip.GZIPInputStream
 
 class JsonlDrainSpec extends Specification {
     @Unroll
@@ -57,9 +54,9 @@ class JsonlDrainSpec extends Specification {
 
         where:
         compression << [
-                JsonlDrain.Compression.NONE,
-                JsonlDrain.Compression.GZIP,
-                JsonlDrain.Compression.BZIP,
+                Compression.NONE,
+                Compression.GZIP,
+                Compression.BZIP,
         ]
     }
 
@@ -116,7 +113,7 @@ class JsonlDrainSpec extends Specification {
 
         then:
         NullPointerException ex = thrown()
-        ex.message == "collection must not be null!"
+        ex.message == "entries must not be null!"
     }
 
     def 'addAll([null]) throws exception'() {
@@ -128,11 +125,11 @@ class JsonlDrainSpec extends Specification {
         instance.addAll([null])
 
         then:
-        IllegalArgumentException ex = thrown()
-        ex.message == "collection must not contain null!"
+        NullPointerException ex = thrown()
+        ex.message == "entries must not contain null!"
     }
 
-    def 'Creating instance with indenting ObjectMapper fails'() {
+    def 'creating instance with indenting ObjectMapper fails'() {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
         ObjectMapper objectMapper = new ObjectMapper()
@@ -175,22 +172,13 @@ class JsonlDrainSpec extends Specification {
         String toString() {
             return "Entry{" +
                     "value='" + value + '\'' +
-                    '}';
+                    '}'
         }
     }
 
-    private static List<String> readLines(byte[] bytes, JsonlDrain.Compression compression) {
+    private static List<String> readLines(byte[] bytes, Compression compression) {
         Objects.requireNonNull(compression, "compression must not be null!")
-        switch (compression) {
-            case JsonlDrain.Compression.NONE:
-                return new InputStreamReader(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8).readLines()
-            case JsonlDrain.Compression.GZIP:
-                return new InputStreamReader(new GZIPInputStream(new ByteArrayInputStream(bytes)), StandardCharsets.UTF_8).readLines()
-            case JsonlDrain.Compression.BZIP:
-                return new InputStreamReader(new BZip2CompressorInputStream(new ByteArrayInputStream(bytes)), StandardCharsets.UTF_8).readLines()
-            default:
-                throw new IllegalArgumentException("Compression " + compression + " isn't (yet) supported!")
-        }
+        return Compression.createReader(new ByteArrayInputStream(bytes), compression).readLines()
     }
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()

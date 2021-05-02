@@ -16,10 +16,7 @@
 
 package org.adealsystems.platform.io;
 
-import java.util.Collection;
-
 /**
- * Implementations must be thread-safe.
  *
  * @param <E> the type this Drain can handle.
  */
@@ -34,11 +31,11 @@ public interface Drain<E> extends AutoCloseable {
     void add(E entry);
 
     /**
-     * Drains the given collection.
+     * Drains the given entries.
      *
-     * @param collection the collection that will be drained.
-     * @throws NullPointerException  if the given collection is null.
+     * @param entries the entries that will be drained.
+     * @throws NullPointerException  if the given iterable or a contained value is null.
      * @throws IllegalStateException if this method is called after the Drain was closed.
      */
-    void addAll(Collection<E> collection);
+    void addAll(Iterable<E> entries);
 }

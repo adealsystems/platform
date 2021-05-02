@@ -21,17 +21,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.adealsystems.platform.io.Drain;
 import org.adealsystems.platform.io.DrainException;
-import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
+import org.adealsystems.platform.io.compression.Compression;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.Collection;
 import java.util.Objects;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * JSON Lines (.jsonl) Drain
@@ -42,7 +37,6 @@ import java.util.zip.GZIPOutputStream;
  */
 public class JsonlDrain<E> implements Drain<E> {
     private static final ObjectMapper DEFAULT_OBJECT_MAPPER = new ObjectMapper();
-    private final ReentrantLock lock = new ReentrantLock();
     private final ObjectMapper objectMapper;
     private BufferedWriter writer;
 
@@ -53,7 +47,7 @@ public class JsonlDrain<E> implements Drain<E> {
 
     public JsonlDrain(OutputStream outputStream, Compression compression)
             throws IOException {
-        this(createWriter(outputStream, compression), DEFAULT_OBJECT_MAPPER);
+        this(Compression.createWriter(outputStream, compression), DEFAULT_OBJECT_MAPPER);
     }
 
     public JsonlDrain(OutputStream outputStream, ObjectMapper objectMapper)
@@ -63,7 +57,7 @@ public class JsonlDrain<E> implements Drain<E> {
 
     public JsonlDrain(OutputStream outputStream, Compression compression, ObjectMapper objectMapper)
             throws IOException {
-        this(createWriter(outputStream, compression), objectMapper);
+        this(Compression.createWriter(outputStream, compression), objectMapper);
     }
 
     /*
@@ -83,7 +77,6 @@ public class JsonlDrain<E> implements Drain<E> {
     public void add(E entry) {
         Objects.requireNonNull(entry, "entry must not be null!");
 
-        lock.lock();
         try {
             if (writer == null) {
                 throw new IllegalStateException("Drain was already closed!");
@@ -95,78 +88,27 @@ public class JsonlDrain<E> implements Drain<E> {
             throw new DrainException("Failed to write entry as JSON!", e);
         } catch (IOException e) {
             throw new DrainException("Failed to write to stream!", e);
-        } finally {
-            lock.unlock();
         }
     }
 
     @Override
-    @SuppressWarnings("PMD.AvoidCatchingNPE")
-    public void addAll(Collection<E> collection) {
-        Objects.requireNonNull(collection, "collection must not be null!");
-        lock.lock();
-        try {
-            try {
-                if (collection.contains(null)) {
-                    throw new IllegalArgumentException("collection must not contain null!");
-                }
-            } catch (NullPointerException ex) {
-                // ignore
-                //
-                // this can happen if the collection does not support null values, but
-                // usually doesn't.
-                //
-                // Someone considered this acceptable (optional) behaviour while defining
-                // the Collection API... instead of just, you know, returning
-                // false if the Collection does not support null values.
-                // Which would be the obviously correct answer.
-                //
-                // But I digress...
-            }
+    public void addAll(Iterable<E> entries) {
+        Objects.requireNonNull(entries, "entries must not be null!");
 
-            for (E entry : collection) {
-                add(entry);
-            }
-        } finally {
-            lock.unlock();
+        for (E entry : entries) {
+            add(Objects.requireNonNull(entry, "entries must not contain null!"));
         }
     }
 
     @Override
     @SuppressWarnings("PMD.CloseResource")
     public void close() throws Exception {
-        lock.lock();
-        try {
-            if (writer == null) {
-                return;
-            }
-            BufferedWriter temp = writer;
-            writer = null;
-            temp.flush();
-            temp.close();
-        } finally {
-            lock.unlock();
+        if (writer == null) {
+            return;
         }
-    }
-
-    public enum Compression {
-        NONE,
-        GZIP,
-        BZIP,
-    }
-
-    private static BufferedWriter createWriter(OutputStream outputStream, Compression compression) throws IOException {
-        Objects.requireNonNull(outputStream, "outputStream must not be null!");
-        Objects.requireNonNull(compression);
-        switch (compression) {
-            case NONE:
-                return new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
-            case GZIP:
-                return new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(outputStream), StandardCharsets.UTF_8));
-            case BZIP:
-                return new BufferedWriter(new OutputStreamWriter(new BZip2CompressorOutputStream(outputStream), StandardCharsets.UTF_8));
-            default:
-                throw new IllegalArgumentException("Compression " + compression + " isn't (yet) supported!");
-        }
+        BufferedWriter temp = writer;
+        writer = null;
+        temp.flush();
+        temp.close();
     }
 }

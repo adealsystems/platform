@@ -17,10 +17,8 @@
 package org.adealsystems.platform.io;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Drains to a contained List.
@@ -29,56 +27,25 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class ListDrain<E> implements Drain<E> {
 
-    private final ReentrantLock lock = new ReentrantLock();
-    private volatile boolean closed;
+    private boolean closed;
     private final List<E> content = new ArrayList<>();
 
     @Override
     public void add(E entry) {
-        Objects.requireNonNull(entry, "entry must not be null!");
-        lock.lock();
-        try {
-            if (closed) {
-                throw new IllegalStateException("Drain was already closed!");
-            }
-            content.add(entry);
-        } finally {
-            lock.unlock();
+        if (closed) {
+            throw new IllegalStateException("Drain was already closed!");
         }
+        content.add(Objects.requireNonNull(entry, "entry must not be null!"));
     }
 
     @Override
-    @SuppressWarnings("PMD.AvoidCatchingNPE")
-    public void addAll(Collection<E> collection) {
-        Objects.requireNonNull(collection, "collection must not be null!");
-        if (collection.isEmpty()) {
-            return;
+    public void addAll(Iterable<E> entries) {
+        Objects.requireNonNull(entries, "entries must not be null!");
+        if (closed) {
+            throw new IllegalStateException("Drain was already closed!");
         }
-        try {
-            if (collection.contains(null)) {
-                throw new IllegalArgumentException("collection must not contain null!");
-            }
-        } catch (NullPointerException ex) {
-            // ignore
-            //
-            // this can happen if the collection does not support null values, but
-            // usually doesn't.
-            //
-            // Someone considered this acceptable (optional) behaviour while defining
-            // the Collection API... instead of just, you know, returning
-            // false if the Collection does not support null values.
-            // Which would be the obviously correct answer.
-            //
-            // But I digress...
-        }
-        lock.lock();
-        try {
-            if (closed) {
-                throw new IllegalStateException("Drain was already closed!");
-            }
-            content.addAll(collection);
-        } finally {
-            lock.unlock();
+        for(E entry : entries) {
+            content.add(Objects.requireNonNull(entry, "entries must not contain null!"));
         }
     }
 
@@ -88,15 +55,7 @@ public class ListDrain<E> implements Drain<E> {
 
     @Override
     public void close() {
-        lock.lock();
-        try {
-            if (closed) {
-                return;
-            }
-            closed = true;
-        } finally {
-            lock.unlock();
-        }
+        closed = true;
     }
 
     @Override

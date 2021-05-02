@@ -1,5 +1,6 @@
 include 'org.adealsystems.platform'
 include 'org.adealsystems.platform.io'
+include 'org.adealsystems.platform.io.compression'
 include 'org.adealsystems.platform.io.json'
 include 'org.adealsystems.platform.spark'
 include 'org.adealsystems.platform.spark.test'

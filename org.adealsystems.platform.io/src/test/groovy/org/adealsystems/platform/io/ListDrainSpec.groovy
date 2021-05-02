@@ -81,7 +81,7 @@ class ListDrainSpec extends Specification {
 
         then:
         NullPointerException ex = thrown()
-        ex.message == "collection must not be null!"
+        ex.message == "entries must not be null!"
     }
 
     def 'addAll([null]) throws exception'() {
@@ -92,7 +92,7 @@ class ListDrainSpec extends Specification {
         instance.addAll([null])
 
         then:
-        IllegalArgumentException ex = thrown()
-        ex.message == "collection must not contain null!"
+        NullPointerException ex = thrown()
+        ex.message == "entries must not contain null!"
     }
 }
