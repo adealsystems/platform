@@ -76,7 +76,9 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
     private SparkSession sparkSession;
     private JavaSparkContext sparkContext;
 
-    private SparkResultWriterInterceptor sparkResultWriterInterceptor;
+    private SparkResultWriterInterceptor resultWriterInterceptor;
+
+    private SparkProcessingReporter processingReporter;
 
     private Broadcast<LocalDateTime> broadInvocationIdentifier;
     private final Logger logger;
@@ -102,8 +104,12 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         this(dataResolverRegistry, outputLocation, outputIdentifiers, invocationDate, false);
     }
 
-    public void setSparkResultWriterInterceptor(SparkResultWriterInterceptor sparkResultWriterInterceptor) {
-        this.sparkResultWriterInterceptor = sparkResultWriterInterceptor;
+    public void setResultWriterInterceptor(SparkResultWriterInterceptor sparkResultWriterInterceptor) {
+        this.resultWriterInterceptor = sparkResultWriterInterceptor;
+    }
+
+    public void setProcessingReporter(SparkProcessingReporter processingReporter) {
+        this.processingReporter = processingReporter;
     }
 
     protected final void setWriteMode(WriteMode writeMode) {
@@ -179,12 +185,34 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
     @Override
     public void execute() {
-        broadInvocationIdentifier = getSparkContext().broadcast(LocalDateTime.now(Clock.systemDefaultZone()));
-        Map<DataIdentifier, Dataset<Row>> results = processData();
-        for (Map.Entry<DataIdentifier, Dataset<Row>> entry : results.entrySet()) {
-            DataIdentifier outputIdentifier = entry.getKey();
-            Dataset<Row> dataset = entry.getValue();
-            writeOutput(outputIdentifier, dataset);
+        long startTime = System.currentTimeMillis();
+        LocalDateTime timestamp = LocalDateTime.now(Clock.systemDefaultZone());
+
+        try {
+            broadInvocationIdentifier = getSparkContext().broadcast(timestamp);
+
+            Map<DataIdentifier, Dataset<Row>> results = processData();
+            for (Map.Entry<DataIdentifier, Dataset<Row>> entry : results.entrySet()) {
+                DataIdentifier outputIdentifier = entry.getKey();
+                Dataset<Row> dataset = entry.getValue();
+                writeOutput(outputIdentifier, dataset);
+            }
+
+            if (processingReporter != null) {
+                long stopTime = System.currentTimeMillis();
+                long duration = stopTime - startTime;
+
+                processingReporter.reportSuccess(this, timestamp, duration);
+            }
+        }
+        catch(Throwable th) {
+            if (processingReporter != null) {
+                long stopTime = System.currentTimeMillis();
+                long duration = stopTime - startTime;
+                processingReporter.reportFailure(this, timestamp, duration, th);
+            }
+
+            throw th;
         }
     }
 
@@ -486,10 +514,12 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         outputDataset = outputDataset.repartition(1); // always repartition(1) before writing!
         if (writeMode == WriteMode.DATE || writeMode == WriteMode.BOTH) {
             DataInstance dateInstance = dataResolver.createDateInstance(outputIdentifier, invocationDate);
-            if (sparkResultWriterInterceptor != null) {
+
+            if (resultWriterInterceptor != null) {
                 logger.info("Registering result of {} by sparkResultWriterInterceptor.", dateInstance);
-                sparkResultWriterInterceptor.registerResult(outputLocation, dateInstance, outputDataset);
+                resultWriterInterceptor.registerResult(outputLocation, dateInstance, outputDataset);
             }
+
             writeOutput(dateInstance, outputDataset);
         }
 

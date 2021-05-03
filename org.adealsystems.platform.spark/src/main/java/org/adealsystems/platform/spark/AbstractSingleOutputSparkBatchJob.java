@@ -73,6 +73,10 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
     private SparkSession sparkSession;
     private JavaSparkContext sparkContext;
 
+    private SparkResultWriterInterceptor resultWriterInterceptor;
+
+    private SparkProcessingReporter processingReporter;
+
     private Broadcast<LocalDateTime> broadInvocationIdentifier;
     private final Logger logger;
 
@@ -99,6 +103,14 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     protected final void setWriteMode(WriteMode writeMode) {
         this.writeMode = Objects.requireNonNull(writeMode, "writeMode must not be null!");
+    }
+
+    public void setResultWriterInterceptor(SparkResultWriterInterceptor resultWriterInterceptor) {
+        this.resultWriterInterceptor = resultWriterInterceptor;
+    }
+
+    public void setProcessingReporter(SparkProcessingReporter processingReporter) {
+        this.processingReporter = processingReporter;
     }
 
     @Override
@@ -170,8 +182,30 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     @Override
     public void execute() {
-        broadInvocationIdentifier = getSparkContext().broadcast(LocalDateTime.now(Clock.systemDefaultZone()));
-        writeOutput(processData());
+        long startTime = System.currentTimeMillis();
+        LocalDateTime timestamp = LocalDateTime.now(Clock.systemDefaultZone());
+
+        try {
+            broadInvocationIdentifier = getSparkContext().broadcast(timestamp);
+            writeOutput(processData());
+
+            if (processingReporter != null) {
+                long stopTime = System.currentTimeMillis();
+                long duration = stopTime - startTime;
+
+                processingReporter.reportSuccess(this, timestamp, duration);
+            }
+        }
+        catch (Throwable th) {
+            if (processingReporter != null) {
+                long stopTime = System.currentTimeMillis();
+                long duration = stopTime - startTime;
+
+                processingReporter.reportFailure(this, timestamp, duration, th);
+            }
+
+            throw th;
+        }
     }
 
     @Override
@@ -387,6 +421,12 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         outputDataset = outputDataset.repartition(1); // always repartition(1) before writing!
         if (writeMode == WriteMode.DATE || writeMode == WriteMode.BOTH) {
             DataInstance dateInstance = dataResolver.createDateInstance(outputIdentifier, invocationDate);
+
+            if (resultWriterInterceptor != null) {
+                logger.info("Registering result of {} by sparkResultWriterInterceptor.", dateInstance);
+                resultWriterInterceptor.registerResult(outputLocation, dateInstance, outputDataset);
+            }
+
             writeOutput(dateInstance, outputDataset);
         }
 
