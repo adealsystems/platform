@@ -25,6 +25,14 @@ project(':org.adealsystems.platform.io.compression') {
     }
 }
 
+project(':org.adealsystems.platform.io.csv') {
+    dependencies {
+        implementation project(':org.adealsystems.platform.io')
+        implementation project(':org.adealsystems.platform.io.compression')
+        implementation libraries.'commons-csv'
+    }
+}
+
 project(':org.adealsystems.platform.io.json') {
     dependencies {
         implementation project(':org.adealsystems.platform.io')
