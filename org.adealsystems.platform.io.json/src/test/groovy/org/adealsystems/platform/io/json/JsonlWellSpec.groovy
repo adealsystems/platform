@@ -16,6 +16,7 @@
 
 package org.adealsystems.platform.io.json
 
+import org.adealsystems.platform.io.WellException
 import org.adealsystems.platform.io.compression.Compression
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -25,18 +26,18 @@ class JsonlWellSpec extends Specification {
     def 'iterating over data with compression #compression works'() {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
-        JsonlDrain<Entry> instance = new JsonlDrain<>(bos, compression)
-        instance.add(new Entry("Entry 1"))
-        instance.addAll([new Entry("Entry 2"), new Entry("Entry 3")])
-        instance.close()
+        JsonlDrain<Entry> drain = new JsonlDrain<>(bos, compression)
+        drain.add(new Entry("Entry 1"))
+        drain.addAll([new Entry("Entry 2"), new Entry("Entry 3")])
+        drain.close()
 
         when:
-        JsonlWell<Entry> well = new JsonlWell<>(Entry, new ByteArrayInputStream(bos.toByteArray()), compression)
+        JsonlWell<Entry> instance = new JsonlWell<>(Entry, new ByteArrayInputStream(bos.toByteArray()), compression)
         then:
-        !well.isConsumed()
+        !instance.isConsumed()
 
         when:
-        List<Entry> objects = well.iterator().collect()
+        List<Entry> objects = instance.iterator().collect()
 
         then:
         objects == [
@@ -45,7 +46,7 @@ class JsonlWellSpec extends Specification {
                 new Entry("Entry 3"),
         ]
         and:
-        well.isConsumed()
+        instance.isConsumed()
 
         where:
         compression << [
@@ -53,6 +54,26 @@ class JsonlWellSpec extends Specification {
                 Compression.GZIP,
                 Compression.BZIP,
         ]
+    }
+
+    def "calling iterator() twice throws exception"() {
+        given:
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        JsonlDrain<Entry> drain = new JsonlDrain<>(bos)
+        drain.add(new Entry("Value 1"))
+        drain.addAll([new Entry("Value 2"), new Entry("Value 3")])
+        drain.close()
+
+        JsonlWell<Entry> instance = new JsonlWell<>(Entry, new ByteArrayInputStream(bos.toByteArray()))
+
+        when:
+        instance.iterator()
+        and:
+        instance.iterator()
+
+        then:
+        WellException ex = thrown()
+        ex.message == "A well can only be iterated once!"
     }
 
     private static class Entry {

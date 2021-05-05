@@ -79,12 +79,12 @@ class AbstractCsvWellSpec extends Specification {
         writer.close()
 
         when:
-        EntryCsvWell well = new EntryCsvWell(new ByteArrayInputStream(bos.toByteArray()), INPUT_CSV_FORMAT)
+        EntryCsvWell instance = new EntryCsvWell(new ByteArrayInputStream(bos.toByteArray()), INPUT_CSV_FORMAT)
         then:
-        !well.isConsumed()
+        !instance.isConsumed()
 
         when:
-        List<Entry> objects = well.iterator().collect()
+        List<Entry> objects = instance.iterator().collect()
 
         then:
         objects == [
@@ -93,7 +93,7 @@ class AbstractCsvWellSpec extends Specification {
                 new Entry("Key 3", "Value 3"),
         ]
         and:
-        well.isConsumed()
+        instance.isConsumed()
     }
 
     def "calling iterator() twice throws exception"() {

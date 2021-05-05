@@ -109,10 +109,10 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
             throw new WellException("Failed to create result!", t);
         }
         CSVRecord record = parserIterator.next();
-        for(String headerName : header) {
+        for (String headerName : header) {
             setValue(result, headerName, record.get(headerName));
         }
-        if(!parserIterator.hasNext()) {
+        if (!parserIterator.hasNext()) {
             try {
                 close();
             } catch (Exception e) {
