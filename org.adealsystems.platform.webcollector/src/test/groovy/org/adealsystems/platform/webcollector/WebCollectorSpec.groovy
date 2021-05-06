@@ -17,7 +17,6 @@
 package org.adealsystems.platform.webcollector
 
 import org.adealsystems.platform.io.ListDrain
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
 import spock.lang.Specification
 
 import java.util.concurrent.atomic.AtomicInteger
@@ -160,7 +159,7 @@ class WebCollectorSpec extends Specification {
     static class StableQuery implements HttpQuery<QueryType, ResultType> {
 
         @Override
-        List<ResultType> perform(CloseableHttpClient httpClient, QueryType query) throws IOException {
+        List<ResultType> perform(HttpClientBundle httpClientBundle, QueryType query) throws IOException {
             try {
                 // simulate some latency
                 Thread.currentThread().sleep(50)
@@ -181,7 +180,7 @@ class WebCollectorSpec extends Specification {
         private final AtomicInteger counter = new AtomicInteger()
 
         @Override
-        List<ResultType> perform(CloseableHttpClient httpClient, QueryType query) throws IOException {
+        List<ResultType> perform(HttpClientBundle httpClientBundle, QueryType query) throws IOException {
             try {
                 // simulate some latency
                 Thread.currentThread().sleep(50)
@@ -206,7 +205,7 @@ class WebCollectorSpec extends Specification {
         private final AtomicInteger counter = new AtomicInteger()
 
         @Override
-        List<ResultType> perform(CloseableHttpClient httpClient, QueryType query) throws IOException {
+        List<ResultType> perform(HttpClientBundle httpClientBundle, QueryType query) throws IOException {
             try {
                 // simulate some latency
                 Thread.currentThread().sleep(50)

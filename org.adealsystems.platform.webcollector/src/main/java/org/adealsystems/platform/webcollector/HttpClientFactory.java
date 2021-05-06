@@ -16,9 +16,12 @@
 
 package org.adealsystems.platform.webcollector;
 
-
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-
+/**
+ * Creates instances of HttpClientBundle.
+ * <p>
+ * Every thread of WebCollector will receive its own instance and those
+ * instances should not share mutable state.
+ */
 public interface HttpClientFactory {
-    CloseableHttpClient createInstance();
+    HttpClientBundle createInstance();
 }

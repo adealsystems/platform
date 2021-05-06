@@ -17,7 +17,6 @@
 package org.adealsystems.platform.webcollector;
 
 import org.adealsystems.platform.io.Drain;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +35,7 @@ public class WebCollector<Q, R> {
     private static final int MILLIS_IN_NANO = 1_000_000;
 
     private final AtomicBoolean failure = new AtomicBoolean();
-    private final ThreadLocal<CloseableHttpClient> clientThreadLocal = new ThreadLocal<>();
+    private final ThreadLocal<HttpClientBundle> clientBundleThreadLocal = new ThreadLocal<>();
     private final BlockingQueue<QueryEntity> incomingQueue;
     private final BlockingQueue<QueryEntity> doneQueue;
     private final QueryEntity sentinel = new QueryEntity();
@@ -257,44 +256,42 @@ public class WebCollector<Q, R> {
         Throwable throwable = null;
         for (int i = 0; i < maxRetries; i++) {
             try {
-                CloseableHttpClient client = resolveClient();
-                return httpQuery.perform(client, query);
+                HttpClientBundle clientBundle = resolveClientBundle();
+                return httpQuery.perform(clientBundle, query);
             } catch (Throwable e) {
                 throwable = e;
                 if (LOGGER.isWarnEnabled()) LOGGER.warn("Failed to perform query {}!", query, throwable);
             }
             // get rid of previous client after an error occurred
             // next call to resolveClient returns a fresh instance
-            resetClient();
+            resetClientBundle();
         }
         if (LOGGER.isWarnEnabled()) LOGGER.warn("Bailing out after {} retries: {}", maxRetries, query);
         throw new WebCollectorException("Failed to execute " + query + "!", throwable);
     }
 
-    @SuppressWarnings("PMD.CloseResource")
-    private CloseableHttpClient resolveClient() {
-        CloseableHttpClient result = clientThreadLocal.get();
+    private HttpClientBundle resolveClientBundle() {
+        HttpClientBundle result = clientBundleThreadLocal.get();
         if (result == null) {
             // this happens in case of initial call or after the client has been reset
-            // via call to resetClient()
+            // via call to resetClientBundle()
             result = clientFactory.createInstance();
-            clientThreadLocal.set(result);
+            clientBundleThreadLocal.set(result);
             if (LOGGER.isDebugEnabled()) LOGGER.debug("Created fresh client.");
         }
 
         return result;
     }
 
-    @SuppressWarnings("PMD.CloseResource")
-    private void resetClient() {
-        CloseableHttpClient client = clientThreadLocal.get();
-        if (client == null) {
+    private void resetClientBundle() {
+        HttpClientBundle clientBundle = clientBundleThreadLocal.get();
+        if (clientBundle == null) {
             return;
         }
         // perform cleanup
-        clientThreadLocal.set(null);
+        clientBundleThreadLocal.set(null);
         try {
-            client.close();
+            clientBundle.getClient().close();
             if (LOGGER.isDebugEnabled()) LOGGER.debug("Closed client.");
         } catch (Throwable t) {
             if (LOGGER.isWarnEnabled()) LOGGER.warn("Exception while closing client!", t);
@@ -336,7 +333,7 @@ public class WebCollector<Q, R> {
             }
 
             // get rid of lingering client since we are done
-            resetClient();
+            resetClientBundle();
         }
     }
 

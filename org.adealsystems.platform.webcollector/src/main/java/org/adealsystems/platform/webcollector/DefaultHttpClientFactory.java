@@ -16,13 +16,11 @@
 
 package org.adealsystems.platform.webcollector;
 
-
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 
 public class DefaultHttpClientFactory implements HttpClientFactory {
     @Override
-    public CloseableHttpClient createInstance() {
-        return HttpClients.createDefault();
+    public HttpClientBundle createInstance() {
+        return new HttpClientBundle(HttpClients.createDefault());
     }
 }

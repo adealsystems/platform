@@ -16,9 +16,6 @@
 
 package org.adealsystems.platform.webcollector;
 
-
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -35,10 +32,10 @@ public interface HttpQuery<Q, R> {
      * Implementations should not try to close the client as this is assumed
      * to be handled by the code calling this method.
      *
-     * @param httpClient the client used to perform the query
-     * @param query      the Query instance
+     * @param httpClientBundle contains the client used to perform the query
+     * @param query            the Query instance
      * @return a List of Result instances
      * @throws IOException because HttpClient does so, too.
      */
-    List<R> perform(CloseableHttpClient httpClient, Q query) throws IOException;
+    List<R> perform(HttpClientBundle httpClientBundle, Q query) throws IOException;
 }

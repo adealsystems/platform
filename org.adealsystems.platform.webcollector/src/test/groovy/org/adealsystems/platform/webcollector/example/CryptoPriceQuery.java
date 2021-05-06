@@ -17,9 +17,9 @@
 package org.adealsystems.platform.webcollector.example;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.adealsystems.platform.webcollector.HttpClientBundle;
 import org.adealsystems.platform.webcollector.HttpQuery;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
@@ -38,8 +38,8 @@ public class CryptoPriceQuery implements HttpQuery<CryptoId, CryptoPrices> {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    @SuppressWarnings("PMD.CloseResource")
-    public List<CryptoPrices> perform(CloseableHttpClient httpClient, CryptoId query)
+    @SuppressWarnings("PMD.CloseResource") // EntityUtils.consume(entity) does it.
+    public List<CryptoPrices> perform(HttpClientBundle httpClientBundle, CryptoId query)
             throws IOException {
         List<CryptoPrices> result = new ArrayList<>();
         try {
@@ -50,8 +50,9 @@ public class CryptoPriceQuery implements HttpQuery<CryptoId, CryptoPrices> {
                     .addParameter("ids", query.getId())
                     .addParameter("vs_currencies", "usd,eur,btc")
                     .build();
+
             HttpGet httpGet = new HttpGet(uri.toString());
-            try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+            try (CloseableHttpResponse response = httpClientBundle.getClient().execute(httpGet)) {
                 int code = response.getCode();
                 if (code != 200) {
                     throw new IOException("Expected status code 200 but got " + code + "!");
@@ -64,7 +65,8 @@ public class CryptoPriceQuery implements HttpQuery<CryptoId, CryptoPrices> {
                     Map<String, Double> value = current.getValue();
                     result.add(new CryptoPrices(key, value.get("usd"), value.get("eur"), value.get("btc")));
                 }
-                EntityUtils.consume(entity);
+
+                EntityUtils.consume(entity); // waving the dead chicken
             }
         } catch (URISyntaxException e) {
             throw new IOException("URI FAIL!", e);
