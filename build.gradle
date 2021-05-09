@@ -31,6 +31,8 @@ buildscript {
 def globalSourceCompatibility = 1.8
 def globalTargetCompatibility = 1.8
 
+// https://github.com/kt3k/coveralls-gradle-plugin
+
 // the block below configures all projects, i.e. the rootProject
 // and all subprojects
 allprojects {
@@ -38,6 +40,7 @@ allprojects {
     apply plugin: 'eclipse'
     apply plugin: 'idea'
     apply plugin: 'signing'
+	apply plugin: 'jacoco'
 
     group = 'org.adealsystems'
     version = '1.0.0'
@@ -47,6 +50,10 @@ allprojects {
     } else if (!System.properties.'release') {
         version = version + '-SNAPSHOT'
     }
+
+	jacoco {
+		toolVersion = '0.8.7'
+	}
 
     repositories {
         mavenCentral()
@@ -189,6 +196,17 @@ subprojects {
         //failOnUnresolvableSignatures = false
     }
 
+	jacocoTestReport {
+		additionalSourceDirs.from(files(sourceSets.main.allSource.srcDirs))
+		sourceDirectories.from(files(sourceSets.main.allSource.srcDirs))
+		classDirectories.from(files(sourceSets.main.output))
+		reports {
+			html.enabled = true
+			xml.enabled = true
+			csv.enabled = false
+		}
+	}
+
     sourceCompatibility = globalSourceCompatibility
     targetCompatibility = globalTargetCompatibility
 
@@ -230,6 +248,23 @@ subprojects {
         testRuntimeOnly libraries.'logback-classic'
     }
 }
+
+// source: https://gist.github.com/aalmiray/e6f54aa4b3803be0bcac
+task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+	dependsOn = subprojects.jacocoTestReport
+	dependsOn = subprojects.test
+	additionalSourceDirs.setFrom(files(subprojects.sourceSets.main.allSource.srcDirs))
+	sourceDirectories.setFrom(files(subprojects.sourceSets.main.allSource.srcDirs))
+	classDirectories.setFrom(files(subprojects.sourceSets.main.output))
+	executionData.setFrom( fileTree(dir: "${rootProject.projectDir}", includes: ['**/build/jacoco/*.exec']))
+	reports {
+		html.enabled = true
+		xml.enabled = true
+		xml.destination file("${buildDir}/reports/jacoco/report.xml")
+		csv.enabled = false
+	}
+}
+
 
 def getResolvedArtifacts(Set<ResolvedArtifact> artifacts) {
     Set<String> resolvedArtifacts = [] as Set
