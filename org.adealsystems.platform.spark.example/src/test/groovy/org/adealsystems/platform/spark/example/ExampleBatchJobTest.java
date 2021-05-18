@@ -21,9 +21,9 @@ import org.adealsystems.platform.DataIdentifier;
 import org.adealsystems.platform.DataInstance;
 import org.adealsystems.platform.DataLocation;
 import org.adealsystems.platform.DataResolver;
-import org.adealsystems.platform.spark.test.junit4.AbstractBatchJobTest;
-import org.junit.Before;
-import org.junit.Test;
+import org.adealsystems.platform.spark.test.junit5.AbstractBatchJobTest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +33,7 @@ import java.io.PrintWriter;
 import static org.adealsystems.platform.DataInstances.createWriter;
 import static org.adealsystems.platform.spark.test.BatchTestTools.TODAY;
 import static org.adealsystems.platform.spark.test.BatchTestTools.readBatchLines;
-import static org.junit.Assert.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 public class ExampleBatchJobTest extends AbstractBatchJobTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExampleBatchJob.class);
@@ -54,7 +54,7 @@ public class ExampleBatchJobTest extends AbstractBatchJobTest {
             "2020-05-14;2020W20;Row1Col1;Row1Col2",
     };
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         DataResolver dataResolver = dataResolverRegistry.getResolverFor(DataLocation.INPUT);
         DataInstance currentInput = dataResolver.createCurrentInstance(INPUT_IDENTIFIER);

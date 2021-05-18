@@ -58,10 +58,8 @@ project(':org.adealsystems.platform.spark.test') {
         implementation libraries.'slf4j-api'
         implementation libraries.'spark-core'
         implementation libraries.'spark-sql' // for SparkSession m(
-        implementation libraries.'junit'
-        implementation libraries.'spock-core', {
-            exclude group: 'org.codehaus.groovy', module: 'groovy-all'
-        }
+        implementation libraries.'junit-jupiter-api'
+        implementation libraries.'spock-core'
     }
 }
 

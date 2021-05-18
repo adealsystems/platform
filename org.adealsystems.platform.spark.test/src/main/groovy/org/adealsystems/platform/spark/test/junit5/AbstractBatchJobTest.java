@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.spark.test.junit4;
+package org.adealsystems.platform.spark.test.junit5;
 
 import org.adealsystems.platform.DataLocation;
 import org.adealsystems.platform.DataResolver;
@@ -23,7 +23,7 @@ import org.adealsystems.platform.DefaultNamingStrategy;
 import org.adealsystems.platform.MapDataResolverRegistry;
 import org.adealsystems.platform.file.FileDataResolutionStrategy;
 import org.apache.spark.sql.SparkSession;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -35,7 +35,7 @@ public abstract class AbstractBatchJobTest {
     protected static SparkSession sparkSession;
     protected static DataResolverRegistry dataResolverRegistry;
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() throws IOException {
         Path baseDirectory = Files.createTempDirectory("batch-spec");
         sparkSession = SparkSession.builder().master("local[*]").appName("TEST").getOrCreate();

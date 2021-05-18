@@ -20,7 +20,6 @@ import org.adealsystems.platform.DataIdentifier
 import org.adealsystems.platform.DataInstance
 import org.adealsystems.platform.DataResolver
 import org.adealsystems.platform.DefaultNamingStrategy
-import org.adealsystems.platform.file.FileDataResolutionStrategy
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import spock.lang.Shared
