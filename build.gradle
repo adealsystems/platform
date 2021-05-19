@@ -1,3 +1,6 @@
+if (!JavaVersion.current().isJava11Compatible()) {
+    throw new RuntimeException("This build requires Java 11! https://adoptopenjdk.net/")
+}
 apply from: 'externalDependencies.gradle'
 
 // This defines the Gradle version to be used by this build.
@@ -10,6 +13,8 @@ apply from: 'externalDependencies.gradle'
 wrapper {
     gradleVersion = '7.0'
 }
+
+def javaMajorVersion = 8
 
 buildscript {
     repositories {
@@ -61,18 +66,23 @@ allprojects {
         mavenCentral()
     }
 
-    // this applies to different configurations to the Javadoc task
-    // depending on whether or not we are working with Java 8 or
-    // higher
-    tasks.each { task ->
-        if (task instanceof Javadoc) {
-            //println task
-            if (JavaVersion.current().isJava10Compatible()) {
-                task.options.optionFiles << rootProject.file('config/javadoc10.options')
-            } else {
-                task.options.optionFiles << rootProject.file('config/javadoc.options')
-            }
-        }
+    def compilerArgs = ['-Xlint:all']
+    tasks.withType(JavaCompile) {
+        options.release = javaMajorVersion
+        options.encoding = 'UTF-8'
+        options.debug = true // default, but let's be explicit
+        options.compilerArgs = compilerArgs
+    }
+    tasks.withType(GroovyCompile) {
+        options.release = javaMajorVersion
+        options.encoding = 'UTF-8'
+        options.debug = true // default, but let's be explicit
+        options.compilerArgs = compilerArgs
+    }
+    tasks.withType(Javadoc) {
+        options.optionFiles << rootProject.file('config/javadoc.options')
+        // it's actually --release but one - is added automatically. *eyeroll*
+        options.addStringOption('-release', "" + javaMajorVersion)
     }
 
     // the tasks to be executed if no tasks are given explicitly.
@@ -209,28 +219,6 @@ subprojects {
         }
     }
 
-    sourceCompatibility = globalSourceCompatibility
-    targetCompatibility = globalTargetCompatibility
-
-    // -Xlint:-options disables the
-    // "warning: [options] bootstrap class path not set in conjunction with -source 1.x"
-    // for now
-    def compilerArgs = ['-Xlint:unchecked', '-Xlint:-options', '-Xlint:deprecation', '-g']
-
-    // configure the compiler arguments of the various compile tasks
-    compileJava.options.compilerArgs = compilerArgs
-    compileTestJava.options.compilerArgs = compilerArgs
-    compileGroovy.options.compilerArgs = compilerArgs
-    compileTestGroovy.options.compilerArgs = compilerArgs
-
-    def sourceEncoding = 'UTF-8'
-
-    // configure the source encoding of the various compile tasks
-    compileJava.options.encoding = sourceEncoding
-    compileTestJava.options.encoding = sourceEncoding
-    compileGroovy.options.encoding = sourceEncoding
-    compileTestGroovy.options.encoding = sourceEncoding
-
     // global exclude of "bad" dependencies
     configurations {
         all*.exclude group: 'commons-logging', module: 'commons-logging'
@@ -240,6 +228,7 @@ subprojects {
     test {
         useJUnitPlatform()
     }
+
     // this gives all subprojects a default set of test dependencies
     dependencies {
         testImplementation libraries.'byte-buddy'
