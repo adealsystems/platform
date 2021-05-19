@@ -11,7 +11,7 @@ apply from: 'externalDependencies.gradle'
 // Using those scripts ensures that the correct Gradle version
 // is used (and downloaded automatically).
 wrapper {
-    gradleVersion = '7.0'
+    gradleVersion = '7.0.1'
 }
 
 def javaMajorVersion = 8
