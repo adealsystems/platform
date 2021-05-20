@@ -29,4 +29,10 @@ public interface SparkDataProcessingJob extends DataProcessingJob, AutoCloseable
     void setWriterOptions(Map<String, Object> options);
 
     void setWriterOption(String name, Object value);
+
+    /**
+     * May only throw RuntimeExceptions.
+     */
+    @Override
+    void close();
 }

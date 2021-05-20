@@ -17,7 +17,6 @@
 package org.adealsystems.platform.io;
 
 /**
- *
  * @param <E> the type this Drain can handle.
  */
 public interface Drain<E> extends AutoCloseable {
@@ -38,4 +37,10 @@ public interface Drain<E> extends AutoCloseable {
      * @throws IllegalStateException if this method is called after the Drain was closed.
      */
     void addAll(Iterable<E> entries);
+
+    /**
+     * May only throw RuntimeExceptions, e.g. DrainException.
+     */
+    @Override
+    void close();
 }

@@ -87,13 +87,18 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
 
     @Override
     @SuppressWarnings("PMD.CloseResource")
-    public void close() throws Exception {
+    public void close() {
         if (printer == null) {
             return;
         }
         CSVPrinter temp = printer;
         printer = null;
-        temp.flush();
-        temp.close();
+        try {
+            temp.flush();
+            temp.close();
+        }
+        catch(IOException ex) {
+            throw new DrainException("Exception while closing stream!", ex);
+        }
     }
 }

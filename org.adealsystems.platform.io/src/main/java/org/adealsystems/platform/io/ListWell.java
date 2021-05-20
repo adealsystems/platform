@@ -61,7 +61,7 @@ public final class ListWell<E> implements Well<E> {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         content = null;
     }
 

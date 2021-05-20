@@ -39,12 +39,12 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
     private boolean consumed;
 
     protected AbstractCsvWell(Class<E> clazz, InputStream inputStream, CSVFormat csvFormat)
-            throws IOException {
+        throws IOException {
         this(clazz, inputStream, csvFormat, Compression.NONE);
     }
 
     protected AbstractCsvWell(Class<E> clazz, InputStream inputStream, CSVFormat csvFormat, Compression compression)
-            throws IOException {
+        throws IOException {
         this(clazz, Compression.createReader(inputStream, compression), csvFormat);
     }
 
@@ -53,7 +53,7 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
      * BufferedWriter with correct charset, i.e. UTF-8.
      */
     private AbstractCsvWell(Class<E> clazz, BufferedReader reader, CSVFormat csvFormat)
-            throws IOException {
+        throws IOException {
         this.clazz = Objects.requireNonNull(clazz, "clazz must not be null!");
         this.parser = csvFormat.parse(reader); // private c'tor, already checked against null
         this.header = resolveHeader(parser);
@@ -76,13 +76,17 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
 
     @Override
     @SuppressWarnings("PMD.CloseResource")
-    public void close() throws Exception {
+    public void close() {
         if (parser == null) {
             return;
         }
         CSVParser temp = parser;
         parser = null;
-        temp.close();
+        try {
+            temp.close();
+        } catch (IOException e) {
+            throw new WellException("Exception while closing stream!", e);
+        }
     }
 
     @Override

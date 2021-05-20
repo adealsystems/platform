@@ -41,22 +41,22 @@ public class JsonlDrain<E> implements Drain<E> {
     private BufferedWriter writer;
 
     public JsonlDrain(OutputStream outputStream)
-            throws IOException {
+        throws IOException {
         this(outputStream, Compression.NONE, DEFAULT_OBJECT_MAPPER);
     }
 
     public JsonlDrain(OutputStream outputStream, Compression compression)
-            throws IOException {
+        throws IOException {
         this(Compression.createWriter(outputStream, compression), DEFAULT_OBJECT_MAPPER);
     }
 
     public JsonlDrain(OutputStream outputStream, ObjectMapper objectMapper)
-            throws IOException {
+        throws IOException {
         this(outputStream, Compression.NONE, objectMapper);
     }
 
     public JsonlDrain(OutputStream outputStream, Compression compression, ObjectMapper objectMapper)
-            throws IOException {
+        throws IOException {
         this(Compression.createWriter(outputStream, compression), objectMapper);
     }
 
@@ -102,13 +102,17 @@ public class JsonlDrain<E> implements Drain<E> {
 
     @Override
     @SuppressWarnings("PMD.CloseResource")
-    public void close() throws Exception {
+    public void close() {
         if (writer == null) {
             return;
         }
         BufferedWriter temp = writer;
         writer = null;
-        temp.flush();
-        temp.close();
+        try {
+            temp.flush();
+            temp.close();
+        } catch (IOException ex) {
+            throw new DrainException("Exception while closing stream!", ex);
+        }
     }
 }

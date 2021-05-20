@@ -18,9 +18,16 @@ package org.adealsystems.platform.io;
 
 /**
  * A Well is an Iterable that can only be iterated once.
+ *
  * @param <E> the type this Well provides.
  */
 @SuppressWarnings("PMD.ShortClassName")
 public interface Well<E> extends Iterable<E>, AutoCloseable {
     boolean isConsumed();
+
+    /**
+     * May only throw RuntimeExceptions, e.g. WellException.
+     */
+    @Override
+    void close();
 }
