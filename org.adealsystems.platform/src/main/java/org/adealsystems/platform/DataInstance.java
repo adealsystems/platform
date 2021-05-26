@@ -74,6 +74,10 @@ public final class DataInstance implements Comparable<DataInstance> {
         return path;
     }
 
+    public DataResolutionStrategy getDataResolutionStrategy() {
+        return dataResolutionStrategy;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
