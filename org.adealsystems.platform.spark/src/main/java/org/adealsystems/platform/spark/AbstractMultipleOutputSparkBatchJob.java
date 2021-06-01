@@ -48,6 +48,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -67,6 +68,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
     private final Set<DataIdentifier> outputIdentifiers;
     private final DataInstanceRegistry dataInstanceRegistry = new DataInstanceRegistry();
     private final Map<String, Object> writerOptions = new HashMap<>();
+    private final Map<DataIdentifier, String> processingStatus = new HashMap<>();
     private final boolean storeAsSingleFile;
     private final LocalDate invocationDate;
     private final DatasetLogger datasetLogger;
@@ -79,6 +81,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
     private SparkResultWriterInterceptor resultWriterInterceptor;
 
     private SparkProcessingReporter processingReporter;
+    private SparkDataIdentifierStatusUpdater statusUpdater;
 
     private Broadcast<LocalDateTime> broadInvocationIdentifier;
     private final Logger logger;
@@ -88,8 +91,8 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         this.dataResolverRegistry = Objects.requireNonNull(dataResolverRegistry, "dataResolverRegistry must not be null!");
         this.outputLocation = Objects.requireNonNull(outputLocation, "outputLocation must not be null!");
 
-        this.outputIdentifiers = new HashSet<>();
-        this.outputIdentifiers.addAll(Objects.requireNonNull(outputIdentifiers, "outputIdentifiers must not be null!"));
+        Set<DataIdentifier> outputIds = new HashSet<>(Objects.requireNonNull(outputIdentifiers, "outputIdentifiers must not be null!"));
+        this.outputIdentifiers = Collections.unmodifiableSet(outputIds);
 
         this.storeAsSingleFile = storeAsSingleFile;
 
@@ -112,8 +115,26 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         this.processingReporter = processingReporter;
     }
 
+    public void setStatusUpdater(SparkDataIdentifierStatusUpdater statusUpdater) {
+        this.statusUpdater = statusUpdater;
+    }
+
     protected final void setWriteMode(WriteMode writeMode) {
         this.writeMode = Objects.requireNonNull(writeMode, "writeMode must not be null!");
+    }
+
+    @Override
+    public Map<DataIdentifier, String> getProcessingStatus() {
+        if (processingStatus.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return new HashMap<>(processingStatus);
+    }
+
+    @Override
+    public void registerProcessingStatus(DataIdentifier dataIdentifier, String status) {
+        processingStatus.put(dataIdentifier, status);
     }
 
     @Override
@@ -212,7 +233,20 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
                 processingReporter.reportFailure(this, timestamp, duration, th);
             }
 
+            for (DataIdentifier dataId : getOutputIdentifiers()) {
+                registerProcessingStatus(dataId, "processing-error");
+            }
+
             throw th;
+        }
+        finally {
+            if (statusUpdater != null) {
+                for (Map.Entry<DataIdentifier, String> entry : getProcessingStatus().entrySet()) {
+                    DataIdentifier dataId = entry.getKey();
+                    String status = entry.getValue();
+                    statusUpdater.updateStatus(dataId, status);
+                }
+            }
         }
     }
 

@@ -14,18 +14,11 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform;
+package org.adealsystems.platform.spark;
 
-import java.util.Map;
-import java.util.Set;
+import org.adealsystems.platform.DataIdentifier;
 
-public interface DataProcessingJob {
-    Map<DataIdentifier, Set<DataInstance>> getInputInstances();
 
-    Set<DataIdentifier> getOutputIdentifiers();
-
-    Map<DataIdentifier, String> getProcessingStatus();
-    void registerProcessingStatus(DataIdentifier dataIdentifier, String status);
-
-    void execute();
+public interface SparkDataIdentifierStatusUpdater {
+    void updateStatus(DataIdentifier dataId, String status);
 }
