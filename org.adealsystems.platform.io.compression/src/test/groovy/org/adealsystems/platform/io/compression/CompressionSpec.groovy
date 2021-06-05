@@ -17,11 +17,9 @@
 package org.adealsystems.platform.io.compression
 
 import spock.lang.Specification
-import spock.lang.Unroll
 
 class CompressionSpec extends Specification {
 
-    @Unroll
     def "compression and decompression works for #compression"() {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
@@ -44,20 +42,20 @@ class CompressionSpec extends Specification {
 
         where:
         compression << [
-                Compression.NONE,
-                Compression.GZIP,
-                Compression.BZIP,
+            Compression.NONE,
+            Compression.GZIP,
+            Compression.BZIP,
         ]
     }
 
     private static final List<String> CONTENT = [
-            "Some content",
-            "Some content",
-            "Some content",
-            "Some content",
-            "Some content",
-            "Some content",
-            "Some content",
-            "Some content",
+        "Some content",
+        "Some content",
+        "Some content",
+        "Some content",
+        "Some content",
+        "Some content",
+        "Some content",
+        "Some content",
     ]
 }

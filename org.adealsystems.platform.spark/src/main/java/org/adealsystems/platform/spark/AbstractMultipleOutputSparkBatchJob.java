@@ -16,18 +16,18 @@
 
 package org.adealsystems.platform.spark;
 
-import org.adealsystems.platform.DataFormat;
-import org.adealsystems.platform.DataIdentifier;
-import org.adealsystems.platform.DataInstance;
-import org.adealsystems.platform.DataInstanceRegistry;
-import org.adealsystems.platform.DataLocation;
-import org.adealsystems.platform.DataResolver;
-import org.adealsystems.platform.DataResolverRegistry;
-import org.adealsystems.platform.exceptions.DuplicateInstanceRegistrationException;
-import org.adealsystems.platform.exceptions.DuplicateUniqueIdentifierException;
-import org.adealsystems.platform.exceptions.UnregisteredDataIdentifierException;
-import org.adealsystems.platform.exceptions.UnregisteredDataResolverException;
-import org.adealsystems.platform.exceptions.UnsupportedDataFormatException;
+import org.adealsystems.platform.id.DataFormat;
+import org.adealsystems.platform.id.DataIdentifier;
+import org.adealsystems.platform.id.DataInstance;
+import org.adealsystems.platform.process.DataInstanceRegistry;
+import org.adealsystems.platform.process.DataLocation;
+import org.adealsystems.platform.id.DataResolver;
+import org.adealsystems.platform.process.DataResolverRegistry;
+import org.adealsystems.platform.process.exceptions.DuplicateInstanceRegistrationException;
+import org.adealsystems.platform.process.exceptions.DuplicateUniqueIdentifierException;
+import org.adealsystems.platform.process.exceptions.UnregisteredDataIdentifierException;
+import org.adealsystems.platform.process.exceptions.UnregisteredDataResolverException;
+import org.adealsystems.platform.process.exceptions.UnsupportedDataFormatException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -225,8 +225,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
                 processingReporter.reportSuccess(this, timestamp, duration);
             }
-        }
-        catch(Throwable th) {
+        } catch (Throwable th) {
             if (processingReporter != null) {
                 long stopTime = System.currentTimeMillis();
                 long duration = stopTime - startTime;
@@ -238,8 +237,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
             }
 
             throw th;
-        }
-        finally {
+        } finally {
             if (statusUpdater != null) {
                 for (Map.Entry<DataIdentifier, String> entry : getProcessingStatus().entrySet()) {
                     DataIdentifier dataId = entry.getKey();
@@ -521,7 +519,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
     private Dataset<Row> readInput(DataInstance dataInstance) {
         Objects.requireNonNull(dataInstance, "dataInstance must not be null!");
-        String path = dataInstance.resolvePath();
+        String path = dataInstance.getPath();
         DataFormat dataFormat = dataInstance.getDataFormat();
         logger.info("Reading {} from '{}'.", dataInstance, path);
         switch (dataFormat) {
@@ -565,7 +563,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
     private void writeOutput(DataInstance dataInstance, Dataset<Row> result) {
         Objects.requireNonNull(dataInstance, "dataInstance must not be null!");
-        String path = dataInstance.resolvePath();
+        String path = dataInstance.getPath();
         logger.info("Writing {} to '{}'.", dataInstance, path);
         DataFormat dataFormat = dataInstance.getDataFormat();
         switch (dataFormat) {
@@ -607,31 +605,31 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         // TODO: option names
         // https://spark.apache.org/docs/2.4.3/api/java/org/apache/spark/sql/DataFrameWriter.html#csv-java.lang.String-
         return getSparkSession().read() //
-                .option("header", "true") //
-                .option("inferSchema", "true") //
-                .option("delimiter", delimiter) // TODO: option names
-                .option("emptyValue", "") // TODO: option names
-                .csv(fileName);
+            .option("header", "true") //
+            .option("inferSchema", "true") //
+            .option("delimiter", delimiter) // TODO: option names
+            .option("emptyValue", "") // TODO: option names
+            .csv(fileName);
     }
 
     private Dataset<Row> readJsonAsDataset(String fileName) {
         return getSparkSession().read() //
-                .json(fileName);
+            .json(fileName);
     }
 
     private Dataset<Row> readAvroAsDataset(String fileName) {
         return getSparkSession().read() //
-                .format("avro") //
-                .load(fileName);
+            .format("avro") //
+            .load(fileName);
     }
 
     private static void writeDatasetAsCsv(
-            String delimiter,
-            Dataset<Row> dataset,
-            String fileName,
-            boolean storeAsSingleFile,
-            JavaSparkContext sparkContext,
-            Map<String, Object> writerOptions
+        String delimiter,
+        Dataset<Row> dataset,
+        String fileName,
+        boolean storeAsSingleFile,
+        JavaSparkContext sparkContext,
+        Map<String, Object> writerOptions
     ) {
         String targetPath = fileName;
         if (storeAsSingleFile) {
@@ -640,10 +638,10 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
         // https://spark.apache.org/docs/2.4.3/api/java/org/apache/spark/sql/DataFrameWriter.html#csv-java.lang.String-
         DataFrameWriter<Row> writer = dataset.write()
-                .mode(SaveMode.Overwrite)
-                .option("header", "true")
-                .option("delimiter", delimiter) // TODO: option names
-                .option("emptyValue", ""); // TODO: option names
+            .mode(SaveMode.Overwrite)
+            .option("header", "true")
+            .option("delimiter", delimiter) // TODO: option names
+            .option("emptyValue", ""); // TODO: option names
 
         for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
             Object value = option.getValue();
@@ -683,7 +681,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         }
 
         DataFrameWriter<Row> writer = dataset.write()
-                .mode(SaveMode.Overwrite);
+            .mode(SaveMode.Overwrite);
 
         for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
             Object value = option.getValue();
@@ -719,8 +717,8 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         }
 
         DataFrameWriter<Row> writer = dataset.write()
-                .mode(SaveMode.Overwrite)
-                .format("avro");
+            .mode(SaveMode.Overwrite)
+            .format("avro");
 
         for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
             Object value = option.getValue();

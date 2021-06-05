@@ -16,8 +16,8 @@
 
 package org.adealsystems.platform.spark;
 
-import org.adealsystems.platform.DataInstance;
-import org.adealsystems.platform.DataLocation;
+import org.adealsystems.platform.id.DataInstance;
+import org.adealsystems.platform.process.DataLocation;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 

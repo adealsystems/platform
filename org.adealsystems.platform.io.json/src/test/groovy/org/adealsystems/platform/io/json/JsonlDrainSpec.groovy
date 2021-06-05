@@ -20,10 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import org.adealsystems.platform.io.compression.Compression
 import spock.lang.Specification
-import spock.lang.Unroll
 
 class JsonlDrainSpec extends Specification {
-    @Unroll
+
     def 'adding to the drain with compression #compression works'() {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
@@ -47,16 +46,16 @@ class JsonlDrainSpec extends Specification {
 
         then:
         objects == [
-                new Entry("Entry 1"),
-                new Entry("Entry 2"),
-                new Entry("Entry 3"),
+            new Entry("Entry 1"),
+            new Entry("Entry 2"),
+            new Entry("Entry 3"),
         ]
 
         where:
         compression << [
-                Compression.NONE,
-                Compression.GZIP,
-                Compression.BZIP,
+            Compression.NONE,
+            Compression.GZIP,
+            Compression.BZIP,
         ]
     }
 
@@ -146,6 +145,7 @@ class JsonlDrainSpec extends Specification {
     private static class Entry {
         String value
 
+        @SuppressWarnings('unused')
         Entry() {
         }
 
@@ -171,8 +171,8 @@ class JsonlDrainSpec extends Specification {
         @Override
         String toString() {
             return "Entry{" +
-                    "value='" + value + '\'' +
-                    '}'
+                "value='" + value + '\'' +
+                '}'
         }
     }
 

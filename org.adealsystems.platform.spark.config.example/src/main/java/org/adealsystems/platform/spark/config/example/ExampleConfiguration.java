@@ -16,7 +16,7 @@
 
 package org.adealsystems.platform.spark.config.example;
 
-import org.adealsystems.platform.DataResolverRegistry;
+import org.adealsystems.platform.process.DataResolverRegistry;
 import org.adealsystems.platform.spark.SparkDataProcessingJob;
 import org.adealsystems.platform.spark.example.ExampleBatchJob;
 import org.springframework.beans.factory.annotation.Qualifier;

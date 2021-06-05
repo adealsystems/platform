@@ -16,10 +16,10 @@
 
 package org.adealsystems.platform.spark.example;
 
-import org.adealsystems.platform.DataFormat;
-import org.adealsystems.platform.DataIdentifier;
-import org.adealsystems.platform.DataLocation;
-import org.adealsystems.platform.DataResolverRegistry;
+import org.adealsystems.platform.id.DataFormat;
+import org.adealsystems.platform.id.DataIdentifier;
+import org.adealsystems.platform.process.DataLocation;
+import org.adealsystems.platform.process.DataResolverRegistry;
 import org.adealsystems.platform.spark.AbstractSingleOutputSparkBatchJob;
 import org.adealsystems.platform.spark.DatasetLogger;
 import org.adealsystems.platform.spark.udf.SomethingToLocalDateStringUDF;
@@ -71,10 +71,10 @@ public class ExampleBatchJob extends AbstractSingleOutputSparkBatchJob {
         dsl.showInfo("Input", input);
 
         Dataset<Row> result = input
-                .withColumn("WeekOfYear",
-                        callUDF(WEEK_OF_YEAR_UDF, col("Date")))
-                .withColumn("DateString",
-                        callUDF(DATE_STRING_UDF, col("Date")));
+            .withColumn("WeekOfYear",
+                callUDF(WEEK_OF_YEAR_UDF, col("Date")))
+            .withColumn("DateString",
+                callUDF(DATE_STRING_UDF, col("Date")));
 
         dsl.showInfo("Result - after UDF", result);
 

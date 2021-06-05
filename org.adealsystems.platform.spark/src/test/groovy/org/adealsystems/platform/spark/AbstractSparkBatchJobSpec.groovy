@@ -16,10 +16,10 @@
 
 package org.adealsystems.platform.spark
 
-import org.adealsystems.platform.DataFormat
-import org.adealsystems.platform.DataIdentifier
-import org.adealsystems.platform.DataLocation
-import org.adealsystems.platform.DataResolverRegistry
+import org.adealsystems.platform.id.DataFormat
+import org.adealsystems.platform.id.DataIdentifier
+import org.adealsystems.platform.process.DataLocation
+import org.adealsystems.platform.process.DataResolverRegistry
 import org.adealsystems.platform.spark.test.BatchTestTools
 import org.adealsystems.platform.spark.test.spock.AbstractBatchJobSpec
 import org.apache.spark.sql.Dataset

@@ -21,18 +21,16 @@ import org.adealsystems.platform.io.WellException
 import org.adealsystems.platform.io.compression.Compression
 import org.apache.commons.csv.CSVFormat
 import spock.lang.Specification
-import spock.lang.Unroll
 
 class AbstractCsvWellSpec extends Specification {
     final CSVFormat OUTPUT_CSV_FORMAT = CSVFormat.DEFAULT
-            .withHeader("key", "value")
-            .withDelimiter(';' as char)
+        .withHeader("key", "value")
+        .withDelimiter(';' as char)
 
     final CSVFormat INPUT_CSV_FORMAT = CSVFormat.DEFAULT
-            .withFirstRecordAsHeader()
-            .withDelimiter(';' as char)
+        .withFirstRecordAsHeader()
+        .withDelimiter(';' as char)
 
-    @Unroll
     def 'iterating over data with compression #compression works'() {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
@@ -51,28 +49,27 @@ class AbstractCsvWellSpec extends Specification {
 
         then:
         objects == [
-                new Entry("Key 1", "Value 1"),
-                new Entry("Key 2", "Value 2"),
-                new Entry("Key 3", "Value 3"),
+            new Entry("Key 1", "Value 1"),
+            new Entry("Key 2", "Value 2"),
+            new Entry("Key 3", "Value 3"),
         ]
         and:
         well.isConsumed()
 
         where:
         compression << [
-                Compression.NONE,
-                Compression.GZIP,
-                Compression.BZIP,
+            Compression.NONE,
+            Compression.GZIP,
+            Compression.BZIP,
         ]
     }
 
-    @Unroll
     def 'iterating over data with transposed columns works'() {
         given:
         String content = "value;key\n" +
-                "Value 1;Key 1\n" +
-                "Value 2;Key 2\n" +
-                "Value 3;Key 3\n"
+            "Value 1;Key 1\n" +
+            "Value 2;Key 2\n" +
+            "Value 3;Key 3\n"
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
         def writer = Compression.createWriter(bos, Compression.NONE)
         writer.write(content)
@@ -88,9 +85,9 @@ class AbstractCsvWellSpec extends Specification {
 
         then:
         objects == [
-                new Entry("Key 1", "Value 1"),
-                new Entry("Key 2", "Value 2"),
-                new Entry("Key 3", "Value 3"),
+            new Entry("Key 1", "Value 1"),
+            new Entry("Key 2", "Value 2"),
+            new Entry("Key 3", "Value 3"),
         ]
         and:
         instance.isConsumed()
@@ -120,6 +117,7 @@ class AbstractCsvWellSpec extends Specification {
         String key
         String value
 
+        @SuppressWarnings('unused')
         Entry() {
         }
 
@@ -150,9 +148,9 @@ class AbstractCsvWellSpec extends Specification {
         @Override
         String toString() {
             return "Entry{" +
-                    "key='" + key + '\'' +
-                    ", value='" + value + '\'' +
-                    '}'
+                "key='" + key + '\'' +
+                ", value='" + value + '\'' +
+                '}'
         }
     }
 
@@ -187,29 +185,29 @@ class AbstractCsvWellSpec extends Specification {
 
     static class EntryCsvWell extends AbstractCsvWell<Entry> {
 
-        public EntryCsvWell(InputStream inputStream, CSVFormat csvFormat) throws IOException {
+        EntryCsvWell(InputStream inputStream, CSVFormat csvFormat) throws IOException {
             super(Entry, inputStream, csvFormat)
         }
 
-        public EntryCsvWell(InputStream inputStream, CSVFormat csvFormat, Compression compression) throws IOException {
+        EntryCsvWell(InputStream inputStream, CSVFormat csvFormat, Compression compression) throws IOException {
             super(Entry, inputStream, csvFormat, compression)
         }
 
         @Override
         protected void setValue(Entry entry, String columnName, String value) {
-            Objects.requireNonNull(entry, "entry must not be null!");
-            Objects.requireNonNull(columnName, "columnName must not be null!");
+            Objects.requireNonNull(entry, "entry must not be null!")
+            Objects.requireNonNull(columnName, "columnName must not be null!")
             switch (columnName) {
                 case "key":
                     entry.setKey(value)
-                    break;
+                    break
                 case "value":
                     entry.setValue(value)
-                    break;
+                    break
                 default:
                     // ignore
                     // other implementations might want to be harsher
-                    break;
+                    break
             }
         }
     }

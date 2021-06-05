@@ -16,18 +16,18 @@
 
 package org.adealsystems.platform.spark;
 
-import org.adealsystems.platform.DataFormat;
-import org.adealsystems.platform.DataIdentifier;
-import org.adealsystems.platform.DataInstance;
-import org.adealsystems.platform.DataInstanceRegistry;
-import org.adealsystems.platform.DataLocation;
-import org.adealsystems.platform.DataResolver;
-import org.adealsystems.platform.DataResolverRegistry;
-import org.adealsystems.platform.exceptions.DuplicateInstanceRegistrationException;
-import org.adealsystems.platform.exceptions.DuplicateUniqueIdentifierException;
-import org.adealsystems.platform.exceptions.UnregisteredDataIdentifierException;
-import org.adealsystems.platform.exceptions.UnregisteredDataResolverException;
-import org.adealsystems.platform.exceptions.UnsupportedDataFormatException;
+import org.adealsystems.platform.id.DataFormat;
+import org.adealsystems.platform.id.DataIdentifier;
+import org.adealsystems.platform.id.DataInstance;
+import org.adealsystems.platform.process.DataInstanceRegistry;
+import org.adealsystems.platform.process.DataLocation;
+import org.adealsystems.platform.id.DataResolver;
+import org.adealsystems.platform.process.DataResolverRegistry;
+import org.adealsystems.platform.process.exceptions.DuplicateInstanceRegistrationException;
+import org.adealsystems.platform.process.exceptions.DuplicateUniqueIdentifierException;
+import org.adealsystems.platform.process.exceptions.UnregisteredDataIdentifierException;
+import org.adealsystems.platform.process.exceptions.UnregisteredDataResolverException;
+import org.adealsystems.platform.process.exceptions.UnsupportedDataFormatException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -422,7 +422,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     private Dataset<Row> readInput(DataInstance dataInstance) {
         Objects.requireNonNull(dataInstance, "dataInstance must not be null!");
-        String path = dataInstance.resolvePath();
+        String path = dataInstance.getPath();
         DataFormat dataFormat = dataInstance.getDataFormat();
         logger.info("Reading {} from '{}'.", dataInstance, path);
         switch (dataFormat) {
@@ -473,7 +473,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     private void writeOutput(DataInstance dataInstance, Dataset<Row> result) {
         Objects.requireNonNull(dataInstance, "dataInstance must not be null!");
-        String path = dataInstance.resolvePath();
+        String path = dataInstance.getPath();
         logger.info("Writing {} to '{}'.", dataInstance, path);
         DataFormat dataFormat = dataInstance.getDataFormat();
         switch (dataFormat) {

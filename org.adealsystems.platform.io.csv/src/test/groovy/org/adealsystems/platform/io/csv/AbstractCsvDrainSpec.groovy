@@ -20,14 +20,12 @@ import org.adealsystems.platform.io.DrainException
 import org.adealsystems.platform.io.compression.Compression
 import org.apache.commons.csv.CSVFormat
 import spock.lang.Specification
-import spock.lang.Unroll
 
 class AbstractCsvDrainSpec extends Specification {
     final CSVFormat CSV_FORMAT = CSVFormat.DEFAULT
-            .withHeader("key", "value")
-            .withDelimiter(';' as char)
+        .withHeader("key", "value")
+        .withDelimiter(';' as char)
 
-    @Unroll
     def 'adding to the drain with compression #compression works'() {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
@@ -48,9 +46,9 @@ class AbstractCsvDrainSpec extends Specification {
 
         where:
         compression << [
-                Compression.NONE,
-                Compression.GZIP,
-                Compression.BZIP,
+            Compression.NONE,
+            Compression.GZIP,
+            Compression.BZIP,
         ]
     }
 
@@ -127,6 +125,7 @@ class AbstractCsvDrainSpec extends Specification {
         String key
         String value
 
+        @SuppressWarnings('unused')
         Entry() {
         }
 
@@ -157,9 +156,9 @@ class AbstractCsvDrainSpec extends Specification {
         @Override
         String toString() {
             return "Entry{" +
-                    "key='" + key + '\'' +
-                    ", value='" + value + '\'' +
-                    '}'
+                "key='" + key + '\'' +
+                ", value='" + value + '\'' +
+                '}'
         }
     }
 

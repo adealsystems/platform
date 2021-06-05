@@ -6,19 +6,42 @@
 // Be aware that subprojects must also be specified in settings.gradle!
 // Otherwise Gradle won't pick them up!
 
-project(':org.adealsystems.platform') {
+def platformTime = project(':org.adealsystems.platform.time') {
     dependencies {
         implementation libraries.'slf4j-api'
     }
 }
 
-project(':org.adealsystems.platform.io') {
+def platformId = project(':org.adealsystems.platform.id') {
+    dependencies {
+        implementation libraries.'slf4j-api'
+        implementation platformTime
+    }
+}
+
+project(':org.adealsystems.platform.id.hadoop') {
+    dependencies {
+        implementation libraries.'slf4j-api'
+        implementation platformId
+        implementation libraries.'hadoop-common'
+        testImplementation libraries.'jcl-over-slf4j'
+    }
+}
+
+def platformProcess = project(':org.adealsystems.platform.process') {
+    dependencies {
+        implementation platformId
+        implementation libraries.'slf4j-api'
+    }
+}
+
+def platformIo = project(':org.adealsystems.platform.io') {
     dependencies {
         implementation libraries.'slf4j-api'
     }
 }
 
-project(':org.adealsystems.platform.io.compression') {
+def platformIoCompression = project(':org.adealsystems.platform.io.compression') {
     dependencies {
         implementation libraries.'slf4j-api'
         implementation libraries.'commons-compress'
@@ -27,34 +50,24 @@ project(':org.adealsystems.platform.io.compression') {
 
 project(':org.adealsystems.platform.io.csv') {
     dependencies {
-        implementation project(':org.adealsystems.platform.io')
-        implementation project(':org.adealsystems.platform.io.compression')
+        implementation platformIo
+        implementation platformIoCompression
         implementation libraries.'commons-csv'
     }
 }
 
 project(':org.adealsystems.platform.io.json') {
     dependencies {
-        implementation project(':org.adealsystems.platform.io')
-        implementation project(':org.adealsystems.platform.io.compression')
+        implementation platformIo
+        implementation platformIoCompression
         implementation libraries.'jackson-databind'
     }
 }
 
-project(':org.adealsystems.platform.spark') {
+def platformSparkTest = project(':org.adealsystems.platform.spark.test') {
     dependencies {
-        implementation project(':org.adealsystems.platform')
-        implementation libraries.'slf4j-api'
-        compileOnly libraries.'spark-core'
-        compileOnly libraries.'spark-sql' // for SparkSession m(
-        testImplementation libraries.'spark-sql' // for SparkSession m(
-        testImplementation project(':org.adealsystems.platform.spark.test')
-    }
-}
-
-project(':org.adealsystems.platform.spark.test') {
-    dependencies {
-        implementation project(':org.adealsystems.platform')
+        implementation platformId
+        implementation platformProcess
         implementation libraries.'slf4j-api'
         implementation libraries.'spark-core'
         implementation libraries.'spark-sql' // for SparkSession m(
@@ -63,43 +76,58 @@ project(':org.adealsystems.platform.spark.test') {
     }
 }
 
-project(':org.adealsystems.platform.spark.udf') {
+def platformSpark = project(':org.adealsystems.platform.spark') {
     dependencies {
-        implementation project(':org.adealsystems.platform')
+        implementation platformId
+        implementation platformProcess
+        implementation libraries.'slf4j-api'
+        compileOnly libraries.'spark-core'
+        compileOnly libraries.'spark-sql' // for SparkSession m(
+        testImplementation libraries.'spark-sql' // for SparkSession m(
+        testImplementation platformSparkTest
+    }
+}
+
+def platformSparkUdf = project(':org.adealsystems.platform.spark.udf') {
+    dependencies {
+        implementation platformTime
         compileOnly libraries.'spark-sql'
         testImplementation libraries.'spark-sql'
     }
 }
 
-project(':org.adealsystems.platform.spark.example') {
+def platformSparkMain = project(':org.adealsystems.platform.spark.main') {
     dependencies {
-        implementation project(':org.adealsystems.platform')
-        implementation project(':org.adealsystems.platform.spark')
-        implementation project(':org.adealsystems.platform.spark.udf')
+        implementation platformId
+        implementation platformTime
+        implementation platformProcess
+        implementation platformSpark
+        implementation libraries.'spring-context'
+        compileOnly libraries.'spark-core'
+        compileOnly libraries.'spark-sql' // for SparkSession m(
+    }
+}
+
+def platformSparkExample = project(':org.adealsystems.platform.spark.example') {
+    dependencies {
+        implementation platformId
+        implementation platformProcess
+        implementation platformSpark
+        implementation platformSparkUdf
         implementation libraries.'slf4j-api'
         compileOnly libraries.'spark-core'
         compileOnly libraries.'spark-sql' // for SparkSession m(
-        testImplementation project(':org.adealsystems.platform.spark.test')
+        testImplementation platformSparkTest
         testImplementation libraries.'spark-sql' // for SparkSession m(
     }
 }
 
-project(':org.adealsystems.platform.spark.config.example') {
+def platformSparkConfigExample = project(':org.adealsystems.platform.spark.config.example') {
     dependencies {
-        implementation project(':org.adealsystems.platform')
-        implementation project(':org.adealsystems.platform.spark')
-        implementation project(':org.adealsystems.platform.spark.example')
+        implementation platformProcess
+        implementation platformSpark
+        implementation platformSparkExample
         implementation libraries.'spring-context'
-    }
-}
-
-project(':org.adealsystems.platform.spark.main') {
-    dependencies {
-        implementation project(':org.adealsystems.platform')
-        implementation project(':org.adealsystems.platform.spark')
-        implementation libraries.'spring-context'
-        compileOnly libraries.'spark-core'
-        compileOnly libraries.'spark-sql' // for SparkSession m(
     }
 }
 
@@ -124,8 +152,8 @@ project(':org.adealsystems.platform.spark.app.example') {
     mainClassName = 'org.adealsystems.platform.spark.main.Application'
 
     dependencies {
-        runtimeOnly project(':org.adealsystems.platform.spark.main')
-        runtimeOnly project(':org.adealsystems.platform.spark.config.example')
+        runtimeOnly platformSparkMain
+        runtimeOnly platformSparkConfigExample
         runtimeExcludedFromBootJar libraries.'spark-core'
         runtimeExcludedFromBootJar libraries.'spark-sql' // for SparkSession m(
         runtimeOnly 'org.codehaus.janino:janino:3.0.9' // Spark sucks
@@ -160,12 +188,20 @@ project(':org.adealsystems.platform.spark.app.example') {
 
 project(':org.adealsystems.platform.webcollector') {
     dependencies {
-        implementation project(':org.adealsystems.platform.io')
+        implementation platformIo
         implementation libraries.'slf4j-api'
         implementation libraries.'httpclient'
         runtimeOnly libraries.'httpcore'
         testImplementation libraries.'jackson-databind'
         testRuntimeOnly libraries.'logback-classic'
         testRuntimeOnly libraries.'jcl-over-slf4j'
+    }
+}
+
+project(':org.adealsystems.platform.state') {
+    dependencies {
+        implementation libraries.'slf4j-api'
+        implementation platformId
+        implementation libraries.'jackson-databind'
     }
 }

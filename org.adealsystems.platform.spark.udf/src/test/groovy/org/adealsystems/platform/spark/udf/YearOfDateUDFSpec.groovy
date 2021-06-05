@@ -17,19 +17,14 @@
 package org.adealsystems.platform.spark.udf
 
 import spock.lang.Specification
-import spock.lang.Unroll
 
 import java.sql.Timestamp
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-import org.adealsystems.platform.spark.udf.YearOfDateUDF
-
 class YearOfDateUDFSpec extends Specification {
     private static final long MILLIS_2020_02_12 = 1581502711275L
 
-
-    @Unroll
     def "yearOfDateUDF.call(#input) returns #expectedResult"() {
         given:
         def instance = new YearOfDateUDF()

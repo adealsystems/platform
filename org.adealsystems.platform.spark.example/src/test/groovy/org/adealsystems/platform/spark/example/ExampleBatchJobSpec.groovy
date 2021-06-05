@@ -16,30 +16,30 @@
 
 package org.adealsystems.platform.spark.example
 
-import static org.adealsystems.platform.DataInstances.createWriter
+import org.adealsystems.platform.id.DataFormat
+import org.adealsystems.platform.id.DataIdentifier
+import org.adealsystems.platform.process.DataLocation
+import org.adealsystems.platform.spark.test.spock.AbstractBatchJobSpec
+
+import static org.adealsystems.platform.id.DataInstances.createWriter
 import static org.adealsystems.platform.spark.test.BatchTestTools.TODAY
 import static org.adealsystems.platform.spark.test.BatchTestTools.readBatchLines
-
-import org.adealsystems.platform.DataFormat
-import org.adealsystems.platform.DataIdentifier
-import org.adealsystems.platform.DataLocation
-import org.adealsystems.platform.spark.test.spock.AbstractBatchJobSpec
 
 class ExampleBatchJobSpec extends AbstractBatchJobSpec {
     private static final DataIdentifier INPUT_IDENTIFIER = new DataIdentifier("some_exporter", "input", DataFormat.CSV_SEMICOLON)
 
     private static final String[] INPUT_DATA = [
-            'Date;COL1;COL2',
-            '2020-05-14;Row1Col1;Row1Col2',
-            '2020-01-31;Row2Col1;Row2Col2',
-            '2019-11-15;Row3Col1;Row3Col2',
+        'Date;COL1;COL2',
+        '2020-05-14;Row1Col1;Row1Col2',
+        '2020-01-31;Row2Col1;Row2Col2',
+        '2019-11-15;Row3Col1;Row3Col2',
     ]
 
     private static final String[] OUTPUT_DATA = [
-            'Date;WeekOfYear;COL1;COL2',
-            '2019-11-15;2019W46;Row3Col1;Row3Col2',
-            '2020-01-31;2020W05;Row2Col1;Row2Col2',
-            '2020-05-14;2020W20;Row1Col1;Row1Col2',
+        'Date;WeekOfYear;COL1;COL2',
+        '2019-11-15;2019W46;Row3Col1;Row3Col2',
+        '2020-01-31;2020W05;Row2Col1;Row2Col2',
+        '2020-05-14;2020W20;Row1Col1;Row1Col2',
     ]
 
     // this works, by naming convention, like @Before

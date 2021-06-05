@@ -16,8 +16,7 @@
 
 package org.adealsystems.platform.spark;
 
-import org.adealsystems.platform.DataIdentifier;
-
+import org.adealsystems.platform.id.DataIdentifier;
 
 public interface SparkDataIdentifierStatusUpdater {
     void updateStatus(DataIdentifier dataId, String status);

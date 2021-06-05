@@ -16,15 +16,15 @@
 
 package org.adealsystems.platform.spark.main;
 
-import org.adealsystems.platform.DataLocation;
-import org.adealsystems.platform.DataResolver;
-import org.adealsystems.platform.DataResolverRegistry;
-import org.adealsystems.platform.DefaultNamingStrategy;
-import org.adealsystems.platform.MapDataResolverRegistry;
-import org.adealsystems.platform.NamingStrategy;
-import org.adealsystems.platform.TimeHandling;
-import org.adealsystems.platform.file.FileDataResolutionStrategy;
-import org.adealsystems.platform.url.UrlDataResolutionStrategy;
+import org.adealsystems.platform.id.DataResolver;
+import org.adealsystems.platform.id.DefaultNamingStrategy;
+import org.adealsystems.platform.id.NamingStrategy;
+import org.adealsystems.platform.time.TimeHandling;
+import org.adealsystems.platform.id.file.FileDataResolutionStrategy;
+import org.adealsystems.platform.id.url.UrlDataResolutionStrategy;
+import org.adealsystems.platform.process.DataLocation;
+import org.adealsystems.platform.process.DataResolverRegistry;
+import org.adealsystems.platform.process.MapDataResolverRegistry;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,7 +90,7 @@ public class ApplicationConfiguration {
         MapDataResolverRegistry result = new MapDataResolverRegistry();
 
         result.registerResolver(DataLocation.INPUT, new DataResolver(new UrlDataResolutionStrategy(namingStrategy(), inputBaseDirectory)));
-        result.registerResolver(DataLocation.OUTPUT,  new DataResolver(new UrlDataResolutionStrategy(namingStrategy(), outputBaseDirectory)));
+        result.registerResolver(DataLocation.OUTPUT, new DataResolver(new UrlDataResolutionStrategy(namingStrategy(), outputBaseDirectory)));
 
         LOGGER.info("Returning dataResolverRegistry for 'remote' profile:\n{}", result);
         return result;

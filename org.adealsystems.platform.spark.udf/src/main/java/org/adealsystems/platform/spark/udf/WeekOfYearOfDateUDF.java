@@ -16,7 +16,7 @@
 
 package org.adealsystems.platform.spark.udf;
 
-import org.adealsystems.platform.TimeHandling;
+import org.adealsystems.platform.time.TimeHandling;
 import org.apache.spark.sql.api.java.UDF1;
 
 import java.time.LocalDate;

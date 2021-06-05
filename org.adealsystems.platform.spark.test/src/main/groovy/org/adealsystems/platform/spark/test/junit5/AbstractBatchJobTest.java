@@ -16,12 +16,12 @@
 
 package org.adealsystems.platform.spark.test.junit5;
 
-import org.adealsystems.platform.DataLocation;
-import org.adealsystems.platform.DataResolver;
-import org.adealsystems.platform.DataResolverRegistry;
-import org.adealsystems.platform.DefaultNamingStrategy;
-import org.adealsystems.platform.MapDataResolverRegistry;
-import org.adealsystems.platform.file.FileDataResolutionStrategy;
+import org.adealsystems.platform.id.DataResolver;
+import org.adealsystems.platform.id.DefaultNamingStrategy;
+import org.adealsystems.platform.id.file.FileDataResolutionStrategy;
+import org.adealsystems.platform.process.DataLocation;
+import org.adealsystems.platform.process.DataResolverRegistry;
+import org.adealsystems.platform.process.MapDataResolverRegistry;
 import org.apache.spark.sql.SparkSession;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;

@@ -19,10 +19,9 @@ package org.adealsystems.platform.io.json
 import org.adealsystems.platform.io.WellException
 import org.adealsystems.platform.io.compression.Compression
 import spock.lang.Specification
-import spock.lang.Unroll
 
 class JsonlWellSpec extends Specification {
-    @Unroll
+
     def 'iterating over data with compression #compression works'() {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
@@ -41,18 +40,18 @@ class JsonlWellSpec extends Specification {
 
         then:
         objects == [
-                new Entry("Entry 1"),
-                new Entry("Entry 2"),
-                new Entry("Entry 3"),
+            new Entry("Entry 1"),
+            new Entry("Entry 2"),
+            new Entry("Entry 3"),
         ]
         and:
         instance.isConsumed()
 
         where:
         compression << [
-                Compression.NONE,
-                Compression.GZIP,
-                Compression.BZIP,
+            Compression.NONE,
+            Compression.GZIP,
+            Compression.BZIP,
         ]
     }
 
@@ -79,6 +78,7 @@ class JsonlWellSpec extends Specification {
     private static class Entry {
         String value
 
+        @SuppressWarnings('unused')
         Entry() {
         }
 
@@ -104,8 +104,8 @@ class JsonlWellSpec extends Specification {
         @Override
         String toString() {
             return "Entry{" +
-                    "value='" + value + '\'' +
-                    '}'
+                "value='" + value + '\'' +
+                '}'
         }
     }
 }

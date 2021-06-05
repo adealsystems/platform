@@ -16,7 +16,7 @@
 
 package org.adealsystems.platform.spark;
 
-import org.adealsystems.platform.DataProcessingJob;
+import org.adealsystems.platform.process.DataProcessingJob;
 import org.apache.spark.sql.SparkSession;
 
 import java.util.Map;

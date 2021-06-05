@@ -20,6 +20,7 @@ project.ext.libraries = [
         'commons-lang'        : 'org.apache.commons:commons-lang3:3.12.0',
         'groovy'              : "org.codehaus.groovy:groovy:${versions.groovy}",
         'groovy-nio'          : "org.codehaus.groovy:groovy-nio:${versions.groovy}",
+        'hadoop-common'       : "ch.cern.hadoop:hadoop-common:3.2.1",
         'httpclient'          : "org.apache.httpcomponents.client5:httpclient5:5.0.3",
         'httpcore'            : "org.apache.httpcomponents.core5:httpcore5:5.1",
         'jackson-databind'    : "com.fasterxml.jackson.core:jackson-databind:${versions.jackson}",
