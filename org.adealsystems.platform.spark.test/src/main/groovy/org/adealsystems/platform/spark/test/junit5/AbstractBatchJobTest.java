@@ -23,6 +23,7 @@ import org.adealsystems.platform.DefaultNamingStrategy;
 import org.adealsystems.platform.MapDataResolverRegistry;
 import org.adealsystems.platform.file.FileDataResolutionStrategy;
 import org.apache.spark.sql.SparkSession;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
 import java.io.IOException;
@@ -32,8 +33,16 @@ import java.nio.file.Path;
 @SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
 public abstract class AbstractBatchJobTest {
 
-    protected static SparkSession sparkSession;
-    protected static DataResolverRegistry dataResolverRegistry;
+    private static SparkSession sparkSession;
+    private static DataResolverRegistry dataResolverRegistry;
+
+    public static SparkSession getSparkSession() {
+        return sparkSession;
+    }
+
+    public static DataResolverRegistry getDataResolverRegistry() {
+        return dataResolverRegistry;
+    }
 
     @BeforeAll
     public static void beforeClass() throws IOException {
@@ -45,5 +54,10 @@ public abstract class AbstractBatchJobTest {
         registry.registerResolver(DataLocation.INPUT, dataResolver);
         registry.registerResolver(DataLocation.OUTPUT, dataResolver);
         dataResolverRegistry = registry;
+    }
+
+    @AfterAll
+    public static void afterClass() {
+        sparkSession.close();
     }
 }

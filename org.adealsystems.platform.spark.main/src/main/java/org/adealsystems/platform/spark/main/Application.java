@@ -16,9 +16,9 @@
 
 package org.adealsystems.platform.spark.main;
 
-import org.adealsystems.platform.DataIdentifier;
-import org.adealsystems.platform.TimeHandling;
+import org.adealsystems.platform.id.DataIdentifier;
 import org.adealsystems.platform.spark.SparkDataProcessingJob;
+import org.adealsystems.platform.time.TimeHandling;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,7 +111,7 @@ public class Application {
                 return;
             }
             SparkSession.Builder sparkSessionBuilder = applicationContext.getBean(SparkSession.Builder.class)
-                    .appName("ADEAL-Systems-Batch");
+                .appName("ADEAL-Systems-Batch");
             try (SparkSession sparkSession = sparkSessionBuilder.getOrCreate()) {
                 try (SparkDataProcessingJob sparkJob = jobs.get(job)) {
                     processJob(sparkJob, sparkSession);
@@ -203,20 +203,21 @@ public class Application {
 
 
     private static void processJob(SparkDataProcessingJob sparkJob, SparkSession sparkSession) {
-        if(LOGGER.isInfoEnabled()) LOGGER.info("\n\n## Starting batch job {}...\n#### Class : {}", sparkJob.getOutputIdentifiers(), sparkJob.getClass());
+        if (LOGGER.isInfoEnabled())
+            LOGGER.info("\n\n## Starting batch job {}...\n#### Class : {}", sparkJob.getOutputIdentifiers(), sparkJob.getClass());
         sparkJob.init(sparkSession); // no, sparkSession.newSession() does not help. m(
         if (LOGGER.isInfoEnabled()) {
             StringBuilder builder = new StringBuilder();
             builder.append("\n###### Inputs:");
             sparkJob.getInputInstances().keySet().stream()
-                    .map(DataIdentifier::toString)
-                    .sorted()
-                    .forEach(it -> builder.append("\n###### - ").append(it));
+                .map(DataIdentifier::toString)
+                .sorted()
+                .forEach(it -> builder.append("\n###### - ").append(it));
 
             LOGGER.info(builder.toString());
         }
         sparkJob.execute();
-        if(LOGGER.isInfoEnabled()) LOGGER.info("\n## Finished batch job {}", sparkJob.getOutputIdentifiers());
+        if (LOGGER.isInfoEnabled()) LOGGER.info("\n## Finished batch job {}", sparkJob.getOutputIdentifiers());
     }
 
     private static ParsedArgs processArgs(String[] args) {
@@ -230,11 +231,11 @@ public class Application {
         DataIdentifier job = null;
         boolean debug = false;
         for (String current : args) {
-            if (current.equals(REMOTE)) {
+            if (REMOTE.equals(current)) {
                 System.setProperty("spring.profiles.active", "remote");
                 continue;
             }
-            if (current.equals(DEBUG)) {
+            if (DEBUG.equals(current)) {
                 debug = true;
                 continue;
             }

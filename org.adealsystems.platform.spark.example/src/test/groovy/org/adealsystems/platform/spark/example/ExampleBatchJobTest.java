@@ -16,12 +16,14 @@
 
 package org.adealsystems.platform.spark.example;
 
-import org.adealsystems.platform.DataFormat;
-import org.adealsystems.platform.DataIdentifier;
-import org.adealsystems.platform.DataInstance;
-import org.adealsystems.platform.DataLocation;
-import org.adealsystems.platform.DataResolver;
+import org.adealsystems.platform.id.DataFormat;
+import org.adealsystems.platform.id.DataIdentifier;
+import org.adealsystems.platform.id.DataInstance;
+import org.adealsystems.platform.id.DataResolver;
+import org.adealsystems.platform.process.DataLocation;
+import org.adealsystems.platform.process.DataResolverRegistry;
 import org.adealsystems.platform.spark.test.junit5.AbstractBatchJobTest;
+import org.apache.spark.sql.SparkSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -35,7 +37,7 @@ import static org.adealsystems.platform.spark.test.BatchTestTools.TODAY;
 import static org.adealsystems.platform.spark.test.BatchTestTools.readBatchLines;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
-public class ExampleBatchJobTest extends AbstractBatchJobTest {
+class ExampleBatchJobTest extends AbstractBatchJobTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExampleBatchJob.class);
 
     private static final DataIdentifier INPUT_IDENTIFIER = new DataIdentifier("some_exporter", "input", DataFormat.CSV_SEMICOLON);
@@ -56,7 +58,7 @@ public class ExampleBatchJobTest extends AbstractBatchJobTest {
 
     @BeforeEach
     public void setUp() throws IOException {
-        DataResolver dataResolver = dataResolverRegistry.getResolverFor(DataLocation.INPUT);
+        DataResolver dataResolver = getDataResolverRegistry().getResolverFor(DataLocation.INPUT);
         DataInstance currentInput = dataResolver.createCurrentInstance(INPUT_IDENTIFIER);
         try (PrintWriter pw = createWriter(currentInput)) {
             for (String line : INPUT_DATA) {
@@ -67,10 +69,12 @@ public class ExampleBatchJobTest extends AbstractBatchJobTest {
     }
 
     @Test
-    public void execute() throws IOException {
+    @SuppressWarnings("PMD.CloseResource")
+    void execute() throws IOException {
         // given:
         DataIdentifier outputIdentifier;
-
+        SparkSession sparkSession = getSparkSession();
+        DataResolverRegistry dataResolverRegistry = getDataResolverRegistry();
         try (ExampleBatchJob instance = new ExampleBatchJob(dataResolverRegistry, TODAY)) {
             // when:
             instance.init(sparkSession);
