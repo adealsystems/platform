@@ -60,8 +60,8 @@ public final class ProcessingState {
     @Override
     public String toString() {
         return "ProcessingState{" +
-                "errors=" + errors +
-                ", attributes=" + attributes +
-                '}';
+            "errors=" + errors +
+            ", attributes=" + attributes +
+            '}';
     }
 }

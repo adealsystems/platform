@@ -16,17 +16,17 @@
 
 package org.adealsystems.platform.id.url;
 
+import org.adealsystems.platform.id.DataInstance;
+import org.adealsystems.platform.id.DataResolutionCapability;
+import org.adealsystems.platform.id.DataResolutionStrategy;
+import org.adealsystems.platform.id.NamingStrategy;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-
-import org.adealsystems.platform.id.DataInstance;
-import org.adealsystems.platform.id.DataResolutionCapability;
-import org.adealsystems.platform.id.DataResolutionStrategy;
-import org.adealsystems.platform.id.NamingStrategy;
 
 public class UrlDataResolutionStrategy implements DataResolutionStrategy {
     private final String baseUrl;
@@ -80,7 +80,7 @@ public class UrlDataResolutionStrategy implements DataResolutionStrategy {
         if (o == null || getClass() != o.getClass()) return false;
         UrlDataResolutionStrategy that = (UrlDataResolutionStrategy) o;
         return baseUrl.equals(that.baseUrl) &&
-                namingStrategy.equals(that.namingStrategy);
+            namingStrategy.equals(that.namingStrategy);
     }
 
     @Override
@@ -91,8 +91,8 @@ public class UrlDataResolutionStrategy implements DataResolutionStrategy {
     @Override
     public String toString() {
         return "UrlDataResolutionStrategy{" +
-                "baseUrl='" + baseUrl + '\'' +
-                ", namingStrategy=" + namingStrategy +
-                '}';
+            "baseUrl='" + baseUrl + '\'' +
+            ", namingStrategy=" + namingStrategy +
+            '}';
     }
 }

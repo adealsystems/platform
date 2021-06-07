@@ -20,5 +20,6 @@ import java.time.LocalDateTime;
 
 public interface SparkProcessingReporter {
     void reportSuccess(SparkDataProcessingJob job, LocalDateTime timestamp, long processingDuration);
+
     void reportFailure(SparkDataProcessingJob job, LocalDateTime timestamp, long processingDuration, Throwable cause);
 }

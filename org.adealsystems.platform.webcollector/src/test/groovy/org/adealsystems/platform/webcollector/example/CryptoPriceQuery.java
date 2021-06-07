@@ -40,16 +40,16 @@ public class CryptoPriceQuery implements HttpQuery<CryptoId, CryptoPrices> {
     @Override
     @SuppressWarnings("PMD.CloseResource") // EntityUtils.consume(entity) does it.
     public List<CryptoPrices> perform(HttpClientBundle httpClientBundle, CryptoId query)
-            throws IOException {
+        throws IOException {
         List<CryptoPrices> result = new ArrayList<>();
         try {
             URI uri = new URIBuilder()
-                    .setScheme("https")
-                    .setHost("api.coingecko.com")
-                    .setPath("api/v3/simple/price")
-                    .addParameter("ids", query.getId())
-                    .addParameter("vs_currencies", "usd,eur,btc")
-                    .build();
+                .setScheme("https")
+                .setHost("api.coingecko.com")
+                .setPath("api/v3/simple/price")
+                .addParameter("ids", query.getId())
+                .addParameter("vs_currencies", "usd,eur,btc")
+                .build();
 
             HttpGet httpGet = new HttpGet(uri.toString());
             try (CloseableHttpResponse response = httpClientBundle.getClient().execute(httpGet)) {

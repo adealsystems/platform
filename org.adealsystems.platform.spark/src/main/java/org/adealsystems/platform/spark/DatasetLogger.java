@@ -576,7 +576,7 @@ public class DatasetLogger {
             StackTraceElement current = stackTrace[i];
 
             if (DatasetLogger.class.getName().equals(current.getClassName())
-                    && method.equals(current.getMethodName())) {
+                && method.equals(current.getMethodName())) {
                 last = i;
             }
         }
@@ -585,13 +585,13 @@ public class DatasetLogger {
         last++;
 
         if (last > 0 // there was an entry
-                && last < stackTrace.length) {
+            && last < stackTrace.length) {
             StackTraceElement causeElement = stackTrace[last];
 
             return "\tsource: "
-                    + causeElement.getClassName()
-                    + " (" + causeElement.getFileName()
-                    + ":" + causeElement.getLineNumber() + ")";
+                + causeElement.getClassName()
+                + " (" + causeElement.getFileName()
+                + ":" + causeElement.getLineNumber() + ")";
         }
         return null; // failed to obtain source for whatever reason
         // (This could actually happen. It happened before for NullPointerException.)

@@ -42,7 +42,7 @@ public class DefaultNamingStrategy implements NamingStrategy {
         StringBuilder builder = new StringBuilder();
         DataIdentifier dataIdentifier = dataInstance.getDataIdentifier();
         builder.append(dataIdentifier.getSource())
-                .append(PATH_SEPARATOR);
+            .append(PATH_SEPARATOR);
 
         LocalDate date = dataInstance.getDate().orElse(null);
         if (date == null) {
@@ -52,15 +52,15 @@ public class DefaultNamingStrategy implements NamingStrategy {
         }
 
         builder.append(PATH_SEPARATOR)
-                .append(dataIdentifier.getUseCase())
-                .append(PATH_SEPARATOR)
-                .append(dataIdentifier.getSource())
-                .append(FILE_NAME_SEPARATOR)
-                .append(dataIdentifier.getUseCase());
+            .append(dataIdentifier.getUseCase())
+            .append(PATH_SEPARATOR)
+            .append(dataIdentifier.getSource())
+            .append(FILE_NAME_SEPARATOR)
+            .append(dataIdentifier.getUseCase());
 
         dataIdentifier.getConfiguration().ifPresent(t -> {
             builder.append(FILE_NAME_SEPARATOR)
-                    .append(t);
+                .append(t);
         });
 
         builder.append(dataIdentifier.getDataFormat().getExtension());
@@ -84,7 +84,7 @@ public class DefaultNamingStrategy implements NamingStrategy {
     @Override
     public String toString() {
         return "DefaultNamingStrategy{" +
-                "dateTimeFormatter=" + dateTimeFormatter +
-                '}';
+            "dateTimeFormatter=" + dateTimeFormatter +
+            '}';
     }
 }

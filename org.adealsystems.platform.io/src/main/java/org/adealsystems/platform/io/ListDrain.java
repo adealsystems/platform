@@ -44,7 +44,7 @@ public class ListDrain<E> implements Drain<E> {
         if (closed) {
             throw new IllegalStateException("Drain was already closed!");
         }
-        for(E entry : entries) {
+        for (E entry : entries) {
             content.add(Objects.requireNonNull(entry, "entries must not contain null!"));
         }
     }
@@ -61,7 +61,7 @@ public class ListDrain<E> implements Drain<E> {
     @Override
     public String toString() {
         return "ListDrain{" +
-                "content=" + content +
-                '}';
+            "content=" + content +
+            '}';
     }
 }

@@ -16,17 +16,16 @@
 
 package org.adealsystems.platform.process
 
-import spock.lang.Specification
-
-import java.time.LocalDate
-
 import org.adealsystems.platform.id.DataFormat
 import org.adealsystems.platform.id.DataIdentifier
 import org.adealsystems.platform.id.DataResolver
 import org.adealsystems.platform.id.DefaultNamingStrategy
+import org.adealsystems.platform.id.memory.MemoryDataResolutionStrategy
 import org.adealsystems.platform.process.exceptions.DuplicateInstanceRegistrationException
 import org.adealsystems.platform.process.exceptions.DuplicateUniqueIdentifierException
-import org.adealsystems.platform.id.memory.MemoryDataResolutionStrategy
+import spock.lang.Specification
+
+import java.time.LocalDate
 
 class DataInstanceRegistrySpec extends Specification {
     def "expected exception is thrown"() {

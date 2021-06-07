@@ -16,7 +16,7 @@
 
 package org.adealsystems.platform.spark.test;
 
-import static org.adealsystems.platform.id.DataInstances.createBatchReader;
+import org.adealsystems.platform.id.DataInstance;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -24,12 +24,13 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.stream.Collectors;
 
-import org.adealsystems.platform.id.DataInstance;
+import static org.adealsystems.platform.id.DataInstances.createBatchReader;
 
 public final class BatchTestTools {
     public static final LocalDate TODAY = LocalDate.now(Clock.systemDefaultZone());
 
-    private BatchTestTools() {}
+    private BatchTestTools() {
+    }
 
     public static String[] readBatchLines(DataInstance dataInstance) throws IOException {
         try (BufferedReader reader = createBatchReader(dataInstance)) {

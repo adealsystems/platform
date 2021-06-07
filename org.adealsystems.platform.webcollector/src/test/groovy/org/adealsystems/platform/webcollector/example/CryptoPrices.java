@@ -63,10 +63,10 @@ public class CryptoPrices {
     @Override
     public String toString() {
         return "CryptoPrices{" +
-                "id='" + id + '\'' +
-                ", asUsd=" + asUsd +
-                ", asEur=" + asEur +
-                ", asBtc=" + asBtc +
-                '}';
+            "id='" + id + '\'' +
+            ", asUsd=" + asUsd +
+            ", asEur=" + asEur +
+            ", asBtc=" + asBtc +
+            '}';
     }
 }

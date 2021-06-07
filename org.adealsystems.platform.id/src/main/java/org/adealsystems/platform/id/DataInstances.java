@@ -47,7 +47,7 @@ public final class DataInstances {
     }
 
     public static InputStream createBatchInputStream(DataInstance dataInstance)
-            throws IOException {
+        throws IOException {
         Objects.requireNonNull(dataInstance, "dataInstance must not be null!");
         String path = dataInstance.getPath();
 

@@ -51,7 +51,7 @@ public final class DataResolver {
     @Override
     public String toString() {
         return "DataResolver{" +
-                "dataResolutionStrategy=" + dataResolutionStrategy +
-                '}';
+            "dataResolutionStrategy=" + dataResolutionStrategy +
+            '}';
     }
 }

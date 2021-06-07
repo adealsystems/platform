@@ -16,9 +16,9 @@
 
 package org.adealsystems.platform.process.exceptions;
 
-import java.util.Objects;
-
 import org.adealsystems.platform.id.DataInstance;
+
+import java.util.Objects;
 
 public class DuplicateInstanceRegistrationException extends RuntimeException {
     private static final long serialVersionUID = 1884748814399404983L;

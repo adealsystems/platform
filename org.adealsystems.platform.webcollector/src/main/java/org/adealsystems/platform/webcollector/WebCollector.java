@@ -232,8 +232,8 @@ public class WebCollector<Q, R> {
         @Override
         public String toString() {
             StringBuilder str = new StringBuilder("QueryEntity{query=")
-                    .append(query)
-                    .append(", duration=").append(duration);
+                .append(query)
+                .append(", duration=").append(duration);
             if (result != null) {
                 str.append(", result.size()=");
                 str.append(result.size());
@@ -475,10 +475,10 @@ public class WebCollector<Q, R> {
         @Override
         public String toString() {
             return "Metrics{" +
-                    "resultCount=" + resultCount +
-                    ", duration=" + duration +
-                    ", query=" + query +
-                    '}';
+                "resultCount=" + resultCount +
+                ", duration=" + duration +
+                ", query=" + query +
+                '}';
         }
     }
 }

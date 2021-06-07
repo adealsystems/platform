@@ -16,9 +16,9 @@
 
 package org.adealsystems.platform.process.exceptions;
 
-import java.util.Objects;
-
 import org.adealsystems.platform.id.DataIdentifier;
+
+import java.util.Objects;
 
 public class UnregisteredDataIdentifierException extends RuntimeException {
     private static final long serialVersionUID = -6968417410384788594L;

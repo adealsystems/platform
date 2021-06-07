@@ -16,16 +16,14 @@
 
 package org.adealsystems.platform.id.memory
 
-import org.adealsystems.platform.id.DataResolutionCapability
-
-import static org.adealsystems.platform.id.DataFormat.CSV_SEMICOLON
-
 import org.adealsystems.platform.id.DataIdentifier
 import org.adealsystems.platform.id.DataInstance
+import org.adealsystems.platform.id.DataResolutionCapability
 import org.adealsystems.platform.id.DataResolver
 import org.adealsystems.platform.id.DefaultNamingStrategy
-
 import spock.lang.Specification
+
+import static org.adealsystems.platform.id.DataFormat.CSV_SEMICOLON
 
 class MemoryDataResolutionStrategySpec extends Specification {
     def 'trying to read missing data causes exception'() {

@@ -16,6 +16,11 @@
 
 package org.adealsystems.platform.id.memory;
 
+import org.adealsystems.platform.id.DataInstance;
+import org.adealsystems.platform.id.DataResolutionCapability;
+import org.adealsystems.platform.id.DataResolutionStrategy;
+import org.adealsystems.platform.id.NamingStrategy;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
@@ -26,11 +31,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import org.adealsystems.platform.id.DataInstance;
-import org.adealsystems.platform.id.DataResolutionCapability;
-import org.adealsystems.platform.id.DataResolutionStrategy;
-import org.adealsystems.platform.id.NamingStrategy;
 
 public class MemoryDataResolutionStrategy implements DataResolutionStrategy {
     private final NamingStrategy namingStrategy;

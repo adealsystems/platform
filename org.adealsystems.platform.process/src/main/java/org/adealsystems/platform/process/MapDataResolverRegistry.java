@@ -16,15 +16,15 @@
 
 package org.adealsystems.platform.process;
 
+import org.adealsystems.platform.id.DataResolver;
+import org.adealsystems.platform.process.exceptions.DuplicateResolverRegistrationException;
+import org.adealsystems.platform.process.exceptions.UnregisteredDataResolverException;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import org.adealsystems.platform.process.exceptions.DuplicateResolverRegistrationException;
-import org.adealsystems.platform.process.exceptions.UnregisteredDataResolverException;
-import org.adealsystems.platform.id.DataResolver;
 
 public class MapDataResolverRegistry implements DataResolverRegistry {
     private final Map<DataLocation, DataResolver> dataResolvers = new HashMap<>();
@@ -78,7 +78,7 @@ public class MapDataResolverRegistry implements DataResolverRegistry {
     @Override
     public String toString() {
         return "MapDataResolverRegistry{" +
-                "dataResolvers=" + dataResolvers +
-                '}';
+            "dataResolvers=" + dataResolvers +
+            '}';
     }
 }

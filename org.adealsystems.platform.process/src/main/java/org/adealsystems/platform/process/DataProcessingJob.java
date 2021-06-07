@@ -28,6 +28,7 @@ public interface DataProcessingJob {
     Set<DataIdentifier> getOutputIdentifiers();
 
     Map<DataIdentifier, String> getProcessingStatus();
+
     void registerProcessingStatus(DataIdentifier dataIdentifier, String status);
 
     void execute();

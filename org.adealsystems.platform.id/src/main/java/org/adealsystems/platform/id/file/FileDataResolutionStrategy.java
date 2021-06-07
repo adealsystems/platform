@@ -43,9 +43,11 @@ public class FileDataResolutionStrategy implements DataResolutionStrategy {
         Objects.requireNonNull(baseDirectory, "baseDirectory must not be null!");
         if (!baseDirectory.exists()) {
             if (baseDirectory.mkdirs()) {
-                if(LOGGER.isDebugEnabled()) LOGGER.debug("Created base-directory '{}'.", baseDirectory.getAbsolutePath());
+                if (LOGGER.isDebugEnabled())
+                    LOGGER.debug("Created base-directory '{}'.", baseDirectory.getAbsolutePath());
             } else {
-                if(LOGGER.isWarnEnabled()) LOGGER.warn("Failed to create base-directory '{}'!", baseDirectory.getAbsolutePath());
+                if (LOGGER.isWarnEnabled())
+                    LOGGER.warn("Failed to create base-directory '{}'!", baseDirectory.getAbsolutePath());
             }
         }
         if (!baseDirectory.isDirectory()) {
@@ -65,9 +67,9 @@ public class FileDataResolutionStrategy implements DataResolutionStrategy {
         File parent = file.getParentFile();
         if (!parent.exists()) {
             if (parent.mkdirs()) {
-                if(LOGGER.isDebugEnabled()) LOGGER.debug("Created parent '{}'.", parent.getAbsolutePath());
+                if (LOGGER.isDebugEnabled()) LOGGER.debug("Created parent '{}'.", parent.getAbsolutePath());
             } else {
-                if(LOGGER.isWarnEnabled()) LOGGER.warn("Failed to create parent '{}'!", parent.getAbsolutePath());
+                if (LOGGER.isWarnEnabled()) LOGGER.warn("Failed to create parent '{}'!", parent.getAbsolutePath());
             }
         }
         return Files.newOutputStream(Paths.get(file.getAbsolutePath()));
@@ -99,7 +101,7 @@ public class FileDataResolutionStrategy implements DataResolutionStrategy {
         if (o == null || getClass() != o.getClass()) return false;
         FileDataResolutionStrategy that = (FileDataResolutionStrategy) o;
         return baseDirectory.equals(that.baseDirectory) &&
-                namingStrategy.equals(that.namingStrategy);
+            namingStrategy.equals(that.namingStrategy);
     }
 
     @Override
@@ -110,8 +112,8 @@ public class FileDataResolutionStrategy implements DataResolutionStrategy {
     @Override
     public String toString() {
         return "FileDataResolutionStrategy{" +
-                "baseDirectory=" + baseDirectory +
-                ", namingStrategy=" + namingStrategy +
-                '}';
+            "baseDirectory=" + baseDirectory +
+            ", namingStrategy=" + namingStrategy +
+            '}';
     }
 }

@@ -51,8 +51,8 @@ public final class HttpClientBundle {
     @Override
     public String toString() {
         return "HttpClientBundle{" +
-                "data=" + data +
-                ", client=" + client +
-                '}';
+            "data=" + data +
+            ", client=" + client +
+            '}';
     }
 }

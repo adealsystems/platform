@@ -32,12 +32,12 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
     private CSVPrinter printer;
 
     protected AbstractCsvDrain(OutputStream outputStream, CSVFormat csvFormat)
-            throws IOException {
+        throws IOException {
         this(outputStream, csvFormat, Compression.NONE);
     }
 
     protected AbstractCsvDrain(OutputStream outputStream, CSVFormat csvFormat, Compression compression)
-            throws IOException {
+        throws IOException {
         this(Compression.createWriter(outputStream, compression), csvFormat);
     }
 
@@ -46,7 +46,7 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
      * BufferedWriter with correct charset, i.e. UTF-8.
      */
     private AbstractCsvDrain(BufferedWriter writer, CSVFormat csvFormat)
-            throws IOException {
+        throws IOException {
         this.header = resolveHeader(csvFormat);
         this.printer = csvFormat.print(writer); // private c'tor, already checked against null
     }
@@ -96,8 +96,7 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
         try {
             temp.flush();
             temp.close();
-        }
-        catch(IOException ex) {
+        } catch (IOException ex) {
             throw new DrainException("Exception while closing stream!", ex);
         }
     }

@@ -155,7 +155,7 @@ public final class TimeHandling {
         if (input instanceof Timestamp) {
             Timestamp timestamp = (Timestamp) input;
             return timestamp.toLocalDateTime()
-                    .toLocalDate();
+                .toLocalDate();
         }
 
         if (input instanceof java.sql.Date) {

@@ -22,6 +22,8 @@ import java.util.Optional;
 
 public interface ProcessingStateRepository {
     void setProcessingState(DataInstance id, ProcessingState state);
+
     Optional<ProcessingState> getProcessingState(DataInstance id);
+
     boolean removeProcessingState(DataInstance id);
 }

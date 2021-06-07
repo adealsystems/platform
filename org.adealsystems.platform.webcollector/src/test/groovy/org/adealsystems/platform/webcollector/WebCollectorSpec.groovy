@@ -254,8 +254,8 @@ class WebCollectorSpec extends Specification {
         @Override
         String toString() {
             return "QueryType{" +
-                    "id='" + id + '\'' +
-                    '}'
+                "id='" + id + '\'' +
+                '}'
         }
     }
 
@@ -293,9 +293,9 @@ class WebCollectorSpec extends Specification {
         @Override
         String toString() {
             return "ResultType{" +
-                    "id='" + id + '\'' +
-                    ", value='" + value + '\'' +
-                    '}'
+                "id='" + id + '\'' +
+                ", value='" + value + '\'' +
+                '}'
         }
     }
 }

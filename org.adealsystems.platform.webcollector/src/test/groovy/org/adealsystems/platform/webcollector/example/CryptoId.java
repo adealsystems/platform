@@ -45,7 +45,7 @@ public class CryptoId {
     @Override
     public String toString() {
         return "CryptoPriceQuery{" +
-                "id='" + id + '\'' +
-                '}';
+            "id='" + id + '\'' +
+            '}';
     }
 }

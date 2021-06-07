@@ -37,7 +37,7 @@ public enum Compression {
     BZIP;
 
     public static BufferedWriter createWriter(OutputStream outputStream, Compression compression)
-            throws IOException {
+        throws IOException {
         Objects.requireNonNull(outputStream, "outputStream must not be null!");
         Objects.requireNonNull(compression, "compression must not be null!");
         switch (compression) {
@@ -53,7 +53,7 @@ public enum Compression {
     }
 
     public static BufferedReader createReader(InputStream inputStream, Compression compression)
-            throws IOException {
+        throws IOException {
         Objects.requireNonNull(inputStream, "inputStream must not be null!");
         Objects.requireNonNull(compression, "compression must not be null!");
         switch (compression) {

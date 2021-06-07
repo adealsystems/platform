@@ -30,7 +30,7 @@ public enum DataFormat {
 
     DataFormat(String extension) {
         Objects.requireNonNull(extension);
-        if(extension.charAt(0) != '.') {
+        if (extension.charAt(0) != '.') {
             throw new IllegalArgumentException("Extension must start with a '.'!");
         }
         this.extension = extension;

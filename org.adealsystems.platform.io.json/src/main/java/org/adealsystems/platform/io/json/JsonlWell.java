@@ -36,22 +36,22 @@ public class JsonlWell<E> implements Well<E> {
     private boolean consumed;
 
     public JsonlWell(Class<E> clazz, InputStream inputStream)
-            throws IOException {
+        throws IOException {
         this(clazz, inputStream, Compression.NONE, DEFAULT_OBJECT_MAPPER);
     }
 
     public JsonlWell(Class<E> clazz, InputStream inputStream, Compression compression)
-            throws IOException {
+        throws IOException {
         this(clazz, Compression.createReader(inputStream, compression), DEFAULT_OBJECT_MAPPER);
     }
 
     public JsonlWell(Class<E> clazz, InputStream inputStream, ObjectMapper objectMapper)
-            throws IOException {
+        throws IOException {
         this(clazz, inputStream, Compression.NONE, objectMapper);
     }
 
     public JsonlWell(Class<E> clazz, InputStream inputStream, Compression compression, ObjectMapper objectMapper)
-            throws IOException {
+        throws IOException {
         this(clazz, Compression.createReader(inputStream, compression), objectMapper);
     }
 

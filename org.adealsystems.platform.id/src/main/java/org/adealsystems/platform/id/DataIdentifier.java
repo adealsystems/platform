@@ -92,9 +92,9 @@ public final class DataIdentifier implements Comparable<DataIdentifier> {
         if (o == null || getClass() != o.getClass()) return false;
         DataIdentifier that = (DataIdentifier) o;
         return source.equals(that.source) &&
-                useCase.equals(that.useCase) &&
-                Objects.equals(configuration, that.configuration) &&
-                dataFormat == that.dataFormat;
+            useCase.equals(that.useCase) &&
+            Objects.equals(configuration, that.configuration) &&
+            dataFormat == that.dataFormat;
     }
 
     @Override
@@ -106,7 +106,7 @@ public final class DataIdentifier implements Comparable<DataIdentifier> {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append(source).append(SEPARATOR)
-                .append(useCase).append(SEPARATOR);
+            .append(useCase).append(SEPARATOR);
 
         if (configuration != null) {
             builder.append(configuration).append(SEPARATOR);
