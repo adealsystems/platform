@@ -238,15 +238,13 @@ configure(subprojects
                             }
                         }
                     }
-
                 }
             }
         }
     }
 
     signing {
-        // signed jar, source und javadoc
-        // erst, nachdem alles gesigned ist, wurde auch das release entsprechend ins OSS Repo gepublished
+        // signs jar, source und javadoc
         sign publishing.publications.mavenJava
     }
 
