@@ -81,7 +81,6 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
     private SparkResultWriterInterceptor resultWriterInterceptor;
 
     private SparkProcessingReporter processingReporter;
-    private SparkDataIdentifierStatusUpdater statusUpdater;
 
     private Broadcast<LocalDateTime> broadInvocationIdentifier;
     private final Logger logger;
@@ -113,10 +112,6 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
     public void setProcessingReporter(SparkProcessingReporter processingReporter) {
         this.processingReporter = processingReporter;
-    }
-
-    public void setStatusUpdater(SparkDataIdentifierStatusUpdater statusUpdater) {
-        this.statusUpdater = statusUpdater;
     }
 
     protected final void setWriteMode(WriteMode writeMode) {
@@ -237,14 +232,6 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
             }
 
             throw th;
-        } finally {
-            if (statusUpdater != null) {
-                for (Map.Entry<DataIdentifier, String> entry : getProcessingStatus().entrySet()) {
-                    DataIdentifier dataId = entry.getKey();
-                    String status = entry.getValue();
-                    statusUpdater.updateStatus(dataId, status);
-                }
-            }
         }
     }
 

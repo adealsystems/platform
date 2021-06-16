@@ -78,7 +78,6 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
     private SparkResultWriterInterceptor resultWriterInterceptor;
 
     private SparkProcessingReporter processingReporter;
-    private SparkDataIdentifierStatusUpdater statusUpdater;
 
     private Broadcast<LocalDateTime> broadInvocationIdentifier;
     private final Logger logger;
@@ -129,10 +128,6 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     public void setProcessingReporter(SparkProcessingReporter processingReporter) {
         this.processingReporter = processingReporter;
-    }
-
-    public void setStatusUpdater(SparkDataIdentifierStatusUpdater statusUpdater) {
-        this.statusUpdater = statusUpdater;
     }
 
     @Override
@@ -230,14 +225,6 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             }
 
             throw th;
-        } finally {
-            if (statusUpdater != null) {
-                for (Map.Entry<DataIdentifier, String> entry : getProcessingStatus().entrySet()) {
-                    DataIdentifier dataId = entry.getKey();
-                    String status = entry.getValue();
-                    statusUpdater.updateStatus(dataId, status);
-                }
-            }
         }
     }
 
