@@ -39,6 +39,15 @@ class MultiSparkProcessingReporterSpec extends Specification {
         ex.message == "sparkProcessingReporters must not contain null!"
     }
 
+    def "empty list throws expected exception"() {
+        when:
+        new MultiSparkProcessingReporter([])
+
+        then:
+        IllegalArgumentException ex = thrown()
+        ex.message == "sparkProcessingReporters must not be empty!"
+    }
+
     def "contained reporters reportSuccess is called regardless of exception in other contained reporters"() {
         given:
         def counting = new CountingReporter()
