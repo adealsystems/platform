@@ -48,6 +48,9 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import static org.adealsystems.platform.spark.main.SystemProperties.loadPropertiesFrom;
+import static org.adealsystems.platform.spark.main.SystemProperties.replaceProperty;
+
 @SuppressWarnings("PMD.UseUtilityClass")
 @ComponentScan({"org.adealsystems.platform.spark.config", "org.adealsystems.platform.spark.main"})
 @PropertySource("classpath:adeal-platform-git.properties")
@@ -59,9 +62,12 @@ public class Application {
     private static final String INVOCATION_DATE_PREFIX = "--invocation-date=";
     private static final String REMOTE = "--remote";
     private static final String DEBUG = "--debug";
+    private static final String SPRING_PROFILES_ACTIVE_PROPERTY_NAME = "spring.profiles.active";
+    private static final String PROFILE_REPLACEMENT_PROPERTIES_PATH = "profile-replacement.properties";
 
     public static void main(String[] args) throws IOException {
         poorMansBootBanner();
+        poorMansSpringProfileInclude();
         ParsedArgs parsedArgs = processArgs(args);
 
         if (parsedArgs.isDebug()) {
@@ -281,6 +287,11 @@ public class Application {
         return result;
     }
 
+    private static void poorMansSpringProfileInclude() {
+        replaceProperty(SPRING_PROFILES_ACTIVE_PROPERTY_NAME, PROFILE_REPLACEMENT_PROPERTIES_PATH);
+    }
+
+
     @SuppressWarnings("PMD.SystemPrintln")
     private static void poorMansBootBanner() throws IOException {
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
@@ -319,18 +330,6 @@ public class Application {
         return props;
     }
 
-    private static void loadPropertiesFrom(Properties properties, String propertiesPath) throws IOException {
-        Objects.requireNonNull(properties, "properties must not be null!");
-        Objects.requireNonNull(propertiesPath, "propertiesPath must not be null!");
-        ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        try (InputStream is = cl.getResourceAsStream(propertiesPath)) {
-            if (is == null) {
-                LOGGER.warn("Failed to load properties from '{}'!", propertiesPath);
-                return;
-            }
-            properties.load(is);
-        }
-    }
 
     private static class ParsedArgs {
         private final DataIdentifier job;
