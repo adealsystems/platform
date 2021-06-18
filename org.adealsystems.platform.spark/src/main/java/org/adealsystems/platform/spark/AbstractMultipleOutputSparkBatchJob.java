@@ -529,9 +529,13 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         }
     }
 
+    protected DataResolver getOutputDataResolver() {
+        return dataResolverRegistry.getResolverFor(outputLocation);
+    }
+
     private void writeOutput(DataIdentifier outputIdentifier, Dataset<Row> outputDataset) {
         Objects.requireNonNull(outputDataset, "outputDataset must not be null!");
-        DataResolver dataResolver = dataResolverRegistry.getResolverFor(outputLocation);
+        DataResolver dataResolver = getOutputDataResolver();
 
         getDatasetLogger().showInfo("About to write the following data for " + outputIdentifier, outputDataset);
         outputDataset = outputDataset.repartition(1); // always repartition(1) before writing!

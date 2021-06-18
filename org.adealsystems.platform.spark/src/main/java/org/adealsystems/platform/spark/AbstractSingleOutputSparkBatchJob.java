@@ -430,6 +430,10 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         }
     }
 
+    protected DataResolver getOutputDataResolver() {
+        return dataResolverRegistry.getResolverFor(outputLocation);
+    }
+
     private void writeOutput(Dataset<Row> outputDataset) {
         Objects.requireNonNull(outputDataset, "outputDataset must not be null!");
 
@@ -439,7 +443,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         // use the only one configured output identifier
         DataIdentifier outputIdentifier = outputIdentifiers.iterator().next();
 
-        DataResolver dataResolver = dataResolverRegistry.getResolverFor(outputLocation);
+        DataResolver dataResolver = getOutputDataResolver();
 
         getDatasetLogger().showInfo("About to write the following data for " + outputIdentifier, outputDataset);
         outputDataset = outputDataset.repartition(1); // always repartition(1) before writing!
