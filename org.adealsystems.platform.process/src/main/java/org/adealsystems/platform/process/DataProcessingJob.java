@@ -18,6 +18,7 @@ package org.adealsystems.platform.process;
 
 import org.adealsystems.platform.id.DataIdentifier;
 import org.adealsystems.platform.id.DataInstance;
+import org.adealsystems.platform.id.DataResolver;
 
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +29,9 @@ public interface DataProcessingJob {
     Set<DataIdentifier> getOutputIdentifiers();
 
     Map<DataIdentifier, String> getProcessingStatus();
+
+    WriteMode getWriteMode();
+    DataResolver getOutputDataResolver();
 
     void registerProcessingStatus(DataIdentifier dataIdentifier, String status);
 

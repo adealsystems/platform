@@ -23,6 +23,7 @@ import org.adealsystems.platform.id.DataResolver;
 import org.adealsystems.platform.process.DataInstanceRegistry;
 import org.adealsystems.platform.process.DataLocation;
 import org.adealsystems.platform.process.DataResolverRegistry;
+import org.adealsystems.platform.process.WriteMode;
 import org.adealsystems.platform.process.exceptions.DuplicateInstanceRegistrationException;
 import org.adealsystems.platform.process.exceptions.DuplicateUniqueIdentifierException;
 import org.adealsystems.platform.process.exceptions.UnregisteredDataIdentifierException;
@@ -118,6 +119,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         this.writeMode = Objects.requireNonNull(writeMode, "writeMode must not be null!");
     }
 
+    @Override
     public WriteMode getWriteMode() {
         return writeMode;
     }
@@ -529,7 +531,8 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         }
     }
 
-    protected DataResolver getOutputDataResolver() {
+    @Override
+    public DataResolver getOutputDataResolver() {
         return dataResolverRegistry.getResolverFor(outputLocation);
     }
 

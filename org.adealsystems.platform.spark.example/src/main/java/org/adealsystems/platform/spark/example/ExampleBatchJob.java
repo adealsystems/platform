@@ -22,7 +22,7 @@ import org.adealsystems.platform.process.DataLocation;
 import org.adealsystems.platform.process.DataResolverRegistry;
 import org.adealsystems.platform.spark.AbstractSingleOutputSparkBatchJob;
 import org.adealsystems.platform.spark.DatasetLogger;
-import org.adealsystems.platform.spark.WriteMode;
+import org.adealsystems.platform.process.WriteMode;
 import org.adealsystems.platform.spark.udf.SomethingToLocalDateStringUDF;
 import org.adealsystems.platform.spark.udf.WeekOfYearOfDateUDF;
 import org.apache.spark.sql.Dataset;

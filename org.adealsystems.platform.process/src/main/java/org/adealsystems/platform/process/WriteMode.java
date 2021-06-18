@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.spark;
+package org.adealsystems.platform.process;
 
 public enum WriteMode {
     DATE,
