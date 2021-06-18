@@ -108,6 +108,10 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         this.writeMode = Objects.requireNonNull(writeMode, "writeMode must not be null!");
     }
 
+    public WriteMode getWriteMode() {
+        return writeMode;
+    }
+
     @Override
     public Map<DataIdentifier, String> getProcessingStatus() {
         if (processingStatus.isEmpty()) {
@@ -636,11 +640,5 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
                 throw new IllegalStateException("Unable to rename result file!", ex);
             }
         }
-    }
-
-    protected enum WriteMode {
-        DATE,
-        CURRENT,
-        BOTH
     }
 }
