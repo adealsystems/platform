@@ -24,6 +24,22 @@ public final class ProcessingState {
     private List<String> errors;
     private Map<String, String> attributes;
 
+    private static final ProcessingState SUCCESSFUL_STATE = new ProcessingState();
+
+    public static ProcessingState getSuccessfulState() {
+        return SUCCESSFUL_STATE;
+    }
+
+    public static ProcessingState getFailedState(List<String> errors) {
+        if (errors == null || errors.isEmpty()) {
+            throw new IllegalArgumentException("Error messages must be present to create a failed processing state!");
+        }
+
+        ProcessingState state = new ProcessingState();
+        state.setErrors(errors);
+        return state;
+    }
+
     public List<String> getErrors() {
         return errors;
     }
