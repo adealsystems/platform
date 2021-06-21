@@ -11,7 +11,7 @@ apply from: 'externalDependencies.gradle'
 // Using those scripts ensures that the correct Gradle version
 // is used (and downloaded automatically).
 wrapper {
-    gradleVersion = '7.0.2'
+    gradleVersion = '7.1'
 }
 
 def javaMajorVersion = 8
@@ -29,7 +29,7 @@ buildscript {
         classpath "de.thetaphi:forbiddenapis:3.1"
         classpath "gradle.plugin.com.github.jengelman.gradle.plugins:shadow:7.0.0"
         classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:2.2.2"
-        classpath "gradle.plugin.org.cadixdev.gradle:licenser:0.5.0"
+        classpath "gradle.plugin.org.cadixdev.gradle:licenser:0.6.1"
         //classpath "gradle.plugin.org.ec4j.gradle:editorconfig-gradle-plugin:0.0.3"
     }
 }
@@ -145,9 +145,9 @@ subprojects {
         sourceDirectories.from(files(sourceSets.main.allSource.srcDirs))
         classDirectories.from(files(sourceSets.main.output))
         reports {
-            html.enabled = true
-            xml.enabled = true
-            csv.enabled = false
+            html.required = true
+            xml.required = true
+            csv.required = false
         }
     }
 
@@ -264,10 +264,10 @@ task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
     classDirectories.setFrom(files(subprojects.sourceSets.main.output))
     executionData.setFrom(fileTree(dir: "${rootProject.projectDir}", includes: ['**/build/jacoco/*.exec']))
     reports {
-        html.enabled = true
-        xml.enabled = true
+        html.required = true
+        xml.required = true
         xml.destination file("${buildDir}/reports/jacoco/report.xml")
-        csv.enabled = false
+        csv.required = false
     }
 }
 
