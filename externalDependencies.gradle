@@ -1,5 +1,5 @@
 project.ext.versions = [
-        'bytebuddy': '1.11.2',
+        'bytebuddy': '1.11.5',
         'groovy'   : '3.0.8',
         'jackson'  : '2.12.3',
         'junit5'   : '5.7.2',
