@@ -22,6 +22,7 @@ import org.adealsystems.platform.io.compression.Compression;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.io.input.BOMInputStream;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -45,7 +46,7 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
 
     protected AbstractCsvWell(Class<E> clazz, InputStream inputStream, CSVFormat csvFormat, Compression compression)
         throws IOException {
-        this(clazz, Compression.createReader(inputStream, compression), csvFormat);
+        this(clazz, Compression.createReader(new BOMInputStream(inputStream), compression), csvFormat);
     }
 
     /*
@@ -108,7 +109,7 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
 
         E result;
         try {
-            result = clazz.newInstance();
+            result = clazz.getDeclaredConstructor().newInstance();
         } catch (Throwable t) {
             throw new WellException("Failed to create result!", t);
         }

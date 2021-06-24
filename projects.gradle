@@ -54,6 +54,7 @@ project(':org.adealsystems.platform.io.csv') {
         implementation platformIo
         implementation platformIoCompression
         implementation libraries.'commons-csv'
+        implementation libraries.'commons-io'
     }
 }
 
