@@ -16,9 +16,11 @@
 
 package org.adealsystems.platform.io.csv
 
-import org.adealsystems.platform.io.DrainException
 import org.adealsystems.platform.io.WellException
 import org.adealsystems.platform.io.compression.Compression
+import org.adealsystems.platform.io.csv.test.Entry
+import org.adealsystems.platform.io.csv.test.EntryCsvDrain
+import org.adealsystems.platform.io.csv.test.EntryCsvWell
 import org.apache.commons.csv.CSVFormat
 import spock.lang.Specification
 
@@ -113,102 +115,34 @@ class AbstractCsvWellSpec extends Specification {
         ex.message == "A well can only be iterated once!"
     }
 
-    private static class Entry {
-        String key
-        String value
+    def "getHeaders() returns expected value"() {
+        given:
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        AbstractCsvDrain<Entry> drain = new EntryCsvDrain(bos, OUTPUT_CSV_FORMAT)
+        drain.add(new Entry("Key 1", "Value 1"))
+        drain.addAll([new Entry("Key 2", "Value 2"), new Entry("Key 3", "Value 3")])
+        drain.close()
 
-        @SuppressWarnings('unused')
-        Entry() {
-        }
+        EntryCsvWell instance = new EntryCsvWell(new ByteArrayInputStream(bos.toByteArray()), INPUT_CSV_FORMAT)
 
-        Entry(String key, String value) {
-            this.key = key
-            this.value = value
-        }
-
-        boolean equals(o) {
-            if (this.is(o)) return true
-            if (getClass() != o.class) return false
-
-            Entry entry = (Entry) o
-
-            if (key != entry.key) return false
-            if (value != entry.value) return false
-
-            return true
-        }
-
-        int hashCode() {
-            int result
-            result = (key != null ? key.hashCode() : 0)
-            result = 31 * result + (value != null ? value.hashCode() : 0)
-            return result
-        }
-
-        @Override
-        String toString() {
-            return "Entry{" +
-                "key='" + key + '\'' +
-                ", value='" + value + '\'' +
-                '}'
-        }
+        expect:
+        instance.headers == ['key', 'value']
     }
 
-    static class EntryCsvDrain extends AbstractCsvDrain<Entry> {
-        // be aware that an actual, non-test implementation would NOT
-        // leave csvFormat as a c'tor argument.
-        //
-        // Instead, it would call the super c'tor with a proper format
-        // matching the implementation of the getValue method.
+    def "getHeaders() is unmodifiable"() {
+        given:
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        AbstractCsvDrain<Entry> drain = new EntryCsvDrain(bos, OUTPUT_CSV_FORMAT)
+        drain.add(new Entry("Key 1", "Value 1"))
+        drain.addAll([new Entry("Key 2", "Value 2"), new Entry("Key 3", "Value 3")])
+        drain.close()
 
-        EntryCsvDrain(OutputStream outputStream, CSVFormat csvFormat) throws IOException {
-            super(outputStream, csvFormat)
-        }
+        EntryCsvWell instance = new EntryCsvWell(new ByteArrayInputStream(bos.toByteArray()), INPUT_CSV_FORMAT)
 
-        EntryCsvDrain(OutputStream outputStream, CSVFormat csvFormat, Compression compression) throws IOException {
-            super(outputStream, csvFormat, compression)
-        }
+        when:
+        instance.headers.remove('key')
 
-        @Override
-        protected String getValue(Entry entry, String columnName) {
-            Objects.requireNonNull(columnName, "columnName must not be null!")
-            switch (columnName) {
-                case "key":
-                    return entry.key
-                case "value":
-                    return entry.value
-                default:
-                    throw new DrainException("Unknown column name '" + columnName + "'!")
-            }
-        }
-    }
-
-    static class EntryCsvWell extends AbstractCsvWell<Entry> {
-
-        EntryCsvWell(InputStream inputStream, CSVFormat csvFormat) throws IOException {
-            super(Entry, inputStream, csvFormat)
-        }
-
-        EntryCsvWell(InputStream inputStream, CSVFormat csvFormat, Compression compression) throws IOException {
-            super(Entry, inputStream, csvFormat, compression)
-        }
-
-        @Override
-        protected void setValue(Entry entry, String columnName, String value) {
-            Objects.requireNonNull(entry, "entry must not be null!")
-            Objects.requireNonNull(columnName, "columnName must not be null!")
-            switch (columnName) {
-                case "key":
-                    entry.setKey(value)
-                    break
-                case "value":
-                    entry.setValue(value)
-                    break
-                default:
-                    // ignore
-                    // other implementations might want to be harsher
-                    break
-            }
-        }
+        then:
+        thrown(UnsupportedOperationException)
     }
 }

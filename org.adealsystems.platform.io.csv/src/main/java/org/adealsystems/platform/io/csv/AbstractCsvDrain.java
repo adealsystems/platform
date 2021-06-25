@@ -25,10 +25,14 @@ import org.apache.commons.csv.CSVPrinter;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 public abstract class AbstractCsvDrain<E> implements Drain<E> {
     private final String[] header;
+    private final List<String> headerList;
     private CSVPrinter printer;
 
     protected AbstractCsvDrain(OutputStream outputStream, CSVFormat csvFormat)
@@ -48,6 +52,7 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
     private AbstractCsvDrain(BufferedWriter writer, CSVFormat csvFormat)
         throws IOException {
         this.header = resolveHeader(csvFormat);
+        this.headerList = Collections.unmodifiableList(Arrays.asList(header));
         this.printer = csvFormat.print(writer); // private c'tor, already checked against null
     }
 
@@ -56,7 +61,11 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
         return Objects.requireNonNull(csvFormat.getHeader(), "csvFormat does not contain a header!");
     }
 
-    protected abstract String getValue(E entry, String columnName);
+    public List<String> getHeaders() {
+        return headerList;
+    }
+
+    public abstract String getValue(E entry, String columnName);
 
     @Override
     public void add(E entry) {
@@ -79,9 +88,21 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
     @Override
     public void addAll(Iterable<E> entries) {
         Objects.requireNonNull(entries, "entries must not be null!");
+        if (printer == null) {
+            throw new IllegalStateException("Drain was already closed!");
+        }
 
+        Object[] recordValues = new Object[header.length];
         for (E entry : entries) {
-            add(Objects.requireNonNull(entry, "entries must not contain null!"));
+            Objects.requireNonNull(entry, "entries must not contain null!");
+            for (int i = 0; i < header.length; i++) {
+                recordValues[i] = getValue(entry, header[i]);
+            }
+            try {
+                printer.printRecord(recordValues);
+            } catch (IOException e) {
+                throw new DrainException("Failed to write to stream!", e);
+            }
         }
     }
 

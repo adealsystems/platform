@@ -16,8 +16,9 @@
 
 package org.adealsystems.platform.io.csv
 
-import org.adealsystems.platform.io.DrainException
 import org.adealsystems.platform.io.compression.Compression
+import org.adealsystems.platform.io.csv.test.Entry
+import org.adealsystems.platform.io.csv.test.EntryCsvDrain
 import org.apache.commons.csv.CSVFormat
 import spock.lang.Specification
 
@@ -121,78 +122,29 @@ class AbstractCsvDrainSpec extends Specification {
         ex.message == "entries must not contain null!"
     }
 
-    private static class Entry {
-        String key
-        String value
+    def "getHeaders() returns expected value"() {
+        given:
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        AbstractCsvDrain<Entry> instance = new EntryCsvDrain(bos, CSV_FORMAT)
 
-        @SuppressWarnings('unused')
-        Entry() {
-        }
+        expect:
+        instance.headers == ['key', 'value']
+    }
 
-        Entry(String key, String value) {
-            this.key = key
-            this.value = value
-        }
+    def "getHeaders() is unmodifiable"() {
+        given:
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        AbstractCsvDrain<Entry> instance = new EntryCsvDrain(bos, CSV_FORMAT)
 
-        boolean equals(o) {
-            if (this.is(o)) return true
-            if (getClass() != o.class) return false
+        when:
+        instance.headers.remove('key')
 
-            Entry entry = (Entry) o
-
-            if (key != entry.key) return false
-            if (value != entry.value) return false
-
-            return true
-        }
-
-        int hashCode() {
-            int result
-            result = (key != null ? key.hashCode() : 0)
-            result = 31 * result + (value != null ? value.hashCode() : 0)
-            return result
-        }
-
-        @Override
-        String toString() {
-            return "Entry{" +
-                "key='" + key + '\'' +
-                ", value='" + value + '\'' +
-                '}'
-        }
+        then:
+        thrown(UnsupportedOperationException)
     }
 
     private static List<String> readLines(byte[] bytes, Compression compression) {
         Objects.requireNonNull(compression, "compression must not be null!")
         return Compression.createReader(new ByteArrayInputStream(bytes), compression).readLines()
-    }
-
-    static class EntryCsvDrain extends AbstractCsvDrain<Entry> {
-        // be aware that an actual, non-test implementation would NOT
-        // leave csvFormat as a c'tor argument.
-        //
-        // Instead, it would call the super c'tor with a proper format
-        // matching the implementation of the getValue method.
-
-        EntryCsvDrain(OutputStream outputStream, CSVFormat csvFormat) throws IOException {
-            super(outputStream, csvFormat)
-        }
-
-        EntryCsvDrain(OutputStream outputStream, CSVFormat csvFormat, Compression compression) throws IOException {
-            super(outputStream, csvFormat, compression)
-        }
-
-        @Override
-        protected String getValue(Entry entry, String columnName) {
-            Objects.requireNonNull(columnName, "columnName must not be null!")
-            switch (columnName) {
-                case "key":
-                    return entry.key
-                case "value":
-                    return entry.value
-                default:
-                    throw new DrainException("Unknown column name '" + columnName + "'!")
-            }
-        }
     }
 }

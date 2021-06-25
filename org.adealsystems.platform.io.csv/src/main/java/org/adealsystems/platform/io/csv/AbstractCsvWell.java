@@ -27,6 +27,8 @@ import org.apache.commons.io.input.BOMInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -36,6 +38,7 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
     private final Class<E> clazz;
     private CSVParser parser;
     private final String[] header;
+    private final List<String> headerList;
     private final Iterator<CSVRecord> parserIterator;
     private boolean consumed;
 
@@ -58,6 +61,7 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
         this.clazz = Objects.requireNonNull(clazz, "clazz must not be null!");
         this.parser = csvFormat.parse(reader); // private c'tor, already checked against null
         this.header = resolveHeader(parser);
+        this.headerList = Collections.unmodifiableList(Arrays.asList(header));
         this.parserIterator = parser.iterator();
     }
 
@@ -73,7 +77,11 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
         return consumed;
     }
 
-    protected abstract void setValue(E entry, String columnName, String value);
+    public List<String> getHeaders() {
+        return headerList;
+    }
+
+    public abstract void setValue(E entry, String columnName, String value);
 
     @Override
     @SuppressWarnings("PMD.CloseResource")
