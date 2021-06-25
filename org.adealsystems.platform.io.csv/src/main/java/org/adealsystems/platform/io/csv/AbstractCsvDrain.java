@@ -56,7 +56,7 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
         return Objects.requireNonNull(csvFormat.getHeader(), "csvFormat does not contain a header!");
     }
 
-    protected abstract Object getValue(E entry, String columnName);
+    protected abstract String getValue(E entry, String columnName);
 
     @Override
     public void add(E entry) {

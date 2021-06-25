@@ -183,7 +183,7 @@ class AbstractCsvDrainSpec extends Specification {
         }
 
         @Override
-        protected Object getValue(Entry entry, String columnName) {
+        protected String getValue(Entry entry, String columnName) {
             Objects.requireNonNull(columnName, "columnName must not be null!")
             switch (columnName) {
                 case "key":
