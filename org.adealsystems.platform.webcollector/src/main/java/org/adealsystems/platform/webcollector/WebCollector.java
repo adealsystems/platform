@@ -169,6 +169,7 @@ public class WebCollector<Q, R> {
 
     private class QueryEntity {
         private final Q query;
+        private long startTimestamp;
         private long duration;
         private List<R> result;
         private Throwable throwable;
@@ -213,9 +214,17 @@ public class WebCollector<Q, R> {
             this.duration = duration;
         }
 
+        public long getStartTimestamp() {
+            return startTimestamp;
+        }
+
+        public void setStartTimestamp(long startTimestamp) {
+            this.startTimestamp = startTimestamp;
+        }
+
         @SuppressWarnings("unchecked")
         @Override
-        // does not include duration on purpose
+        // does not include timestamp and duration on purpose
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -224,15 +233,17 @@ public class WebCollector<Q, R> {
         }
 
         @Override
-        // does not include duration on purpose
+        // does not include timestamp and duration on purpose
         public int hashCode() {
             return Objects.hash(query, result, throwable);
         }
 
         @Override
         public String toString() {
-            StringBuilder str = new StringBuilder("QueryEntity{query=")
+            StringBuilder str = new StringBuilder(100)
+                .append("QueryEntity{query=")
                 .append(query)
+                .append(", startTimestamp=").append(startTimestamp)
                 .append(", duration=").append(duration);
             if (result != null) {
                 str.append(", result.size()=");
@@ -315,6 +326,7 @@ public class WebCollector<Q, R> {
                         // just ignore any other work
                         break;
                     }
+                    queryEntity.setStartTimestamp(System.currentTimeMillis());
                     long startTime = System.nanoTime();
                     try {
                         queryEntity.setResult(executeQuery(queryEntity.getQuery()));
@@ -415,7 +427,7 @@ public class WebCollector<Q, R> {
             if (result == null) {
                 return;
             }
-            Metrics<Q> metrics = new Metrics<>(result.size(), queryEntity.getDuration(), queryEntity.getQuery());
+            Metrics<Q> metrics = new Metrics<>(result.size(), queryEntity.getStartTimestamp(), queryEntity.getDuration(), queryEntity.getQuery());
             try {
                 metricsDrain.add(metrics);
             } catch (Throwable t) {
@@ -426,11 +438,13 @@ public class WebCollector<Q, R> {
 
     public static class Metrics<Q> {
         private int resultCount;
+        private long startTimestamp;
         private long duration;
         private Q query;
 
-        public Metrics(int resultCount, long duration, Q query) {
+        public Metrics(int resultCount, long startTimestamp, long duration, Q query) {
             this.resultCount = resultCount;
+            this.startTimestamp = startTimestamp;
             this.duration = duration;
             this.query = query;
         }
@@ -441,6 +455,14 @@ public class WebCollector<Q, R> {
 
         public void setResultCount(int resultCount) {
             this.resultCount = resultCount;
+        }
+
+        public long getStartTimestamp() {
+            return startTimestamp;
+        }
+
+        public void setStartTimestamp(long startTimestamp) {
+            this.startTimestamp = startTimestamp;
         }
 
         public long getDuration() {
@@ -464,18 +486,19 @@ public class WebCollector<Q, R> {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             Metrics<?> metrics = (Metrics<?>) o;
-            return resultCount == metrics.resultCount && duration == metrics.duration && Objects.equals(query, metrics.query);
+            return resultCount == metrics.resultCount && startTimestamp == metrics.startTimestamp && duration == metrics.duration && Objects.equals(query, metrics.query);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(resultCount, duration, query);
+            return Objects.hash(resultCount, startTimestamp, duration, query);
         }
 
         @Override
         public String toString() {
             return "Metrics{" +
                 "resultCount=" + resultCount +
+                ", startTimestamp=" + startTimestamp +
                 ", duration=" + duration +
                 ", query=" + query +
                 '}';
