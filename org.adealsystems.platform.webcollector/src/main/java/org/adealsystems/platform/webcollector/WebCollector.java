@@ -169,7 +169,7 @@ public class WebCollector<Q, R> {
 
     private class QueryEntity {
         private final Q query;
-        private long startTimestamp;
+        private long timestamp;
         private long duration;
         private List<R> result;
         private Throwable throwable;
@@ -214,12 +214,12 @@ public class WebCollector<Q, R> {
             this.duration = duration;
         }
 
-        public long getStartTimestamp() {
-            return startTimestamp;
+        public long getTimestamp() {
+            return timestamp;
         }
 
-        public void setStartTimestamp(long startTimestamp) {
-            this.startTimestamp = startTimestamp;
+        public void setTimestamp(long timestamp) {
+            this.timestamp = timestamp;
         }
 
         @SuppressWarnings("unchecked")
@@ -243,7 +243,7 @@ public class WebCollector<Q, R> {
             StringBuilder str = new StringBuilder(100)
                 .append("QueryEntity{query=")
                 .append(query)
-                .append(", startTimestamp=").append(startTimestamp)
+                .append(", timestamp=").append(timestamp)
                 .append(", duration=").append(duration);
             if (result != null) {
                 str.append(", result.size()=");
@@ -326,7 +326,7 @@ public class WebCollector<Q, R> {
                         // just ignore any other work
                         break;
                     }
-                    queryEntity.setStartTimestamp(System.currentTimeMillis());
+                    queryEntity.setTimestamp(System.currentTimeMillis());
                     long startTime = System.nanoTime();
                     try {
                         queryEntity.setResult(executeQuery(queryEntity.getQuery()));
@@ -427,7 +427,7 @@ public class WebCollector<Q, R> {
             if (result == null) {
                 return;
             }
-            Metrics<Q> metrics = new Metrics<>(result.size(), queryEntity.getStartTimestamp(), queryEntity.getDuration(), queryEntity.getQuery());
+            Metrics<Q> metrics = new Metrics<>(result.size(), queryEntity.getTimestamp(), queryEntity.getDuration(), queryEntity.getQuery());
             try {
                 metricsDrain.add(metrics);
             } catch (Throwable t) {
