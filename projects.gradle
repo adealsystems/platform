@@ -49,6 +49,14 @@ def platformIoCompression = project(':org.adealsystems.platform.io.compression')
     }
 }
 
+def platformIoLine = project(':org.adealsystems.platform.io.line') {
+    dependencies {
+        implementation libraries.'slf4j-api'
+        implementation platformIo
+        implementation platformIoCompression
+    }
+}
+
 project(':org.adealsystems.platform.io.csv') {
     dependencies {
         implementation platformIo
