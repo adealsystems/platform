@@ -22,8 +22,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import org.adealsystems.platform.io.Drain;
 import org.adealsystems.platform.io.DrainException;
 import org.adealsystems.platform.io.compression.Compression;
+import org.adealsystems.platform.io.line.LineDrain;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Objects;
@@ -38,7 +38,7 @@ import java.util.Objects;
 public class JsonlDrain<E> implements Drain<E> {
     private static final ObjectMapper DEFAULT_OBJECT_MAPPER = new ObjectMapper();
     private final ObjectMapper objectMapper;
-    private BufferedWriter writer;
+    private Drain<String> stringDrain;
 
     public JsonlDrain(OutputStream outputStream)
         throws IOException {
@@ -47,7 +47,7 @@ public class JsonlDrain<E> implements Drain<E> {
 
     public JsonlDrain(OutputStream outputStream, Compression compression)
         throws IOException {
-        this(Compression.createWriter(outputStream, compression), DEFAULT_OBJECT_MAPPER);
+        this(outputStream, compression, DEFAULT_OBJECT_MAPPER);
     }
 
     public JsonlDrain(OutputStream outputStream, ObjectMapper objectMapper)
@@ -57,16 +57,16 @@ public class JsonlDrain<E> implements Drain<E> {
 
     public JsonlDrain(OutputStream outputStream, Compression compression, ObjectMapper objectMapper)
         throws IOException {
-        this(Compression.createWriter(outputStream, compression), objectMapper);
+        this(new LineDrain(outputStream, compression), objectMapper);
     }
 
-    /*
-     * This constructor is private so we can be sure the writer is a
-     * BufferedWriter with correct charset, i.e. UTF-8.
-     */
-    private JsonlDrain(BufferedWriter writer, ObjectMapper objectMapper) {
+    public JsonlDrain(Drain<String> stringDrain) {
+        this(stringDrain, DEFAULT_OBJECT_MAPPER);
+    }
+
+    public JsonlDrain(Drain<String> stringDrain, ObjectMapper objectMapper) {
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null!");
-        this.writer = writer; // private c'tor, already checked against null
+        this.stringDrain = Objects.requireNonNull(stringDrain, "stringDrain must not be null!");
         // ensure that objectMapper is not pretty-printing
         if (objectMapper.isEnabled(SerializationFeature.INDENT_OUTPUT)) {
             throw new IllegalArgumentException("objectMapper must not have INDENT_OUTPUT feature enabled!");
@@ -76,18 +76,14 @@ public class JsonlDrain<E> implements Drain<E> {
     @Override
     public void add(E entry) {
         Objects.requireNonNull(entry, "entry must not be null!");
+        if (stringDrain == null) {
+            throw new IllegalStateException("Drain was already closed!");
+        }
 
         try {
-            if (writer == null) {
-                throw new IllegalStateException("Drain was already closed!");
-            }
-            String json = objectMapper.writeValueAsString(entry);
-            writer.write(json);
-            writer.write('\n');
+            stringDrain.add(objectMapper.writeValueAsString(entry));
         } catch (JsonProcessingException e) {
             throw new DrainException("Failed to write entry as JSON!", e);
-        } catch (IOException e) {
-            throw new DrainException("Failed to write to stream!", e);
         }
     }
 
@@ -101,18 +97,19 @@ public class JsonlDrain<E> implements Drain<E> {
     }
 
     @Override
-    @SuppressWarnings("PMD.CloseResource")
     public void close() {
-        if (writer == null) {
+        if (stringDrain == null) {
             return;
         }
-        BufferedWriter temp = writer;
-        writer = null;
+        Throwable throwable = null;
         try {
-            temp.flush();
-            temp.close();
-        } catch (IOException ex) {
-            throw new DrainException("Exception while closing stream!", ex);
+            stringDrain.close();
+        } catch (Throwable t) {
+            throwable = t;
+        }
+        stringDrain = null;
+        if (throwable != null) {
+            throw new DrainException("Exception while closing drain!", throwable);
         }
     }
 }

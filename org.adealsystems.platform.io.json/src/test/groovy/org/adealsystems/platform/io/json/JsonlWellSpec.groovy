@@ -16,9 +16,14 @@
 
 package org.adealsystems.platform.io.json
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.adealsystems.platform.io.ListWell
+import org.adealsystems.platform.io.Well
 import org.adealsystems.platform.io.WellException
 import org.adealsystems.platform.io.compression.Compression
 import spock.lang.Specification
+
+import java.nio.charset.StandardCharsets
 
 class JsonlWellSpec extends Specification {
 
@@ -55,15 +60,47 @@ class JsonlWellSpec extends Specification {
         ]
     }
 
+    def 'this constructor also works'() {
+        when:
+        JsonlWell<Entry> instance = new JsonlWell<>(Entry, new ByteArrayInputStream(getExampleBytes()))
+        then:
+        !instance.isConsumed()
+
+        when:
+        List<Entry> objects = instance.iterator().collect()
+
+        then:
+        objects == [
+            new Entry("Entry 1"),
+            new Entry("Entry 2"),
+            new Entry("Entry 3"),
+        ] as List
+        and:
+        instance.isConsumed()
+    }
+
+    def 'and even this constructor works'() {
+        when:
+        JsonlWell<Entry> instance = new JsonlWell<>(Entry, new ByteArrayInputStream(getExampleBytes()), new ObjectMapper())
+        then:
+        !instance.isConsumed()
+
+        when:
+        List<Entry> objects = instance.iterator().collect()
+
+        then:
+        objects == [
+            new Entry("Entry 1"),
+            new Entry("Entry 2"),
+            new Entry("Entry 3"),
+        ]
+        and:
+        instance.isConsumed()
+    }
+
     def "calling iterator() twice throws exception"() {
         given:
-        ByteArrayOutputStream bos = new ByteArrayOutputStream()
-        JsonlDrain<Entry> drain = new JsonlDrain<>(bos)
-        drain.add(new Entry("Value 1"))
-        drain.addAll([new Entry("Value 2"), new Entry("Value 3")])
-        drain.close()
-
-        JsonlWell<Entry> instance = new JsonlWell<>(Entry, new ByteArrayInputStream(bos.toByteArray()))
+        JsonlWell<Entry> instance = new JsonlWell<>(Entry, new ListWell<String>())
 
         when:
         instance.iterator()
@@ -75,37 +112,69 @@ class JsonlWellSpec extends Specification {
         ex.message == "A well can only be iterated once!"
     }
 
-    private static class Entry {
-        String value
+    def "closing causes expected exception while iterating"() {
+        given:
+        Well<String> stringWell = new ListWell<String>(["{\"value\":\"Entry 1\"}", "{\"value\":\"Entry 2\"}", "{\"value\":\"Entry 3\"}"])
+        JsonlWell instance = new JsonlWell(Entry, stringWell)
 
-        @SuppressWarnings('unused')
-        Entry() {
-        }
+        def iterator = instance.iterator()
 
-        Entry(String value) {
-            this.value = value
-        }
+        expect: 'an entry can be read'
+        new Entry("Entry 1") == iterator.next()
+        when: 'well is closed'
+        instance.close()
+        and: 'next value is requested'
+        iterator.next()
+        then: 'the expected exception is thrown'
+        IllegalStateException ex = thrown()
+        ex.message == "Well was already closed!"
+    }
 
-        boolean equals(o) {
-            if (this.is(o)) return true
-            if (getClass() != o.class) return false
+    def "closing twice is ok"() {
+        given:
+        JsonlWell instance = new JsonlWell(Entry, new ListWell<String>(new ArrayList<String>()))
 
-            Entry entry = (Entry) o
+        when: 'well is closed twice'
+        instance.close()
+        instance.close()
 
-            if (value != entry.value) return false
+        then:
+        noExceptionThrown()
+    }
 
-            return true
-        }
+    def "broken json causes expected exception while iterating"() {
+        given:
+        Well<String> stringWell = new ListWell<String>(["{\"value\":\"Entry 1\"}", "Nope", "{\"value\":\"Entry 3\"}"])
+        JsonlWell instance = new JsonlWell(Entry, stringWell)
 
-        int hashCode() {
-            return (value != null ? value.hashCode() : 0)
-        }
+        def iterator = instance.iterator()
 
-        @Override
-        String toString() {
-            return "Entry{" +
-                "value='" + value + '\'' +
-                '}'
-        }
+        expect: 'an entry can be read'
+        new Entry("Entry 1") == iterator.next()
+
+        when: 'next broken value is requested'
+        iterator.next()
+        then: 'the expected exception is thrown'
+        WellException ex = thrown()
+        ex.message == "Failed to parse JSON!"
+    }
+
+    def "exception while closing is handled as expected"() {
+        given:
+        Well<String> badWell = Mock()
+        JsonlWell instance = new JsonlWell(Entry, badWell)
+
+        when:
+        instance.close()
+
+        then:
+        badWell.close() >> { throw new IllegalStateException("nope") }
+        WellException ex = thrown()
+        ex.message == "Exception while closing well!"
+        ex.cause.message.startsWith("nope")
+    }
+
+    private static byte[] getExampleBytes() {
+        "{\"value\":\"Entry 1\"}\n{\"value\":\"Entry 2\"}\n{\"value\":\"Entry 3\"}\n".getBytes(StandardCharsets.UTF_8)
     }
 }

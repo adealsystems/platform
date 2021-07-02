@@ -18,7 +18,10 @@ package org.adealsystems.platform.io.json
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
+import org.adealsystems.platform.io.Drain
+import org.adealsystems.platform.io.DrainException
 import org.adealsystems.platform.io.compression.Compression
+import org.adealsystems.platform.io.line.LineDrain
 import spock.lang.Specification
 
 class JsonlDrainSpec extends Specification {
@@ -56,6 +59,35 @@ class JsonlDrainSpec extends Specification {
             Compression.NONE,
             Compression.GZIP,
             Compression.BZIP,
+        ]
+    }
+
+    def 'this constructor also works'() {
+        given:
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        JsonlDrain<Entry> instance = new JsonlDrain<>(bos, new ObjectMapper())
+
+        when:
+        instance.add(new Entry("Entry 1"))
+        and:
+        instance.addAll([new Entry("Entry 2"), new Entry("Entry 3")])
+        and:
+        instance.close()
+
+        and:
+        List<String> lines = readLines(bos.toByteArray(), Compression.NONE)
+
+        then:
+        lines == ['{"value":"Entry 1"}', '{"value":"Entry 2"}', '{"value":"Entry 3"}']
+
+        when:
+        List<Entry> objects = parseLines(lines)
+
+        then:
+        objects == [
+            new Entry("Entry 1"),
+            new Entry("Entry 2"),
+            new Entry("Entry 3"),
         ]
     }
 
@@ -142,38 +174,62 @@ class JsonlDrainSpec extends Specification {
         ex.message == "objectMapper must not have INDENT_OUTPUT feature enabled!"
     }
 
-    private static class Entry {
-        String value
+    def "closing twice is ok"() {
+        given:
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        JsonlDrain instance = new JsonlDrain(new LineDrain(bos))
 
-        @SuppressWarnings('unused')
-        Entry() {
-        }
+        when: 'drain is closed twice'
+        instance.close()
+        instance.close()
 
-        Entry(String value) {
-            this.value = value
-        }
+        then:
+        noExceptionThrown()
+    }
 
-        boolean equals(o) {
-            if (this.is(o)) return true
-            if (getClass() != o.class) return false
+    def "exception while performing I/O is handled as expected"() {
+        given:
+        Drain<String> badDrain = Mock()
+        JsonlDrain instance = new JsonlDrain(badDrain)
 
-            Entry entry = (Entry) o
+        when:
+        instance.add(new Entry("Entry 1"))
 
-            if (value != entry.value) return false
+        then:
+        badDrain.add((String) _) >> { throw new IllegalStateException("nope") }
+        IllegalStateException ex = thrown()
+        ex.message == "nope"
+    }
 
-            return true
-        }
+    def "exception while closing is handled as expected"() {
+        given:
+        Drain<String> badDrain = Mock()
+        JsonlDrain instance = new JsonlDrain(badDrain)
 
-        int hashCode() {
-            return (value != null ? value.hashCode() : 0)
-        }
+        when:
+        instance.close()
 
-        @Override
-        String toString() {
-            return "Entry{" +
-                "value='" + value + '\'' +
-                '}'
-        }
+        then:
+        badDrain.close() >> { throw new IllegalStateException("nope") }
+        DrainException ex = thrown()
+        ex.message == "Exception while closing drain!"
+        ex.cause.message.startsWith("nope")
+    }
+
+    def "exception while serializing is handled as expected"() {
+        given:
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        JsonlDrain instance = new JsonlDrain(new LineDrain(bos))
+        Entry badEntry = Mock()
+
+        when:
+        instance.add(badEntry)
+
+        then:
+        badEntry.getValue() >> { throw new IllegalStateException("nope") }
+        DrainException ex = thrown()
+        ex.message == "Failed to write entry as JSON!"
+        ex.cause.message.startsWith("nope")
     }
 
     private static List<String> readLines(byte[] bytes, Compression compression) {

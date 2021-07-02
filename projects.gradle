@@ -70,6 +70,7 @@ project(':org.adealsystems.platform.io.json') {
     dependencies {
         implementation platformIo
         implementation platformIoCompression
+        implementation platformIoLine
         implementation libraries.'jackson-databind'
     }
 }
