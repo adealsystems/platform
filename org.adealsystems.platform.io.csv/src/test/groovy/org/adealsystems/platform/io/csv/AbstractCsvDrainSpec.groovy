@@ -16,9 +16,8 @@
 
 package org.adealsystems.platform.io.csv
 
+import org.adealsystems.platform.io.DrainException
 import org.adealsystems.platform.io.compression.Compression
-import org.adealsystems.platform.io.csv.test.Entry
-import org.adealsystems.platform.io.csv.test.EntryCsvDrain
 import org.apache.commons.csv.CSVFormat
 import spock.lang.Specification
 
@@ -141,6 +140,64 @@ class AbstractCsvDrainSpec extends Specification {
 
         then:
         thrown(UnsupportedOperationException)
+    }
+
+    def "closing twice is ok"() {
+        given:
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        AbstractCsvDrain<Entry> instance = new EntryCsvDrain(bos, CSV_FORMAT)
+
+        when: 'drain is closed twice'
+        instance.close()
+        instance.close()
+
+        then:
+        noExceptionThrown()
+    }
+
+    def "exception while performing I/O is handled as expected for add"() {
+        given:
+        BufferedWriter badWriter = Mock()
+        AbstractCsvDrain<Entry> instance = new EntryCsvDrain(badWriter, CSV_FORMAT)
+
+        when:
+        instance.add(new Entry("Key 1", "Value 1"))
+
+        then:
+        badWriter.append(_ as CharSequence) >> { throw new IOException("nope") }
+        DrainException ex = thrown()
+        ex.message == "Exception while printing record!"
+        ex.cause.message.startsWith("nope")
+    }
+
+    def "exception while performing I/O is handled as expected for addAll"() {
+        given:
+        BufferedWriter badWriter = Mock()
+        AbstractCsvDrain<Entry> instance = new EntryCsvDrain(badWriter, CSV_FORMAT)
+
+        when:
+        instance.addAll([new Entry("Key 1", "Value 1")])
+
+        then:
+        badWriter.append(_ as CharSequence) >> { throw new IOException("nope") }
+        DrainException ex = thrown()
+        ex.message == "Exception while printing record!"
+        ex.cause.message.startsWith("nope")
+    }
+
+    def "exception while closing is handled as expected"() {
+        given:
+        BufferedWriter badWriter = Mock()
+
+        when:
+        AbstractCsvDrain<Entry> instance = new EntryCsvDrain(badWriter, CSV_FORMAT)
+        instance.close()
+
+        then:
+        badWriter.close() >> { throw new IllegalStateException("nope") }
+        DrainException ex = thrown()
+        ex.message == "Exception while closing printer!"
+        ex.cause.message.startsWith("nope")
     }
 
     private static List<String> readLines(byte[] bytes, Compression compression) {

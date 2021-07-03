@@ -53,13 +53,15 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
     }
 
     /*
-     * This constructor is private so we can be sure the writer is a
-     * BufferedWriter with correct charset, i.e. UTF-8.
+     * This constructor is package-private so we can be sure the reader is a
+     * BufferedReader with correct charset, i.e. UTF-8.
      */
-    private AbstractCsvWell(Class<E> clazz, BufferedReader reader, CSVFormat csvFormat)
+    AbstractCsvWell(Class<E> clazz, BufferedReader reader, CSVFormat csvFormat)
         throws IOException {
         this.clazz = Objects.requireNonNull(clazz, "clazz must not be null!");
-        this.parser = csvFormat.parse(reader); // private c'tor, already checked against null
+        Objects.requireNonNull(reader, "reader must not be null!");
+        Objects.requireNonNull(csvFormat, "csvFormat must not be null!");
+        this.parser = csvFormat.parse(reader);
         this.header = resolveHeader(parser);
         this.headerList = Collections.unmodifiableList(Arrays.asList(header));
         this.parserIterator = parser.iterator();
@@ -68,7 +70,6 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
     private static String[] resolveHeader(CSVParser csvParser) {
         Objects.requireNonNull(csvParser, "csvParser must not be null!");
         List<String> headerNames = csvParser.getHeaderNames();
-        // TODO: check
         return headerNames.toArray(new String[0]);
     }
 
@@ -84,17 +85,19 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
     public abstract void setValue(E entry, String columnName, String value);
 
     @Override
-    @SuppressWarnings("PMD.CloseResource")
     public void close() {
         if (parser == null) {
             return;
         }
-        CSVParser temp = parser;
-        parser = null;
+        Throwable throwable = null;
         try {
-            temp.close();
-        } catch (IOException e) {
-            throw new WellException("Exception while closing stream!", e);
+            parser.close();
+        } catch (Throwable t) {
+            throwable = t;
+        }
+        parser = null;
+        if (throwable != null) {
+            throw new WellException("Exception while closing parser!", throwable);
         }
     }
 
@@ -111,27 +114,27 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
         if (parser == null) {
             throw new IllegalStateException("Well was already closed!");
         }
-        if (!parserIterator.hasNext()) {
-            throw new NoSuchElementException();
-        }
-
         E result;
         try {
             result = clazz.getDeclaredConstructor().newInstance();
         } catch (Throwable t) {
-            throw new WellException("Failed to create result!", t);
+            throw new WellException("Exception while creating instance of class " + clazz.getName() + "!", t);
         }
-        CSVRecord record = parserIterator.next();
-        for (String headerName : header) {
-            setValue(result, headerName, record.get(headerName));
-        }
-        if (!parserIterator.hasNext()) {
-            try {
-                close();
-            } catch (Exception e) {
-                throw new WellException("Failed to close stream!", e);
+        try {
+            if (!parserIterator.hasNext()) {
+                throw new NoSuchElementException();
             }
+
+            CSVRecord record = parserIterator.next();
+            for (String headerName : header) {
+                setValue(result, headerName, record.get(headerName));
+            }
+        } catch (NoSuchElementException ex) { // NOPMD
+            throw ex;
+        } catch (Throwable t) {
+            throw new WellException("Exception while reading record!", t);
         }
+
         return result;
     }
 

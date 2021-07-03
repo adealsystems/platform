@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.io.csv.test;
+package org.adealsystems.platform.io.csv;
 
 import java.util.Objects;
 
@@ -22,7 +22,10 @@ public class Entry {
     private String key;
     private String value;
 
+    @SuppressWarnings("unused")
     public Entry() {
+        // This constructor is absolutely needed.
+        // See BrokenEntry.
     }
 
     public Entry(String key, String value) {

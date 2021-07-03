@@ -14,33 +14,37 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.io.csv.test;
+package org.adealsystems.platform.io.csv;
 
 import org.adealsystems.platform.io.compression.Compression;
-import org.adealsystems.platform.io.csv.AbstractCsvWell;
 import org.apache.commons.csv.CSVFormat;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 
-public class EntryCsvWell extends AbstractCsvWell<Entry> {
+public class BrokenEntryCsvWell extends AbstractCsvWell<BrokenEntry> {
     // be aware that an actual, non-test implementation would NOT
     // leave csvFormat as a c'tor argument.
     //
     // Instead, it would call the super c'tor with a proper format
     // matching the implementation of the setValue method.
 
-    public EntryCsvWell(InputStream inputStream, CSVFormat csvFormat) throws IOException {
-        super(Entry.class, inputStream, csvFormat);
+    public BrokenEntryCsvWell(InputStream inputStream, CSVFormat csvFormat) throws IOException {
+        super(BrokenEntry.class, inputStream, csvFormat);
     }
 
-    public EntryCsvWell(InputStream inputStream, CSVFormat csvFormat, Compression compression) throws IOException {
-        super(Entry.class, inputStream, csvFormat, compression);
+    public BrokenEntryCsvWell(InputStream inputStream, CSVFormat csvFormat, Compression compression) throws IOException {
+        super(BrokenEntry.class, inputStream, csvFormat, compression);
+    }
+
+    public BrokenEntryCsvWell(BufferedReader reader, CSVFormat csvFormat) throws IOException {
+        super(BrokenEntry.class, reader, csvFormat);
     }
 
     @Override
-    public void setValue(Entry entry, String columnName, String value) {
+    public void setValue(BrokenEntry entry, String columnName, String value) {
         Objects.requireNonNull(entry, "entry must not be null!");
         Objects.requireNonNull(columnName, "columnName must not be null!");
         switch (columnName) {

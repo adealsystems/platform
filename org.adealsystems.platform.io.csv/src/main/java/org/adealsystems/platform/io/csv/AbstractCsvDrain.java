@@ -46,14 +46,14 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
     }
 
     /*
-     * This constructor is private so we can be sure the writer is a
+     * This constructor is package-private so we can be sure the writer is a
      * BufferedWriter with correct charset, i.e. UTF-8.
      */
-    private AbstractCsvDrain(BufferedWriter writer, CSVFormat csvFormat)
+    AbstractCsvDrain(BufferedWriter writer, CSVFormat csvFormat)
         throws IOException {
         this.header = resolveHeader(csvFormat);
         this.headerList = Collections.unmodifiableList(Arrays.asList(header));
-        this.printer = csvFormat.print(writer); // private c'tor, already checked against null
+        this.printer = csvFormat.print(writer);
     }
 
     private static String[] resolveHeader(CSVFormat csvFormat) {
@@ -80,8 +80,8 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
         }
         try {
             printer.printRecord(recordValues);
-        } catch (IOException e) {
-            throw new DrainException("Failed to write to stream!", e);
+        } catch (Throwable t) {
+            throw new DrainException("Exception while printing record!", t);
         }
     }
 
@@ -100,25 +100,28 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
             }
             try {
                 printer.printRecord(recordValues);
-            } catch (IOException e) {
-                throw new DrainException("Failed to write to stream!", e);
+            } catch (Throwable t) {
+                throw new DrainException("Exception while printing record!", t);
             }
         }
     }
 
     @Override
-    @SuppressWarnings("PMD.CloseResource")
     public void close() {
         if (printer == null) {
             return;
         }
-        CSVPrinter temp = printer;
-        printer = null;
+
+        Throwable throwable = null;
         try {
-            temp.flush();
-            temp.close();
-        } catch (IOException ex) {
-            throw new DrainException("Exception while closing stream!", ex);
+            printer.flush();
+            printer.close();
+        } catch (Throwable t) {
+            throwable = t;
+        }
+        printer = null;
+        if (throwable != null) {
+            throw new DrainException("Exception while closing printer!", throwable);
         }
     }
 }

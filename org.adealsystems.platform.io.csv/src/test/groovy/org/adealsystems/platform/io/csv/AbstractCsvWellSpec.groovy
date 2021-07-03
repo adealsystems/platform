@@ -18,9 +18,6 @@ package org.adealsystems.platform.io.csv
 
 import org.adealsystems.platform.io.WellException
 import org.adealsystems.platform.io.compression.Compression
-import org.adealsystems.platform.io.csv.test.Entry
-import org.adealsystems.platform.io.csv.test.EntryCsvDrain
-import org.adealsystems.platform.io.csv.test.EntryCsvWell
 import org.apache.commons.csv.CSVFormat
 import spock.lang.Specification
 
@@ -144,5 +141,135 @@ class AbstractCsvWellSpec extends Specification {
 
         then:
         thrown(UnsupportedOperationException)
+    }
+
+    def "closing twice is ok"() {
+        given:
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        AbstractCsvDrain<Entry> drain = new EntryCsvDrain(bos, OUTPUT_CSV_FORMAT)
+        drain.add(new Entry("Key 1", "Value 1"))
+        drain.addAll([new Entry("Key 2", "Value 2"), new Entry("Key 3", "Value 3")])
+        drain.close()
+
+        EntryCsvWell instance = new EntryCsvWell(new ByteArrayInputStream(bos.toByteArray()), INPUT_CSV_FORMAT)
+
+        when: 'well is closed twice'
+        instance.close()
+        instance.close()
+
+        then:
+        noExceptionThrown()
+    }
+
+    def "class without default constructor causes expected exception"() {
+        given:
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        AbstractCsvDrain<Entry> drain = new EntryCsvDrain(bos, OUTPUT_CSV_FORMAT)
+        drain.add(new Entry("Key 1", "Value 1"))
+        drain.addAll([new Entry("Key 2", "Value 2"), new Entry("Key 3", "Value 3")])
+        drain.close()
+
+        BrokenEntryCsvWell instance = new BrokenEntryCsvWell(new ByteArrayInputStream(bos.toByteArray()), INPUT_CSV_FORMAT)
+
+        when:
+        def iterator = instance.iterator()
+        iterator.next()
+
+        then:
+        WellException ex = thrown()
+        ex.printStackTrace()
+        ex.message == "Exception while creating instance of class org.adealsystems.platform.io.csv.BrokenEntry!"
+    }
+
+    def "reading from closed drain causes expected exception"() {
+        given:
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        AbstractCsvDrain<Entry> drain = new EntryCsvDrain(bos, OUTPUT_CSV_FORMAT)
+        drain.add(new Entry("Key 1", "Value 1"))
+        drain.addAll([new Entry("Key 2", "Value 2"), new Entry("Key 3", "Value 3")])
+        drain.close()
+
+        EntryCsvWell instance = new EntryCsvWell(new ByteArrayInputStream(bos.toByteArray()), INPUT_CSV_FORMAT)
+        def iterator = instance.iterator()
+
+        when:
+        def read = iterator.next()
+        then:
+        read == new Entry("Key 1", "Value 1")
+
+        when:
+        instance.close()
+        iterator.next()
+
+        then:
+        IllegalStateException ex = thrown()
+        ex.message == "Well was already closed!"
+    }
+
+    def "iterating too much causes expected exception"() {
+        given:
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        AbstractCsvDrain<Entry> drain = new EntryCsvDrain(bos, OUTPUT_CSV_FORMAT)
+        drain.add(new Entry("Key 1", "Value 1"))
+        drain.addAll([new Entry("Key 2", "Value 2"), new Entry("Key 3", "Value 3")])
+        drain.close()
+
+        EntryCsvWell instance = new EntryCsvWell(new ByteArrayInputStream(bos.toByteArray()), INPUT_CSV_FORMAT)
+        def iterator = instance.iterator()
+
+        when:
+        iterator.next()
+        iterator.next()
+        iterator.next()
+        iterator.next()
+
+        then:
+        thrown(NoSuchElementException)
+    }
+
+    def "exception while reading is handled as expected"() {
+        given: 'more data than the internal buffer size is available'
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        AbstractCsvDrain<Entry> drain = new EntryCsvDrain(bos, OUTPUT_CSV_FORMAT)
+        final int count = 8000
+        for (int i = 0; i < count; i++) {
+            drain.add(new Entry("Key " + i, "Value " + i))
+        }
+        drain.close()
+
+        BrokenInputStream brokenStream = new BrokenInputStream(new ByteArrayInputStream(bos.toByteArray()))
+        EntryCsvWell instance = new EntryCsvWell(brokenStream, INPUT_CSV_FORMAT)
+        def iterator = instance.iterator()
+        when: 'internal buffer is exhausted with stream set to broken'
+        brokenStream.setBroken(true)
+        for (int i = 0; i < count; i++) {
+            iterator.next()
+        }
+
+        then: 'at some point the expected exception is actually thrown'
+        WellException ex = thrown()
+        ex.message == "Exception while reading record!"
+        ex.cause.message.contains("nope")
+    }
+
+    def "exception while closing is handled as expected"() {
+        given:
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        AbstractCsvDrain<Entry> drain = new EntryCsvDrain(bos, OUTPUT_CSV_FORMAT)
+        drain.add(new Entry("Key 1", "Value 1"))
+        drain.addAll([new Entry("Key 2", "Value 2"), new Entry("Key 3", "Value 3")])
+        drain.close()
+
+        BrokenInputStream brokenStream = new BrokenInputStream(new ByteArrayInputStream(bos.toByteArray()))
+        EntryCsvWell instance = new EntryCsvWell(brokenStream, INPUT_CSV_FORMAT)
+        brokenStream.setBroken(true)
+
+        when:
+        instance.close()
+
+        then:
+        WellException ex = thrown()
+        ex.message == "Exception while closing parser!"
+        ex.cause.message.startsWith("nope")
     }
 }
