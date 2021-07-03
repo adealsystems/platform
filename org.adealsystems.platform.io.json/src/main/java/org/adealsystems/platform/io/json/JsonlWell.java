@@ -110,7 +110,7 @@ public class JsonlWell<E> implements Well<E> {
         @Override
         public E next() {
             if (stringWell == null) {
-                throw new IllegalStateException("Well was already closed!");
+                throw new WellException("Well was already closed!");
             }
             String line = iterator.next();
             try {

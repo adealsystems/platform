@@ -51,7 +51,7 @@ public class LineDrain implements Drain<String> {
         Objects.requireNonNull(entry, "entry must not be null!");
         try {
             if (writer == null) {
-                throw new IllegalStateException("Drain was already closed!");
+                throw new DrainException("Drain was already closed!");
             }
             writer.write(entry);
             writer.write('\n');

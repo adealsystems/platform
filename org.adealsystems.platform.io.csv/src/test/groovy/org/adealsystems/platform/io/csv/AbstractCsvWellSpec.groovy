@@ -202,7 +202,7 @@ class AbstractCsvWellSpec extends Specification {
         iterator.next()
 
         then:
-        IllegalStateException ex = thrown()
+        WellException ex = thrown()
         ex.message == "Well was already closed!"
     }
 

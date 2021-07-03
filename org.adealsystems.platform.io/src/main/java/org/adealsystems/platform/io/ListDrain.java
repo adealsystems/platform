@@ -33,7 +33,7 @@ public class ListDrain<E> implements Drain<E> {
     @Override
     public void add(E entry) {
         if (closed) {
-            throw new IllegalStateException("Drain was already closed!");
+            throw new DrainException("Drain was already closed!");
         }
         content.add(Objects.requireNonNull(entry, "entry must not be null!"));
     }
@@ -42,7 +42,7 @@ public class ListDrain<E> implements Drain<E> {
     public void addAll(Iterable<E> entries) {
         Objects.requireNonNull(entries, "entries must not be null!");
         if (closed) {
-            throw new IllegalStateException("Drain was already closed!");
+            throw new DrainException("Drain was already closed!");
         }
         for (E entry : entries) {
             content.add(Objects.requireNonNull(entry, "entries must not contain null!"));

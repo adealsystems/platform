@@ -102,7 +102,7 @@ class JsonlDrainSpec extends Specification {
         instance.add(new Entry("Entry 1"))
 
         then:
-        IllegalStateException ex = thrown()
+        DrainException ex = thrown()
         ex.message == "Drain was already closed!"
     }
 
@@ -117,7 +117,7 @@ class JsonlDrainSpec extends Specification {
         instance.addAll([new Entry("Entry 2"), new Entry("Entry 3")])
 
         then:
-        IllegalStateException ex = thrown()
+        DrainException ex = thrown()
         ex.message == "Drain was already closed!"
     }
 

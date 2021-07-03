@@ -39,7 +39,7 @@ class ListWellSpec extends Specification {
         }
 
         then:
-        content == collected
+        instance.content == collected
     }
 
     def "calling iterator() twice throws exception"() {
@@ -55,5 +55,25 @@ class ListWellSpec extends Specification {
         then:
         WellException ex = thrown()
         ex.message == "A well can only be iterated once!"
+    }
+
+    def "closing twice is ok"() {
+        given:
+        ListWell<String> instance = new ListWell<>()
+
+        when:
+        instance.close()
+        instance.close()
+
+        then:
+        noExceptionThrown()
+    }
+
+    def "toString returns expected value"() {
+        given:
+        ListWell<String> instance = new ListWell<>(['A', 'B'])
+
+        expect:
+        instance.toString() == "ListWell{content=[A, B]}"
     }
 }

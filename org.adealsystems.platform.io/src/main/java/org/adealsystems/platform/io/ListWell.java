@@ -20,39 +20,29 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.Spliterator;
-import java.util.function.Consumer;
 
 public final class ListWell<E> implements Well<E> {
 
-    private List<E> content;
+    private final List<E> content;
     private boolean consumed;
+    private boolean closed;
+
 
     public ListWell() {
         this(new ArrayList<>());
     }
 
     public ListWell(List<E> content) {
-        setContent(content);
+        this.content = Objects.requireNonNull(content, "content must not be null!");
     }
 
     /**
-     * Returns the content of this Well or null if Well was already closed.
+     * Returns the content of this Well.
      *
-     * @return content of this Well or null if Well was already closed.
+     * @return the content of this Well
      */
     public List<E> getContent() {
         return content;
-    }
-
-    /**
-     * Sets the content of this Well.
-     *
-     * @param content the content of this Well.
-     * @throws NullPointerException if content is null
-     */
-    public void setContent(List<E> content) {
-        this.content = Objects.requireNonNull(content, "content must not be null!");
     }
 
     @Override
@@ -62,13 +52,14 @@ public final class ListWell<E> implements Well<E> {
 
     @Override
     public void close() {
-        content = null;
+        closed = true;
     }
 
+    @SuppressWarnings("NullableProblems")
     @Override
     public Iterator<E> iterator() {
-        if (content == null) {
-            throw new IllegalStateException("Well was already closed!");
+        if (closed) {
+            throw new WellException("Well was already closed!");
         }
 
         if (consumed) {
@@ -80,18 +71,9 @@ public final class ListWell<E> implements Well<E> {
     }
 
     @Override
-    public void forEach(Consumer<? super E> action) {
-        if (content == null) {
-            throw new IllegalStateException("Well was already closed!");
-        }
-        content.forEach(action);
-    }
-
-    @Override
-    public Spliterator<E> spliterator() {
-        if (content == null) {
-            throw new IllegalStateException("Well was already closed!");
-        }
-        return content.spliterator();
+    public String toString() {
+        return "ListWell{" +
+            "content=" + content +
+            '}';
     }
 }

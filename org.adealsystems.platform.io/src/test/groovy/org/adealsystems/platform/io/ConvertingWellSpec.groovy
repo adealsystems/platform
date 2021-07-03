@@ -24,9 +24,15 @@ class ConvertingWellSpec extends Specification {
         ListWell<Integer> innerWell = new ListWell<>([1, 2, 3, 4])
         ConvertingWell<Integer, String> instance = new ConvertingWell<>(innerWell, String::valueOf)
 
+        expect:
+        !instance.isConsumed()
+
         when: 'iterator is obtained'
         Iterator<String> iterator = instance.iterator()
-        and: 'content of iterator is collected into a list'
+        then:
+        instance.isConsumed()
+
+        when: 'content of iterator is collected into a list'
         List<String> collected = new ArrayList<>()
         iterator.forEachRemaining(collected::add)
 
@@ -52,4 +58,28 @@ class ConvertingWellSpec extends Specification {
         ex.message == "convertFunction must not be null!"
     }
 
+    def "creating iterator for closed instance causes expected exception"() {
+        given:
+        Well<String> instance = new ConvertingWell<>(new ListWell<>(), String::valueOf)
+
+        when:
+        instance.close()
+        instance.iterator()
+
+        then:
+        WellException ex = thrown()
+        ex.message == "Well was already closed!"
+    }
+
+    def "closing twice is ok"() {
+        given:
+        Well<String> instance = new ConvertingWell<>(new ListWell<>(), String::valueOf)
+
+        when:
+        instance.close()
+        instance.close()
+
+        then:
+        noExceptionThrown()
+    }
 }

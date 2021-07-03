@@ -48,6 +48,7 @@ public enum Compression {
             case BZIP:
                 return new BufferedWriter(new OutputStreamWriter(new BZip2CompressorOutputStream(outputStream), StandardCharsets.UTF_8));
             default:
+                // unreachable - unless we fail while adding more compressions
                 throw new IllegalArgumentException("Compression " + compression + " isn't (yet) supported!");
         }
     }
@@ -64,6 +65,7 @@ public enum Compression {
             case BZIP:
                 return new BufferedReader(new InputStreamReader(new BZip2CompressorInputStream(inputStream), StandardCharsets.UTF_8));
             default:
+                // unreachable - unless we fail while adding more compressions
                 throw new IllegalArgumentException("Compression " + compression + " isn't (yet) supported!");
         }
     }

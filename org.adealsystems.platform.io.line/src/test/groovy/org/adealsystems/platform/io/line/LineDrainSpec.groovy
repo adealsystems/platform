@@ -59,7 +59,7 @@ class LineDrainSpec extends Specification {
         instance.add("Line 1")
 
         then:
-        IllegalStateException ex = thrown()
+        DrainException ex = thrown()
         ex.message == "Drain was already closed!"
     }
 
@@ -74,7 +74,7 @@ class LineDrainSpec extends Specification {
         instance.addAll(["Line 2", "Line 3"])
 
         then:
-        IllegalStateException ex = thrown()
+        DrainException ex = thrown()
         ex.message == "Drain was already closed!"
     }
 

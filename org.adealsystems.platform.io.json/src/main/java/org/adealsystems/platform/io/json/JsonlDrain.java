@@ -77,7 +77,7 @@ public class JsonlDrain<E> implements Drain<E> {
     public void add(E entry) {
         Objects.requireNonNull(entry, "entry must not be null!");
         if (stringDrain == null) {
-            throw new IllegalStateException("Drain was already closed!");
+            throw new DrainException("Drain was already closed!");
         }
 
         try {

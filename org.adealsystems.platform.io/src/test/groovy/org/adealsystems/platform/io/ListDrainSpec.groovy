@@ -42,7 +42,7 @@ class ListDrainSpec extends Specification {
         instance.add("Entry 1")
 
         then:
-        IllegalStateException ex = thrown()
+        DrainException ex = thrown()
         ex.message == "Drain was already closed!"
     }
 
@@ -56,7 +56,7 @@ class ListDrainSpec extends Specification {
         instance.addAll(["Entry 2", "Entry 3"])
 
         then:
-        IllegalStateException ex = thrown()
+        DrainException ex = thrown()
         ex.message == "Drain was already closed!"
     }
 
@@ -94,5 +94,29 @@ class ListDrainSpec extends Specification {
         then:
         NullPointerException ex = thrown()
         ex.message == "entries must not contain null!"
+    }
+
+    def "closing twice is ok"() {
+        given:
+        ListDrain<String> instance = new ListDrain<>()
+
+        when:
+        instance.close()
+        instance.close()
+
+        then:
+        noExceptionThrown()
+    }
+
+    def "toString returns expected value"() {
+        given:
+        ListDrain<String> instance = new ListDrain<>()
+
+        when:
+        instance.add('A')
+        instance.add('B')
+
+        then:
+        instance.toString() == "ListDrain{content=[A, B]}"
     }
 }

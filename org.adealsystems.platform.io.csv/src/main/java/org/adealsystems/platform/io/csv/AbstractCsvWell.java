@@ -112,7 +112,7 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
 
     private E readNextValue() {
         if (parser == null) {
-            throw new IllegalStateException("Well was already closed!");
+            throw new WellException("Well was already closed!");
         }
         E result;
         try {

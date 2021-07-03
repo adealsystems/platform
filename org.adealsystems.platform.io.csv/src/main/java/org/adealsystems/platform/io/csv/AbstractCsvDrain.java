@@ -71,7 +71,7 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
     public void add(E entry) {
         Objects.requireNonNull(entry, "entry must not be null!");
         if (printer == null) {
-            throw new IllegalStateException("Drain was already closed!");
+            throw new DrainException("Drain was already closed!");
         }
 
         Object[] recordValues = new Object[header.length];
@@ -89,7 +89,7 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
     public void addAll(Iterable<E> entries) {
         Objects.requireNonNull(entries, "entries must not be null!");
         if (printer == null) {
-            throw new IllegalStateException("Drain was already closed!");
+            throw new DrainException("Drain was already closed!");
         }
 
         Object[] recordValues = new Object[header.length];

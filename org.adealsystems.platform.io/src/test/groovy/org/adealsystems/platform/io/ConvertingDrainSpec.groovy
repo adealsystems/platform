@@ -91,4 +91,16 @@ class ConvertingDrainSpec extends Specification {
         NullPointerException ex = thrown()
         ex.message == "convertFunction must not be null!"
     }
+
+    def "closing twice is ok"() {
+        given:
+        Drain<String> instance = new ConvertingDrain<>(new ListDrain<>(), String::valueOf)
+
+        when:
+        instance.close()
+        instance.close()
+
+        then:
+        noExceptionThrown()
+    }
 }

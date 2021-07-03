@@ -63,7 +63,7 @@ class AbstractCsvDrainSpec extends Specification {
         instance.add(new Entry("Key 1", "Value 1"))
 
         then:
-        IllegalStateException ex = thrown()
+        DrainException ex = thrown()
         ex.message == "Drain was already closed!"
     }
 
@@ -78,7 +78,7 @@ class AbstractCsvDrainSpec extends Specification {
         instance.addAll([new Entry("Key 2", "Value 2"), new Entry("Key 3", "Value 3")])
 
         then:
-        IllegalStateException ex = thrown()
+        DrainException ex = thrown()
         ex.message == "Drain was already closed!"
     }
 

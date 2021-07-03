@@ -25,7 +25,7 @@ public interface Drain<E> extends AutoCloseable {
      *
      * @param entry the entry that will be drained.
      * @throws NullPointerException  if the given entry is null.
-     * @throws IllegalStateException if this method is called after the Drain was closed.
+     * @throws DrainException if this method is called after the Drain was closed.
      */
     void add(E entry);
 
@@ -34,7 +34,7 @@ public interface Drain<E> extends AutoCloseable {
      *
      * @param entries the entries that will be drained.
      * @throws NullPointerException  if the given iterable or a contained value is null.
-     * @throws IllegalStateException if this method is called after the Drain was closed.
+     * @throws DrainException if this method is called after the Drain was closed.
      */
     void addAll(Iterable<E> entries);
 

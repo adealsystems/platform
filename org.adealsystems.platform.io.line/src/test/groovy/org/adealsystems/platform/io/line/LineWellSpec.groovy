@@ -104,7 +104,7 @@ class LineWellSpec extends Specification {
         and: 'next value is requested'
         iterator.next()
         then: 'the expected exception is thrown'
-        IllegalStateException ex = thrown()
+        WellException ex = thrown()
         ex.message == "Well was already closed!"
     }
 
