@@ -70,7 +70,7 @@ class AbstractCsvWellSpec extends Specification {
             "Value 2;Key 2\n" +
             "Value 3;Key 3\n"
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
-        def writer = Compression.createWriter(bos, Compression.NONE)
+        def writer = Compression.NONE.createWriter(bos)
         writer.write(content)
         writer.close()
 

@@ -35,7 +35,7 @@ public class LineDrain implements Drain<String> {
 
     public LineDrain(OutputStream outputStream, Compression compression)
         throws IOException {
-        this(Compression.createWriter(outputStream, compression));
+        this(Objects.requireNonNull(compression, "compression must not be null!").createWriter(outputStream));
     }
 
     /*

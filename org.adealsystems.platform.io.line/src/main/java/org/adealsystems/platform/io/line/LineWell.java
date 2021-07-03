@@ -38,7 +38,7 @@ public class LineWell implements Well<String> {
 
     public LineWell(InputStream inputStream, Compression compression)
         throws IOException {
-        this(Compression.createReader(inputStream, compression));
+        this(Objects.requireNonNull(compression, "compression must not be null!").createReader(inputStream));
     }
 
 

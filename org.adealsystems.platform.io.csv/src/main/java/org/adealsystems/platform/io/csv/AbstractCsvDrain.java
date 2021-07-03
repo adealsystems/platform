@@ -42,7 +42,7 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
 
     protected AbstractCsvDrain(OutputStream outputStream, CSVFormat csvFormat, Compression compression)
         throws IOException {
-        this(Compression.createWriter(outputStream, compression), csvFormat);
+        this(Objects.requireNonNull(compression, "compression must not be null!").createWriter(outputStream), csvFormat);
     }
 
     /*

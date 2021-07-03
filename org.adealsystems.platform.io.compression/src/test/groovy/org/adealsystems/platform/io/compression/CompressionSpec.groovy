@@ -25,7 +25,7 @@ class CompressionSpec extends Specification {
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
 
         when:
-        def writer = Compression.createWriter(bos, compression)
+        def writer = compression.createWriter(bos)
         for (line in CONTENT) {
             writer.write(line)
             writer.write('\n' as char)
@@ -34,7 +34,7 @@ class CompressionSpec extends Specification {
         writer.close()
 
         and:
-        def reader = Compression.createReader(new ByteArrayInputStream(bos.toByteArray()), compression)
+        def reader = compression.createReader(new ByteArrayInputStream(bos.toByteArray()))
         def lines = reader.readLines()
 
         then:

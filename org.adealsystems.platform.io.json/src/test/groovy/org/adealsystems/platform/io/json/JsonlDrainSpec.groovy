@@ -234,7 +234,7 @@ class JsonlDrainSpec extends Specification {
 
     private static List<String> readLines(byte[] bytes, Compression compression) {
         Objects.requireNonNull(compression, "compression must not be null!")
-        return Compression.createReader(new ByteArrayInputStream(bytes), compression).readLines()
+        return compression.createReader(new ByteArrayInputStream(bytes)).readLines()
     }
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()

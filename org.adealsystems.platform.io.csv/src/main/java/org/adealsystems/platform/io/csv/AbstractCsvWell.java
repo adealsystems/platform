@@ -49,7 +49,8 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
 
     protected AbstractCsvWell(Class<E> clazz, InputStream inputStream, CSVFormat csvFormat, Compression compression)
         throws IOException {
-        this(clazz, Compression.createReader(new BOMInputStream(inputStream), compression), csvFormat);
+        this(clazz, Objects.requireNonNull(compression, "compression must not be null!").createReader(
+            new BOMInputStream(inputStream)), csvFormat);
     }
 
     /*
