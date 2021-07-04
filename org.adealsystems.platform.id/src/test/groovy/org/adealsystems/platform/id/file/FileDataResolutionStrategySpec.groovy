@@ -54,7 +54,7 @@ class FileDataResolutionStrategySpec extends Specification {
 
         then:
         NoSuchFileException ex = thrown()
-        ex.message.endsWith("source/current/use_case/source_use_case.csv")
+        ex.message.replace('\\', '/').contains("source/current/use_case/source_use_case.csv")
     }
 
     def 'writing and reading data works'() {
