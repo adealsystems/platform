@@ -29,6 +29,7 @@ import org.adealsystems.platform.process.exceptions.DuplicateUniqueIdentifierExc
 import org.adealsystems.platform.process.exceptions.UnregisteredDataIdentifierException;
 import org.adealsystems.platform.process.exceptions.UnregisteredDataResolverException;
 import org.adealsystems.platform.process.exceptions.UnsupportedDataFormatException;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -60,6 +61,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
     private static final String SEMICOLON = ";";
     private static final String COMMA = ",";
     private static final String PIPE = "|";
+    private static final String SUCCESS_INDICATOR = "_SUCCESS";
 
     private final DataResolverRegistry dataResolverRegistry;
     private final DataLocation outputLocation;
@@ -82,6 +84,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     private Broadcast<LocalDateTime> broadInvocationIdentifier;
     private final Logger logger;
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractSingleOutputSparkBatchJob.class);
 
     public AbstractSingleOutputSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, DataIdentifier outputIdentifier, LocalDate invocationDate, boolean storeAsSingleFile) {
         this.invocationDate = Objects.requireNonNull(invocationDate, "invocationDate must not be null!");
@@ -632,9 +635,40 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
     }
 
     // this is broken code... but now it's in a single place
-    public static void moveFile(JavaSparkContext sparkContext, String source, String target) {
+    static void moveFile(JavaSparkContext sparkContext, String source, String target) {
         try (FileSystem fs = FileSystem.get(sparkContext.hadoopConfiguration())) {
-            Path sourcePath = fs.globStatus(new Path(source + "/part-*"))[0].getPath();
+            String successFilename = source + "/" + SUCCESS_INDICATOR;
+            Path successPath = new Path(successFilename);
+            while (!fs.exists(successPath)) {
+                try {
+                    LOGGER.warn("Waiting for appearance of {}...", successFilename);
+                    Thread.sleep(1000);
+                    // this is an endless loop
+                    // and there isn't something like a _FAILURE indicator, afaik
+                    // not ideal
+                } catch (InterruptedException e) {
+                    throw new IllegalStateException("Exception while waiting for success file!", e);
+                }
+            }
+            FileStatus[] globs = fs.globStatus(new Path(source + "/part-*"));
+            if (globs == null) {
+                // from Globber.doGlob():
+                /*
+                 * When the input pattern "looks" like just a simple filename, and we
+                 * can't find it, we return null rather than an empty array.
+                 * This is a special case which the shell relies on.
+                 *
+                 * To be more precise: if there were no results, AND there were no
+                 * groupings (aka brackets), and no wildcards in the input (aka stars),
+                 * we return null.
+                 */
+                throw new IllegalStateException("globStatus() returned null! This should not happen...");
+            }
+            if (globs.length != 1) {
+                LOGGER.error("Expected one part but found {}! {}", globs.length, globs);
+                throw new IllegalStateException("Expected one part but found " + globs.length);
+            }
+            Path sourcePath = globs[0].getPath();
             fs.rename(sourcePath, new Path(target));
             fs.delete(new Path(source), true);
         } catch (IOException ex) {
