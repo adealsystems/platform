@@ -31,6 +31,7 @@ import org.adealsystems.platform.process.exceptions.UnregisteredDataResolverExce
 import org.adealsystems.platform.process.exceptions.UnsupportedDataFormatException;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
@@ -636,9 +637,19 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     // this is broken code... but now it's in a single place
     static void moveFile(JavaSparkContext sparkContext, String source, String target) {
-        try (FileSystem fs = FileSystem.get(sparkContext.hadoopConfiguration())) {
+        org.apache.hadoop.conf.Configuration hadoopConfig = sparkContext.hadoopConfiguration();
+        hadoopConfig.set("fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
+        hadoopConfig.setBoolean("fs.hdfs.impl.disable.cache", true);
+        hadoopConfig.setBoolean("fs.s3a.impl.disable.cache", true);
+        hadoopConfig.setBoolean("fs.s3n.impl.disable.cache", true);
+        hadoopConfig.setBoolean("fs.s3.impl.disable.cache", true);
+        Path sourceFSPath = new Path(source);
+        try (FileSystem fs = sourceFSPath.getFileSystem(hadoopConfig)) {
             String successFilename = source + "/" + SUCCESS_INDICATOR;
+            LOGGER.warn("successFilename: {}", successFilename);
             Path successPath = new Path(successFilename);
+            LOGGER.warn("successPath: {}", successPath);
+
             while (!fs.exists(successPath)) {
                 try {
                     LOGGER.warn("Waiting for appearance of {}...", successFilename);
@@ -650,6 +661,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
                     throw new IllegalStateException("Exception while waiting for success file!", e);
                 }
             }
+            LOGGER.warn("Found successPath");
             FileStatus[] globs = fs.globStatus(new Path(source + "/part-*"));
             if (globs == null) {
                 // from Globber.doGlob():
@@ -664,13 +676,30 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
                  */
                 throw new IllegalStateException("globStatus() returned null! This should not happen...");
             }
+            LOGGER.warn("Globs: {}", (Object) globs);
             if (globs.length != 1) {
                 LOGGER.error("Expected one part but found {}! {}", globs.length, globs);
                 throw new IllegalStateException("Expected one part but found " + globs.length);
             }
             Path sourcePath = globs[0].getPath();
-            fs.rename(sourcePath, new Path(target));
-            fs.delete(new Path(source), true);
+            Path targetPath = new Path(target);
+            LOGGER.warn("About to rename sourcePath: {} to targetPath: {}", sourcePath, targetPath);
+            if (fs.rename(sourcePath, targetPath)) {
+                if (!fs.delete(new Path(source), true)) {
+                    LOGGER.warn("Failed to delete source: {}", source);
+                }
+            } else {
+                LOGGER.warn("Failed to rename sourcePath: {} to targetPath: {}", sourcePath, targetPath);
+                LOGGER.warn("About to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
+                if (!FileUtil.copy(fs, sourcePath, fs, targetPath, true, hadoopConfig)) {
+                    LOGGER.warn("Failed to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
+                } else {
+                    if (!fs.delete(new Path(source), true)) {
+                        LOGGER.warn("Failed to delete source: {}", source);
+                    }
+                }
+            }
+
         } catch (IOException ex) {
             throw new IllegalStateException("Unable to rename result file!", ex);
         }
