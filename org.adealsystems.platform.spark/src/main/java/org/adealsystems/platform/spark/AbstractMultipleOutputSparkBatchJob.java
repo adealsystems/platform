@@ -29,10 +29,6 @@ import org.adealsystems.platform.process.exceptions.DuplicateUniqueIdentifierExc
 import org.adealsystems.platform.process.exceptions.UnregisteredDataIdentifierException;
 import org.adealsystems.platform.process.exceptions.UnregisteredDataResolverException;
 import org.adealsystems.platform.process.exceptions.UnsupportedDataFormatException;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
-import org.apache.hadoop.fs.Path;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.sql.DataFrameWriter;
@@ -44,7 +40,6 @@ import org.apache.spark.sql.UDFRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -58,6 +53,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import static org.adealsystems.platform.spark.AbstractSingleOutputSparkBatchJob.moveFile;
 
 public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataProcessingJob {
     private static final String SEMICOLON = ";";
@@ -658,17 +655,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         writer.csv(targetPath);
 
         if (storeAsSingleFile) {
-            Path targetFile = new Path(fileName);
-            Path batchResultDir = new Path(targetPath);
-            Configuration hadoopConfig = sparkContext.hadoopConfiguration();
-            try (FileSystem fs = batchResultDir.getFileSystem(hadoopConfig)) {
-                Path targetFilePath = fs.globStatus(new Path(batchResultDir, "part-*"))[0].getPath(); // TODO: multi-partition handling
-                FileUtil.copy(fs, targetFilePath, fs, targetFile, true, true, hadoopConfig);
-                // fs.rename(targetFilePath, targetFile);
-                fs.delete(batchResultDir, true);
-            } catch (IOException ex) {
-                throw new IllegalStateException("Unable to rename result file!", ex);
-            }
+            moveFile(sparkContext, targetPath, fileName);
         }
     }
 
@@ -698,13 +685,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         writer.json(targetPath);
 
         if (storeAsSingleFile) {
-            try (FileSystem fs = FileSystem.get(sparkContext.hadoopConfiguration())) {
-                Path targetFilePath = fs.globStatus(new Path(targetPath + "/part-*"))[0].getPath();
-                fs.rename(targetFilePath, new Path(fileName));
-                fs.delete(new Path(targetPath), true);
-            } catch (IOException ex) {
-                throw new IllegalStateException("Unable to rename result file!", ex);
-            }
+            moveFile(sparkContext, targetPath, fileName);
         }
     }
 
@@ -735,13 +716,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         writer.save(targetPath);
 
         if (storeAsSingleFile) {
-            try (FileSystem fs = FileSystem.get(sparkContext.hadoopConfiguration())) {
-                Path targetFilePath = fs.globStatus(new Path(targetPath + "/part-*"))[0].getPath();
-                fs.rename(targetFilePath, new Path(fileName));
-                fs.delete(new Path(targetPath), true);
-            } catch (IOException ex) {
-                throw new IllegalStateException("Unable to rename result file!", ex);
-            }
+            moveFile(sparkContext, targetPath, fileName);
         }
     }
 }

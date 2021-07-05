@@ -566,13 +566,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         writer.csv(targetPath);
 
         if (storeAsSingleFile) {
-            try (FileSystem fs = FileSystem.get(sparkContext.hadoopConfiguration())) {
-                Path targetFilePath = fs.globStatus(new Path(targetPath + "/part-*"))[0].getPath();
-                fs.rename(targetFilePath, new Path(fileName));
-                fs.delete(new Path(targetPath), true);
-            } catch (IOException ex) {
-                throw new IllegalStateException("Unable to rename result file!", ex);
-            }
+            moveFile(sparkContext, targetPath, fileName);
         }
     }
 
@@ -602,13 +596,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         writer.json(targetPath);
 
         if (storeAsSingleFile) {
-            try (FileSystem fs = FileSystem.get(sparkContext.hadoopConfiguration())) {
-                Path targetFilePath = fs.globStatus(new Path(targetPath + "/part-*"))[0].getPath();
-                fs.rename(targetFilePath, new Path(fileName));
-                fs.delete(new Path(targetPath), true);
-            } catch (IOException ex) {
-                throw new IllegalStateException("Unable to rename result file!", ex);
-            }
+            moveFile(sparkContext, targetPath, fileName);
         }
     }
 
@@ -639,13 +627,18 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         writer.save(targetPath);
 
         if (storeAsSingleFile) {
-            try (FileSystem fs = FileSystem.get(sparkContext.hadoopConfiguration())) {
-                Path targetFilePath = fs.globStatus(new Path(targetPath + "/part-*"))[0].getPath();
-                fs.rename(targetFilePath, new Path(fileName));
-                fs.delete(new Path(targetPath), true);
-            } catch (IOException ex) {
-                throw new IllegalStateException("Unable to rename result file!", ex);
-            }
+            moveFile(sparkContext, targetPath, fileName);
+        }
+    }
+
+    // this is broken code... but now it's in a single place
+    public static void moveFile(JavaSparkContext sparkContext, String source, String target) {
+        try (FileSystem fs = FileSystem.get(sparkContext.hadoopConfiguration())) {
+            Path sourcePath = fs.globStatus(new Path(source + "/part-*"))[0].getPath();
+            fs.rename(sourcePath, new Path(target));
+            fs.delete(new Path(source), true);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Unable to rename result file!", ex);
         }
     }
 }
