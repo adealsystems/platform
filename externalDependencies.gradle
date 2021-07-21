@@ -12,6 +12,7 @@ project.ext.versions = [
 ]
 
 project.ext.libraries = [
+        'avro'                : 'org.apache.avro:avro:1.10.2',
         'byte-buddy'          : "net.bytebuddy:byte-buddy:${versions.bytebuddy}",
         'commons-codec'       : 'commons-codec:commons-codec:1.15',
         'commons-compress'    : 'org.apache.commons:commons-compress:1.20',
@@ -29,6 +30,7 @@ project.ext.libraries = [
         'junit-jupiter-engine': "org.junit.jupiter:junit-jupiter-engine:${versions.junit5}",
         'logback-classic'     : "ch.qos.logback:logback-classic:${versions.logback}",
         'slf4j-api'           : "org.slf4j:slf4j-api:${versions.slf4j}",
+        'snappy'              : 'org.xerial.snappy:snappy-java:1.1.8.4',
         'spark-core'          : "org.apache.spark:spark-core_${versions.scala}:${versions.spark}",
         'spark-sql'           : "org.apache.spark:spark-sql_${versions.scala}:${versions.spark}",
         'spark-avro'          : "org.apache.spark:spark-avro_${versions.scala}:${versions.spark}",

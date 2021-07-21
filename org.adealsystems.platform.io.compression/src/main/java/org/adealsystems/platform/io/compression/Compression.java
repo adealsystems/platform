@@ -18,6 +18,8 @@ package org.adealsystems.platform.io.compression;
 
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
+import org.xerial.snappy.SnappyInputStream;
+import org.xerial.snappy.SnappyOutputStream;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -35,47 +37,54 @@ import java.util.zip.GZIPOutputStream;
 public enum Compression {
     NONE {
         @Override
-        public BufferedReader createReader(InputStream inputStream, Charset charset) throws IOException {
+        public InputStream createInputStream(InputStream inputStream) {
             Objects.requireNonNull(inputStream, "inputStream must not be null!");
-            Objects.requireNonNull(charset, "charset must not be null!");
-            return new BufferedReader(new InputStreamReader(inputStream, charset));
+            return inputStream;
         }
 
         @Override
-        public BufferedWriter createWriter(OutputStream outputStream, Charset charset) throws IOException {
+        public OutputStream createOutputStream(OutputStream outputStream) {
             Objects.requireNonNull(outputStream, "outputStream must not be null!");
-            Objects.requireNonNull(charset, "charset must not be null!");
-            return new BufferedWriter(new OutputStreamWriter(outputStream, charset));
+            return outputStream;
         }
     },
     GZIP {
         @Override
-        public BufferedReader createReader(InputStream inputStream, Charset charset) throws IOException {
+        public InputStream createInputStream(InputStream inputStream) throws IOException {
             Objects.requireNonNull(inputStream, "inputStream must not be null!");
-            Objects.requireNonNull(charset, "charset must not be null!");
-            return new BufferedReader(new InputStreamReader(new GZIPInputStream(inputStream), charset));
+            return new GZIPInputStream(inputStream);
         }
 
         @Override
-        public BufferedWriter createWriter(OutputStream outputStream, Charset charset) throws IOException {
+        public OutputStream createOutputStream(OutputStream outputStream) throws IOException {
             Objects.requireNonNull(outputStream, "outputStream must not be null!");
-            Objects.requireNonNull(charset, "charset must not be null!");
-            return new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(outputStream), charset));
+            return new GZIPOutputStream(outputStream);
         }
     },
     BZIP {
         @Override
-        public BufferedReader createReader(InputStream inputStream, Charset charset) throws IOException {
+        public InputStream createInputStream(InputStream inputStream) throws IOException {
             Objects.requireNonNull(inputStream, "inputStream must not be null!");
-            Objects.requireNonNull(charset, "charset must not be null!");
-            return new BufferedReader(new InputStreamReader(new BZip2CompressorInputStream(inputStream), charset));
+            return new BZip2CompressorInputStream(inputStream);
         }
 
         @Override
-        public BufferedWriter createWriter(OutputStream outputStream, Charset charset) throws IOException {
+        public OutputStream createOutputStream(OutputStream outputStream) throws IOException {
             Objects.requireNonNull(outputStream, "outputStream must not be null!");
-            Objects.requireNonNull(charset, "charset must not be null!");
-            return new BufferedWriter(new OutputStreamWriter(new BZip2CompressorOutputStream(outputStream), charset));
+            return new BZip2CompressorOutputStream(outputStream);
+        }
+    },
+    SNAPPY {
+        @Override
+        public InputStream createInputStream(InputStream inputStream) throws IOException {
+            Objects.requireNonNull(inputStream, "inputStream must not be null!");
+            return new SnappyInputStream(inputStream);
+        }
+
+        @Override
+        public OutputStream createOutputStream(OutputStream outputStream) throws IOException {
+            Objects.requireNonNull(outputStream, "outputStream must not be null!");
+            return new SnappyOutputStream(outputStream);
         }
     };
 
@@ -89,9 +98,20 @@ public enum Compression {
         return createWriter(outputStream, StandardCharsets.UTF_8);
     }
 
-    public abstract BufferedReader createReader(InputStream inputStream, Charset charset)
-        throws IOException;
+    public BufferedReader createReader(InputStream inputStream, Charset charset) throws IOException {
+        Objects.requireNonNull(inputStream, "inputStream must not be null!");
+        Objects.requireNonNull(charset, "charset must not be null!");
+        return new BufferedReader(new InputStreamReader(createInputStream(inputStream), charset));
+    }
 
-    public abstract BufferedWriter createWriter(OutputStream outputStream, Charset charset)
-        throws IOException;
+
+    public BufferedWriter createWriter(OutputStream outputStream, Charset charset) throws IOException {
+        Objects.requireNonNull(outputStream, "outputStream must not be null!");
+        Objects.requireNonNull(charset, "charset must not be null!");
+        return new BufferedWriter(new OutputStreamWriter(createOutputStream(outputStream), charset));
+    }
+
+    public abstract InputStream createInputStream(InputStream inputStream) throws IOException;
+
+    public abstract OutputStream createOutputStream(OutputStream outputStream) throws IOException;
 }

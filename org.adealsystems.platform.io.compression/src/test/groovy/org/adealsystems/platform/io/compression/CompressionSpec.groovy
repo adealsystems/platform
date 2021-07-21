@@ -20,7 +20,7 @@ import spock.lang.Specification
 
 class CompressionSpec extends Specification {
 
-    def "compression and decompression works for #compression"() {
+    def "compression and decompression works for #compression"(Compression compression) {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
 
@@ -41,11 +41,7 @@ class CompressionSpec extends Specification {
         lines == CONTENT
 
         where:
-        compression << [
-            Compression.NONE,
-            Compression.GZIP,
-            Compression.BZIP,
-        ]
+        compression << Compression.values()
     }
 
     private static final List<String> CONTENT = [
