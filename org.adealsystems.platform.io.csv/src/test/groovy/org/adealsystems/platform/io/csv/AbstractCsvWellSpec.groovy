@@ -30,7 +30,7 @@ class AbstractCsvWellSpec extends Specification {
         .withFirstRecordAsHeader()
         .withDelimiter(';' as char)
 
-    def 'iterating over data with compression #compression works'() {
+    def 'iterating over data with compression #compression works'(Compression compression) {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
         AbstractCsvDrain<Entry> instance = new EntryCsvDrain(bos, OUTPUT_CSV_FORMAT, compression)
@@ -56,11 +56,7 @@ class AbstractCsvWellSpec extends Specification {
         well.isConsumed()
 
         where:
-        compression << [
-            Compression.NONE,
-            Compression.GZIP,
-            Compression.BZIP,
-        ]
+        compression << Compression.values()
     }
 
     def 'iterating over data with transposed columns works'() {

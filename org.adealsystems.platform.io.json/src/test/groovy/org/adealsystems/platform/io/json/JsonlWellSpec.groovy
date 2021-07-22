@@ -27,7 +27,7 @@ import java.nio.charset.StandardCharsets
 
 class JsonlWellSpec extends Specification {
 
-    def 'iterating over data with compression #compression works'() {
+    def 'iterating over data with compression #compression works'(Compression compression) {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
         JsonlDrain<Entry> drain = new JsonlDrain<>(bos, compression)
@@ -53,11 +53,7 @@ class JsonlWellSpec extends Specification {
         instance.isConsumed()
 
         where:
-        compression << [
-            Compression.NONE,
-            Compression.GZIP,
-            Compression.BZIP,
-        ]
+        compression << Compression.values()
     }
 
     def 'this constructor also works'() {

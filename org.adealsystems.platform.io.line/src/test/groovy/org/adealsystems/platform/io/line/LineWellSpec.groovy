@@ -22,7 +22,7 @@ import spock.lang.Specification
 
 class LineWellSpec extends Specification {
 
-    def 'iterating over data with compression #compression works'() {
+    def 'iterating over data with compression #compression works'(Compression compression) {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
         LineDrain drain = new LineDrain(bos, compression)
@@ -44,11 +44,7 @@ class LineWellSpec extends Specification {
         instance.isConsumed()
 
         where:
-        compression << [
-            Compression.NONE,
-            Compression.GZIP,
-            Compression.BZIP,
-        ]
+        compression << Compression.values()
     }
 
     def "calling iterator() twice throws exception"() {

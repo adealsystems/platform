@@ -22,7 +22,7 @@ import spock.lang.Specification
 
 class LineDrainSpec extends Specification {
 
-    def 'adding to the drain with compression #compression works'() {
+    def 'adding to the drain with compression #compression works'(Compression compression) {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
         LineDrain instance = new LineDrain(bos, compression)
@@ -41,11 +41,7 @@ class LineDrainSpec extends Specification {
         lines == ["Line 1", "Line 2", "Line 3"]
 
         where:
-        compression << [
-            Compression.NONE,
-            Compression.GZIP,
-            Compression.BZIP,
-        ]
+        compression << Compression.values()
     }
 
     def 'add(..) throws exception if already closed'() {

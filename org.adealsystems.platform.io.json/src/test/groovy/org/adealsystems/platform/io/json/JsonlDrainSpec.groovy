@@ -26,7 +26,7 @@ import spock.lang.Specification
 
 class JsonlDrainSpec extends Specification {
 
-    def 'adding to the drain with compression #compression works'() {
+    def 'adding to the drain with compression #compression works'(Compression compression) {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
         JsonlDrain<Entry> instance = new JsonlDrain<>(bos, compression)
@@ -55,11 +55,7 @@ class JsonlDrainSpec extends Specification {
         ]
 
         where:
-        compression << [
-            Compression.NONE,
-            Compression.GZIP,
-            Compression.BZIP,
-        ]
+        compression << Compression.values()
     }
 
     def 'this constructor also works'() {

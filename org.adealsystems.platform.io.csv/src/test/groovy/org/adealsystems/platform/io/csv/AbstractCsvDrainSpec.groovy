@@ -26,7 +26,7 @@ class AbstractCsvDrainSpec extends Specification {
         .withHeader("key", "value")
         .withDelimiter(';' as char)
 
-    def 'adding to the drain with compression #compression works'() {
+    def 'adding to the drain with compression #compression works'(Compression compression) {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
         AbstractCsvDrain<Entry> instance = new EntryCsvDrain(bos, CSV_FORMAT, compression)
@@ -45,11 +45,7 @@ class AbstractCsvDrainSpec extends Specification {
         lines == ['key;value', 'Key 1;Value 1', 'Key 2;Value 2', 'Key 3;Value 3']
 
         where:
-        compression << [
-            Compression.NONE,
-            Compression.GZIP,
-            Compression.BZIP,
-        ]
+        compression << Compression.values()
     }
 
     def 'add(..) throws exception if already closed'() {
