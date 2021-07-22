@@ -18,6 +18,8 @@ package org.adealsystems.platform.io.csv
 
 import org.adealsystems.platform.io.WellException
 import org.adealsystems.platform.io.compression.Compression
+import org.adealsystems.platform.io.test.BrokenInputStream
+import org.adealsystems.platform.io.test.BrokenStreamException
 import org.apache.commons.csv.CSVFormat
 import spock.lang.Specification
 
@@ -245,7 +247,8 @@ class AbstractCsvWellSpec extends Specification {
         then: 'at some point the expected exception is actually thrown'
         WellException ex = thrown()
         ex.message == "Exception while reading record!"
-        ex.cause.message.contains("nope")
+        ex.cause instanceof IllegalStateException
+        ex.cause.cause instanceof BrokenStreamException
     }
 
     def "exception while closing is handled as expected"() {
@@ -266,6 +269,6 @@ class AbstractCsvWellSpec extends Specification {
         then:
         WellException ex = thrown()
         ex.message == "Exception while closing parser!"
-        ex.cause.message.startsWith("nope")
+        ex.cause instanceof BrokenStreamException
     }
 }

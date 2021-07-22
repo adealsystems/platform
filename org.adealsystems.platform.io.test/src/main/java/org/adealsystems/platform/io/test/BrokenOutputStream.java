@@ -14,25 +14,27 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.io.csv;
+package org.adealsystems.platform.io.test;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Objects;
 
-public class BrokenInputStream extends InputStream {
+public class BrokenOutputStream extends OutputStream {
     private boolean broken;
-    private final InputStream backingStream;
+    private final OutputStream backingStream;
 
-    public BrokenInputStream(InputStream backingStream) {
-        this.backingStream = backingStream;
+    public BrokenOutputStream(OutputStream backingStream) {
+        this.backingStream = Objects.requireNonNull(backingStream, "backingStream must not be null!");
     }
 
+
     @Override
-    public int read() throws IOException {
+    public void write(int b) throws IOException {
         if (broken) {
-            throw new IOException("nope");
+            throw new BrokenStreamException();
         }
-        return backingStream.read();
+        backingStream.write(b);
     }
 
     @Override
@@ -40,7 +42,7 @@ public class BrokenInputStream extends InputStream {
         super.close();
         backingStream.close();
         if (broken) {
-            throw new IOException("nope");
+            throw new BrokenStreamException();
         }
     }
 

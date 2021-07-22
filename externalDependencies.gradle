@@ -38,4 +38,6 @@ project.ext.libraries = [
         'spark-mllib'         : "org.apache.spark:spark-mllib_${versions.scala}:${versions.spark}",
         'spock-core'          : "org.spockframework:spock-core:${versions.spock}",
         'spring-context'      : "org.springframework:spring-context:${versions.spring}",
+        'xz'                  : 'org.tukaani:xz:1.9',
+        'zstd'                : 'com.github.luben:zstd-jni:1.5.0-4',
 ]

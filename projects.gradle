@@ -42,6 +42,11 @@ def platformIo = project(':org.adealsystems.platform.io') {
     }
 }
 
+def platformIoTest = project(':org.adealsystems.platform.io.test') {
+    dependencies {
+    }
+}
+
 def platformIoCompression = project(':org.adealsystems.platform.io.compression') {
     dependencies {
         implementation libraries.'slf4j-api'
@@ -64,6 +69,7 @@ project(':org.adealsystems.platform.io.csv') {
         implementation platformIoCompression
         implementation libraries.'commons-csv'
         implementation libraries.'commons-io'
+        testImplementation platformIoTest
     }
 }
 
@@ -73,6 +79,17 @@ project(':org.adealsystems.platform.io.json') {
         implementation platformIoCompression
         implementation platformIoLine
         implementation libraries.'jackson-databind'
+    }
+}
+
+project(':org.adealsystems.platform.io.avro') {
+    dependencies {
+        implementation platformIo
+        implementation libraries.'avro'
+        testImplementation platformIoTest
+        testRuntimeOnly libraries.'snappy' // optional snappy codec dependency
+        testRuntimeOnly libraries.'xz' // optional xz codec dependency
+        testRuntimeOnly libraries.'zstd' // optional zstandard codec dependency
     }
 }
 
