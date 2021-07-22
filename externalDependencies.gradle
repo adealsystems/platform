@@ -3,7 +3,7 @@ project.ext.versions = [
         'groovy'   : '3.0.8',
         'jackson'  : '2.12.4',
         'junit5'   : '5.7.2',
-        'logback'  : '1.2.3',
+        'logback'  : '1.2.4',
         'slf4j'    : '1.7.31',
         'scala'    : '2.12',
         'spark'    : '3.1.2',
