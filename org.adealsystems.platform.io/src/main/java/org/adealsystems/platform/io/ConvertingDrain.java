@@ -21,7 +21,7 @@ import java.util.function.Function;
 
 public class ConvertingDrain<I, O> implements Drain<I> {
 
-    private final Drain<O> innerDrain;
+    private Drain<O> innerDrain;
     private final Function<? super I, O> convertFunction;
 
     public ConvertingDrain(Drain<O> innerDrain, Function<? super I, O> convertFunction) {
@@ -32,20 +32,40 @@ public class ConvertingDrain<I, O> implements Drain<I> {
     @Override
     public void add(I entry) {
         Objects.requireNonNull(entry, "entry must not be null!");
-
-        innerDrain.add(convertFunction.apply(entry));
+        if (innerDrain == null) {
+            throw new DrainException("Drain was already closed!");
+        }
+        O result;
+        try {
+            result = convertFunction.apply(entry);
+        } catch (Throwable t) {
+            throw new DrainException("Exception while converting entry " + entry + "!", t);
+        }
+        innerDrain.add(result);
     }
 
     @Override
     public void addAll(Iterable<I> entries) {
         Objects.requireNonNull(entries, "entries must not be null!");
         for (I entry : entries) {
-            innerDrain.add(convertFunction.apply(Objects.requireNonNull(entry, "entries must not contain null!")));
+            add(Objects.requireNonNull(entry, "entries must not contain null!"));
         }
     }
 
     @Override
     public void close() {
-        innerDrain.close();
+        if (innerDrain == null) {
+            return;
+        }
+        Throwable throwable = null;
+        try {
+            innerDrain.close();
+        } catch (Throwable t) {
+            throwable = t;
+        }
+        innerDrain = null;
+        if (throwable != null) {
+            throw new DrainException("Exception while closing innerDrain!", throwable);
+        }
     }
 }

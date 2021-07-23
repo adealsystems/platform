@@ -18,16 +18,18 @@ package org.adealsystems.platform.io;
 
 import java.util.Iterator;
 import java.util.Objects;
-import java.util.function.Function;
 
-public class ConvertingWell<I, O> implements Well<O> {
+public class CountingWell<E> implements Well<E> {
 
-    private Well<I> innerWell;
-    private final Function<? super I, O> convertFunction;
+    private Well<E> innerWell;
+    private int counter;
 
-    public ConvertingWell(Well<I> innerWell, Function<? super I, O> convertFunction) {
+    public CountingWell(Well<E> innerWell) {
         this.innerWell = Objects.requireNonNull(innerWell, "innerWell must not be null!");
-        this.convertFunction = Objects.requireNonNull(convertFunction, "convertFunction must not be null!");
+    }
+
+    public int getCounter() {
+        return counter;
     }
 
     @Override
@@ -56,18 +58,18 @@ public class ConvertingWell<I, O> implements Well<O> {
     }
 
     @Override
-    public Iterator<O> iterator() {
-        return new InternalIterator();
+    public Iterator<E> iterator() {
+        return new WellIterator();
     }
 
-    private class InternalIterator implements Iterator<O> {
-        private final Iterator<I> iterator;
+    private class WellIterator implements Iterator<E> {
+        private final Iterator<E> iterator;
 
-        InternalIterator() {
+        WellIterator() {
             if (innerWell == null) {
                 throw new WellException("Well was already closed!");
             }
-            iterator = innerWell.iterator();
+            this.iterator = innerWell.iterator();
         }
 
         @Override
@@ -76,17 +78,13 @@ public class ConvertingWell<I, O> implements Well<O> {
         }
 
         @Override
-        public O next() {
+        public E next() {
             if (innerWell == null) {
                 throw new WellException("Well was already closed!");
             }
-
-            I entry = iterator.next();
-            try {
-                return convertFunction.apply(entry);
-            } catch (Throwable t) {
-                throw new WellException("Exception while converting entry " + entry + "!", t);
-            }
+            E result = iterator.next();
+            counter++;
+            return result;
         }
     }
 }

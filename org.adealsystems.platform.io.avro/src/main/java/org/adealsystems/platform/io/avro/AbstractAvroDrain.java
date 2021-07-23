@@ -94,6 +94,5 @@ public abstract class AbstractAvroDrain<E> implements Drain<E> {
         if (throwable != null) {
             throw new DrainException("Exception while closing dataFileWriter!", throwable);
         }
-
     }
 }

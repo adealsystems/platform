@@ -55,6 +55,34 @@ class ListWellSpec extends Specification {
         then:
         WellException ex = thrown()
         ex.message == "A well can only be iterated once!"
+
+        when:
+        instance.reset()
+        instance.iterator()
+
+        then:
+        noExceptionThrown()
+    }
+
+    def "calling iterator() while closed throws exception"() {
+        given:
+        def content = ["one", "two", "three"]
+        ListWell<String> instance = new ListWell<>(content)
+
+        when:
+        instance.close()
+        instance.iterator()
+
+        then:
+        WellException ex = thrown()
+        ex.message == "Well was already closed!"
+
+        when:
+        instance.reset()
+        instance.iterator()
+
+        then:
+        noExceptionThrown()
     }
 
     def "closing twice is ok"() {

@@ -44,6 +44,13 @@ class ListDrainSpec extends Specification {
         then:
         DrainException ex = thrown()
         ex.message == "Drain was already closed!"
+
+        when:
+        instance.reset()
+        instance.add("Entry 1")
+
+        then:
+        noExceptionThrown()
     }
 
     def 'addAll(..) throws exception if already closed'() {

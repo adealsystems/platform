@@ -35,6 +35,58 @@ class ConvertingDrainSpec extends Specification {
         innerDrain.content == ["1", "2", "3", "4", "5", "6"]
     }
 
+    def 'add(..) throws exception if already closed'() {
+        given:
+        ListDrain<String> innerDrain = new ListDrain<>()
+        ConvertingDrain<Integer, String> instance = new ConvertingDrain<>(innerDrain, String::valueOf)
+
+        when:
+        instance.close()
+        and:
+        instance.add(1)
+
+        then:
+        DrainException ex = thrown()
+        ex.message == "Drain was already closed!"
+    }
+
+    def 'broken conversion throws expected exception'() {
+        given:
+        ListDrain<String> innerDrain = new ListDrain<>()
+        ConvertingDrain<Integer, String> instance = new ConvertingDrain<>(innerDrain, ConvertingDrainSpec::broken)
+
+        when:
+        instance.add(1)
+
+        then:
+        DrainException ex = thrown()
+        ex.message == "Exception while converting entry 1!"
+        ex.cause instanceof UnsupportedOperationException
+        ex.cause.message == "Nope."
+    }
+
+    def 'broken drain throws expected exceptions'() {
+        given:
+        Drain<String> innerDrain = new BrokenDrain<>()
+        ConvertingDrain<Integer, String> instance = new ConvertingDrain<>(innerDrain, String::valueOf)
+
+        when:
+        instance.add(1)
+
+        then:
+        UnsupportedOperationException innerEx = thrown()
+        innerEx.message == "Nope."
+
+        when:
+        instance.close()
+
+        then:
+        DrainException ex = thrown()
+        ex.message == "Exception while closing innerDrain!"
+        ex.cause instanceof UnsupportedOperationException
+        ex.cause.message == "Nope."
+    }
+
     def 'add(null) throws exception'() {
         given:
         ListDrain<String> innerDrain = new ListDrain<>()
@@ -102,5 +154,10 @@ class ConvertingDrainSpec extends Specification {
 
         then:
         noExceptionThrown()
+    }
+
+    @SuppressWarnings('unused')
+    static String broken(int input) {
+        throw new UnsupportedOperationException("Nope.")
     }
 }

@@ -16,62 +16,52 @@
 
 package org.adealsystems.platform.io;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
-/**
- * Drains to a contained List.
- *
- * @param <E> the type this Drain can handle.
- */
-public class ListDrain<E> implements Drain<E> {
+public class CountingDrain<E> implements Drain<E> {
+    private Drain<E> innerDrain;
+    private int counter;
 
-    private final List<E> content = new ArrayList<>();
-    private boolean closed;
+    public CountingDrain(Drain<E> innerDrain) {
+        this.innerDrain = Objects.requireNonNull(innerDrain, "innerDrain must not be null!");
+    }
+
+    public int getCounter() {
+        return counter;
+    }
 
     @Override
     public void add(E entry) {
-        if (closed) {
+        Objects.requireNonNull(entry, "entry must not be null!");
+        if (innerDrain == null) {
             throw new DrainException("Drain was already closed!");
         }
-        content.add(Objects.requireNonNull(entry, "entry must not be null!"));
+        innerDrain.add(entry);
+        counter++;
     }
 
     @Override
     public void addAll(Iterable<E> entries) {
         Objects.requireNonNull(entries, "entries must not be null!");
-        if (closed) {
-            throw new DrainException("Drain was already closed!");
-        }
         for (E entry : entries) {
-            content.add(Objects.requireNonNull(entry, "entries must not contain null!"));
+            add(Objects.requireNonNull(entry, "entries must not contain null!"));
         }
     }
 
     @Override
     public void close() {
-        closed = true;
-    }
-
-    public List<E> getContent() {
-        return content;
-    }
-
-    /**
-     * Resets closed state.
-     * <p>
-     * This does not clear the content! You can do so yourself by executing
-     * <code>getContent().clear()</code>.
-     */
-    public void reset() {
-        closed = false;
-    }
-
-    @Override
-    public String toString() {
-        return "ListDrain{" +
-            "content=" + content +
-            '}';
+        if(innerDrain == null) {
+            return;
+        }
+        Throwable throwable = null;
+        try {
+            innerDrain.close();
+        } catch (Throwable t) {
+            throwable = t;
+        }
+        innerDrain = null;
+        if (throwable != null) {
+            throw new DrainException("Exception while closing innerDrain!", throwable);
+        }
     }
 }

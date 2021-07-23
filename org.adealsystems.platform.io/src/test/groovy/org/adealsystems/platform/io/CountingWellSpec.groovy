@@ -18,49 +18,41 @@ package org.adealsystems.platform.io
 
 import spock.lang.Specification
 
-class ConvertingWellSpec extends Specification {
+class CountingWellSpec extends Specification {
     def "iteration works as expected"() {
         given:
         ListWell<Integer> innerWell = new ListWell<>([1, 2, 3, 4])
-        ConvertingWell<Integer, String> instance = new ConvertingWell<>(innerWell, String::valueOf)
+        CountingWell<Integer> instance = new CountingWell<>(innerWell)
 
         expect:
         !instance.isConsumed()
 
         when: 'iterator is obtained'
-        Iterator<String> iterator = instance.iterator()
+        Iterator<Integer> iterator = instance.iterator()
         then:
         instance.isConsumed()
 
         when: 'content of iterator is collected into a list'
-        List<String> collected = new ArrayList<>()
+        List<Integer> collected = new ArrayList<>()
         iterator.forEachRemaining(collected::add)
 
         then: 'the list contains the expected values'
-        collected == ["1", "2", "3", "4"]
+        collected == [1, 2, 3, 4]
+        instance.counter == 4
     }
 
     def "creation with null innerDrain throws expected exception"() {
         when:
-        new ConvertingWell<>(null, String::valueOf)
+        new CountingWell<>(null)
 
         then:
         NullPointerException ex = thrown()
         ex.message == "innerWell must not be null!"
     }
 
-    def "creation with null convertFunction throws expected exception"() {
-        when:
-        new ConvertingWell<>(new ListWell<>(), null)
-
-        then:
-        NullPointerException ex = thrown()
-        ex.message == "convertFunction must not be null!"
-    }
-
     def "creating iterator for closed instance causes expected exception"() {
         given:
-        Well<String> instance = new ConvertingWell<>(new ListWell<>(), String::valueOf)
+        Well<String> instance = new CountingWell<>(new ListWell<>())
 
         when:
         instance.close()
@@ -74,7 +66,7 @@ class ConvertingWellSpec extends Specification {
     def "iterating iterator for closed instance causes expected exception"() {
         given:
         ListWell<Integer> innerWell = new ListWell<>([1, 2, 3, 4])
-        Well<String> instance = new ConvertingWell<>(innerWell, String::valueOf)
+        Well<Integer> instance = new CountingWell<>(innerWell)
 
         when:
         def iterator = instance.iterator()
@@ -90,24 +82,10 @@ class ConvertingWellSpec extends Specification {
         ex.message == "Well was already closed!"
     }
 
-    def 'broken conversion throws expected exception'() {
-        given:
-        ListWell<Integer> innerWell = new ListWell<>([1, 2, 3, 4])
-        Well<String> instance = new ConvertingWell<>(innerWell, ConvertingWellSpec::broken)
-
-        when:
-        def iterator = instance.iterator()
-        iterator.next()
-
-        then:
-        WellException ex = thrown()
-        ex.message == "Exception while converting entry 1!"
-    }
-
     def 'broken well throws expected exceptions'() {
         given:
         Well<Integer> innerWell = new BrokenWell<>()
-        ConvertingWell<Integer, String> instance = new ConvertingWell<>(innerWell, String::valueOf)
+        CountingWell<Integer> instance = new CountingWell<>(innerWell)
 
         when:
         def iterator = instance.iterator()
@@ -129,7 +107,7 @@ class ConvertingWellSpec extends Specification {
 
     def "closing twice is ok"() {
         given:
-        Well<String> instance = new ConvertingWell<>(new ListWell<>(), String::valueOf)
+        Well<String> instance = new CountingWell<>(new ListWell<>())
 
         when:
         instance.close()
@@ -137,10 +115,5 @@ class ConvertingWellSpec extends Specification {
 
         then:
         noExceptionThrown()
-    }
-
-    @SuppressWarnings('unused')
-    static String broken(int input) {
-        throw new UnsupportedOperationException("Nope.")
     }
 }

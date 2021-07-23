@@ -24,9 +24,8 @@ import java.util.Objects;
 public final class ListWell<E> implements Well<E> {
 
     private final List<E> content;
-    private boolean consumed;
     private boolean closed;
-
+    private boolean consumed;
 
     public ListWell() {
         this(new ArrayList<>());
@@ -34,15 +33,6 @@ public final class ListWell<E> implements Well<E> {
 
     public ListWell(List<E> content) {
         this.content = Objects.requireNonNull(content, "content must not be null!");
-    }
-
-    /**
-     * Returns the content of this Well.
-     *
-     * @return the content of this Well
-     */
-    public List<E> getContent() {
-        return content;
     }
 
     @Override
@@ -68,6 +58,26 @@ public final class ListWell<E> implements Well<E> {
 
         consumed = true;
         return content.iterator();
+    }
+
+    /**
+     * Returns the content of this Well.
+     *
+     * @return the content of this Well
+     */
+    public List<E> getContent() {
+        return content;
+    }
+
+    /**
+     * Resets closed and consumed state.
+     * <p>
+     * This does not clear the content! You can do so yourself by executing
+     * <code>getContent().clear()</code>.
+     */
+    public void reset() {
+        closed = false;
+        consumed = false;
     }
 
     @Override
