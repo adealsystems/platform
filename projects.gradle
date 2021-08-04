@@ -93,6 +93,21 @@ project(':org.adealsystems.platform.io.avro') {
     }
 }
 
+project(':org.adealsystems.platform.io.parquet') {
+    dependencies {
+        implementation platformIo
+        implementation libraries.'avro'
+        implementation libraries.'hadoop-common'
+        implementation libraries.'parquet-avro'
+        testImplementation platformIoTest
+        testImplementation libraries.'hadoop-minicluster'
+        testImplementation libraries.'hadoop-hdfs'
+        testRuntimeOnly libraries.'snappy' // optional snappy codec dependency
+        testRuntimeOnly libraries.'xz' // optional xz codec dependency
+        testRuntimeOnly libraries.'zstd' // optional zstandard codec dependency
+    }
+}
+
 def platformSparkTest = project(':org.adealsystems.platform.spark.test') {
     dependencies {
         implementation platformId
