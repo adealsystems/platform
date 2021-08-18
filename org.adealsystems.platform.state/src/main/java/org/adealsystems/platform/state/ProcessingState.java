@@ -16,11 +16,14 @@
 
 package org.adealsystems.platform.state;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public final class ProcessingState {
     private List<String> errors;
     private Map<String, String> attributes;
