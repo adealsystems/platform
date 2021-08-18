@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class WebCollector<Q, R> {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebCollector.class);
     private static final int MILLIS_IN_NANO = 1_000_000;
+    private static final int PRODUCER_THREAD_COUNT = 4;
 
     private final AtomicBoolean failure = new AtomicBoolean();
     private final ThreadLocal<HttpClientBundle> clientBundleThreadLocal = new ThreadLocal<>();
@@ -41,7 +42,6 @@ public class WebCollector<Q, R> {
     private final QueryEntity sentinel = new QueryEntity();
     private final HttpClientFactory clientFactory;
     private final HttpQuery<Q, R> httpQuery;
-    private final int threadCount;
     private final int maxRetries;
 
     public WebCollector(HttpClientFactory clientFactory, HttpQuery<Q, R> httpQuery, int queueSize) {
@@ -50,7 +50,6 @@ public class WebCollector<Q, R> {
         incomingQueue = new ArrayBlockingQueue<>(queueSize);
         doneQueue = new ArrayBlockingQueue<>(queueSize);
 
-        this.threadCount = 8; // TODO: parameter, check
         this.maxRetries = 5; // TODO: parameter, check
     }
 
@@ -158,11 +157,11 @@ public class WebCollector<Q, R> {
 
     @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     private ExecutorService createProducerExecutorService() {
-        ExecutorService result = Executors.newFixedThreadPool(threadCount);
-        for (int i = 0; i < threadCount; i++) {
+        ExecutorService result = Executors.newFixedThreadPool(PRODUCER_THREAD_COUNT);
+        for (int i = 0; i < PRODUCER_THREAD_COUNT; i++) {
             result.execute(new Producer());
         }
-        if (LOGGER.isDebugEnabled()) LOGGER.debug("Registered {} producers.", threadCount);
+        if (LOGGER.isDebugEnabled()) LOGGER.debug("Registered {} producers.", PRODUCER_THREAD_COUNT);
         return result;
     }
 
