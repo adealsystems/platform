@@ -30,7 +30,6 @@ import org.adealsystems.platform.process.exceptions.UnregisteredDataIdentifierEx
 import org.adealsystems.platform.process.exceptions.UnregisteredDataResolverException;
 import org.adealsystems.platform.process.exceptions.UnsupportedDataFormatException;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -40,9 +39,7 @@ import org.apache.spark.sql.UDFRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Clock;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -69,19 +66,20 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
     private final Map<DataIdentifier, String> processingStatus = new HashMap<>();
     private final boolean storeAsSingleFile;
     private final LocalDate invocationDate;
-    private final DatasetLogger datasetLogger;
 
     private WriteMode writeMode;
 
     private SparkSession sparkSession;
     private JavaSparkContext sparkContext;
+    private long executionStartTimestamp = -1;
+    private long executionDuration = -1;
 
     private SparkResultWriterInterceptor resultWriterInterceptor;
 
-    private SparkProcessingReporter processingReporter;
+    private JobFinalizer jobFinalizer;
 
-    private Broadcast<LocalDateTime> broadInvocationIdentifier;
     private final Logger logger;
+    private final DatasetLogger datasetLogger;
 
     public AbstractMultipleOutputSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, Collection<DataIdentifier> outputIdentifiers, LocalDate invocationDate, boolean storeAsSingleFile) {
         this.invocationDate = Objects.requireNonNull(invocationDate, "invocationDate must not be null!");
@@ -104,12 +102,22 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         this(dataResolverRegistry, outputLocation, outputIdentifiers, invocationDate, false);
     }
 
-    public void setResultWriterInterceptor(SparkResultWriterInterceptor sparkResultWriterInterceptor) {
-        this.resultWriterInterceptor = sparkResultWriterInterceptor;
+    @Override
+    public long getStartTimestamp() {
+        if (executionStartTimestamp < 0) {
+            throw new IllegalStateException("Start timestamp is only available after execute!");
+        }
+
+        return executionStartTimestamp;
     }
 
-    public void setProcessingReporter(SparkProcessingReporter processingReporter) {
-        this.processingReporter = processingReporter;
+    @Override
+    public long getDuration() {
+        if (executionDuration < 0) {
+            throw new IllegalStateException("Duration is only available after closing spark session!");
+        }
+
+        return executionDuration;
     }
 
     protected final void setWriteMode(WriteMode writeMode) {
@@ -133,6 +141,14 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
     @Override
     public void registerProcessingStatus(DataIdentifier dataIdentifier, String status) {
         processingStatus.put(dataIdentifier, status);
+    }
+
+    public void setResultWriterInterceptor(SparkResultWriterInterceptor sparkResultWriterInterceptor) {
+        this.resultWriterInterceptor = sparkResultWriterInterceptor;
+    }
+
+    public void setJobFinalizer(JobFinalizer jobFinalizer) {
+        this.jobFinalizer = jobFinalizer;
     }
 
     @Override
@@ -164,10 +180,6 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         Objects.requireNonNull(name, "option name must not be null!");
         Objects.requireNonNull(value, "option value must not be null!");
         writerOptions.put(name, value);
-    }
-
-    protected LocalDateTime getInvocationIdentifier() {
-        return broadInvocationIdentifier.getValue();
     }
 
     protected DatasetLogger getDatasetLogger() {
@@ -204,38 +216,35 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
     @Override
     public void execute() {
-        long startTime = System.currentTimeMillis();
-        LocalDateTime timestamp = LocalDateTime.now(Clock.systemDefaultZone());
+        executionStartTimestamp = System.currentTimeMillis();
 
         try {
-            broadInvocationIdentifier = getSparkContext().broadcast(timestamp);
-
             Map<DataIdentifier, Dataset<Row>> results = processData();
             for (Map.Entry<DataIdentifier, Dataset<Row>> entry : results.entrySet()) {
                 DataIdentifier outputIdentifier = entry.getKey();
                 Dataset<Row> dataset = entry.getValue();
                 writeOutput(outputIdentifier, dataset);
             }
-
-            if (processingReporter != null) {
-                long stopTime = System.currentTimeMillis();
-                long duration = stopTime - startTime;
-
-                processingReporter.reportSuccess(this, timestamp, duration);
-            }
         } catch (Throwable th) {
-            if (processingReporter != null) {
-                long stopTime = System.currentTimeMillis();
-                long duration = stopTime - startTime;
-                processingReporter.reportFailure(this, timestamp, duration, th);
-            }
-
             for (DataIdentifier dataId : getOutputIdentifiers()) {
                 registerProcessingStatus(dataId, "processing-error");
             }
 
             throw th;
         }
+    }
+
+    @Override
+    public void finalizeJob() {
+        if (jobFinalizer == null) {
+            return;
+        }
+
+        if (sparkSession != null) {
+            throw new IllegalStateException("Job can only be finalized after spark session has been closed!");
+        }
+
+        jobFinalizer.finalizeJob(this);
     }
 
     @Override
@@ -263,6 +272,8 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
             sparkContext.close();
             sparkContext = null;
             sparkSession = null;
+
+            executionDuration = System.currentTimeMillis() - executionStartTimestamp;
         }
     }
 

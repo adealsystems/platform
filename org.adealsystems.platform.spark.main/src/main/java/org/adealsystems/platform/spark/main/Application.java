@@ -118,12 +118,19 @@ public class Application {
             }
             SparkSession.Builder sparkSessionBuilder = applicationContext.getBean(SparkSession.Builder.class)
                 .appName("ADEAL-Systems-Batch");
+            SparkDataProcessingJob currentJob = null; // NOPMD
             try (SparkSession sparkSession = sparkSessionBuilder.getOrCreate()) {
                 try (SparkDataProcessingJob sparkJob = jobs.get(job)) {
+                    currentJob = sparkJob;
                     processJob(sparkJob, sparkSession);
                 } catch (Exception ex) {
                     LOGGER.warn("Exception while processing {}!", job, ex);
                 }
+            }
+
+            // finalizing the job
+            if (currentJob != null) {
+                currentJob.finalizeJob();
             }
         }
     }

@@ -34,7 +34,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -45,9 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.time.Clock;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -57,6 +54,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
 
 public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProcessingJob {
     private static final String SEMICOLON = ";";
@@ -72,20 +70,20 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
     private final Map<DataIdentifier, String> processingStatus = new HashMap<>();
     private final boolean storeAsSingleFile;
     private final LocalDate invocationDate;
-    private final DatasetLogger datasetLogger;
 
     private WriteMode writeMode;
 
     private SparkSession sparkSession;
     private JavaSparkContext sparkContext;
+    private long executionStartTimestamp = -1;
+    private long executionDuration = -1;
 
     private SparkResultWriterInterceptor resultWriterInterceptor;
 
-    private SparkProcessingReporter processingReporter;
+    private JobFinalizer jobFinalizer;
 
-    private Broadcast<LocalDateTime> broadInvocationIdentifier;
     private final Logger logger;
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractSingleOutputSparkBatchJob.class);
+    private final DatasetLogger datasetLogger;
 
     public AbstractSingleOutputSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, DataIdentifier outputIdentifier, LocalDate invocationDate, boolean storeAsSingleFile) {
         this.invocationDate = Objects.requireNonNull(invocationDate, "invocationDate must not be null!");
@@ -107,6 +105,24 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     public AbstractSingleOutputSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, DataIdentifier outputIdentifier, LocalDate invocationDate) {
         this(dataResolverRegistry, outputLocation, outputIdentifier, invocationDate, false);
+    }
+
+    @Override
+    public long getStartTimestamp() {
+        if (executionStartTimestamp < 0) {
+            throw new IllegalStateException("Start timestamp is only available after execute!");
+        }
+
+        return executionStartTimestamp;
+    }
+
+    @Override
+    public long getDuration() {
+        if (executionDuration < 0) {
+            throw new IllegalStateException("Duration is only available after closing spark session!");
+        }
+
+        return executionDuration;
     }
 
     protected final void setWriteMode(WriteMode writeMode) {
@@ -136,8 +152,8 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         this.resultWriterInterceptor = resultWriterInterceptor;
     }
 
-    public void setProcessingReporter(SparkProcessingReporter processingReporter) {
-        this.processingReporter = processingReporter;
+    public void setJobFinalizer(JobFinalizer jobFinalizer) {
+        this.jobFinalizer = jobFinalizer;
     }
 
     @Override
@@ -169,10 +185,6 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         Objects.requireNonNull(name, "option name must not be null!");
         Objects.requireNonNull(value, "option value must not be null!");
         writerOptions.put(name, value);
-    }
-
-    protected LocalDateTime getInvocationIdentifier() {
-        return broadInvocationIdentifier.getValue();
     }
 
     protected DatasetLogger getDatasetLogger() {
@@ -209,33 +221,30 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     @Override
     public void execute() {
-        long startTime = System.currentTimeMillis();
-        LocalDateTime timestamp = LocalDateTime.now(Clock.systemDefaultZone());
+        executionStartTimestamp = System.currentTimeMillis();
 
         try {
-            broadInvocationIdentifier = getSparkContext().broadcast(timestamp);
             writeOutput(processData());
-
-            if (processingReporter != null) {
-                long stopTime = System.currentTimeMillis();
-                long duration = stopTime - startTime;
-
-                processingReporter.reportSuccess(this, timestamp, duration);
-            }
         } catch (Throwable th) {
-            if (processingReporter != null) {
-                long stopTime = System.currentTimeMillis();
-                long duration = stopTime - startTime;
-
-                processingReporter.reportFailure(this, timestamp, duration, th);
-            }
-
             for (DataIdentifier dataId : getOutputIdentifiers()) {
-                registerProcessingStatus(dataId, "processing-error");
+                registerProcessingStatus(dataId, STATE_PROCESSING_ERROR);
             }
 
             throw th;
         }
+    }
+
+    @Override
+    public void finalizeJob() {
+        if (jobFinalizer == null) {
+            return;
+        }
+
+        if (sparkSession != null) {
+            throw new IllegalStateException("Job can only be finalized after spark session has been closed!");
+        }
+
+        jobFinalizer.finalizeJob(this);
     }
 
     @Override
@@ -260,9 +269,12 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
     public void close() {
         if (sparkContext != null) {
             logger.debug("Closing JavaSparkContext...");
+
             sparkContext.close();
             sparkContext = null;
             sparkSession = null;
+
+            executionDuration = System.currentTimeMillis() - executionStartTimestamp;
         }
     }
 
@@ -637,6 +649,8 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     // this is broken code... but now it's in a single place
     static void moveFile(JavaSparkContext sparkContext, String source, String target) {
+        Logger logger = LoggerFactory.getLogger(AbstractSingleOutputSparkBatchJob.class);
+
         org.apache.hadoop.conf.Configuration hadoopConfig = sparkContext.hadoopConfiguration();
         hadoopConfig.set("fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
         hadoopConfig.setBoolean("fs.hdfs.impl.disable.cache", true);
@@ -646,13 +660,13 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         Path sourceFSPath = new Path(source);
         try (FileSystem fs = sourceFSPath.getFileSystem(hadoopConfig)) {
             String successFilename = source + "/" + SUCCESS_INDICATOR;
-            LOGGER.warn("successFilename: {}", successFilename);
+            logger.warn("successFilename: {}", successFilename);
             Path successPath = new Path(successFilename);
-            LOGGER.warn("successPath: {}", successPath);
+            logger.warn("successPath: {}", successPath);
 
             while (!fs.exists(successPath)) {
                 try {
-                    LOGGER.warn("Waiting for appearance of {}...", successFilename);
+                    logger.warn("Waiting for appearance of {}...", successFilename);
                     Thread.sleep(1000);
                     // this is an endless loop
                     // and there isn't something like a _FAILURE indicator, afaik
@@ -661,7 +675,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
                     throw new IllegalStateException("Exception while waiting for success file!", e);
                 }
             }
-            LOGGER.warn("Found successPath");
+            logger.warn("Found successPath");
             FileStatus[] globs = fs.globStatus(new Path(source + "/part-*"));
             if (globs == null) {
                 // from Globber.doGlob():
@@ -676,26 +690,26 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
                  */
                 throw new IllegalStateException("globStatus() returned null! This should not happen...");
             }
-            LOGGER.warn("Globs: {}", (Object) globs);
+            logger.warn("Globs: {}", (Object) globs);
             if (globs.length != 1) {
-                LOGGER.error("Expected one part but found {}! {}", globs.length, globs);
+                logger.error("Expected one part but found {}! {}", globs.length, globs);
                 throw new IllegalStateException("Expected one part but found " + globs.length);
             }
             Path sourcePath = globs[0].getPath();
             Path targetPath = new Path(target);
-            LOGGER.warn("About to rename sourcePath: {} to targetPath: {}", sourcePath, targetPath);
+            logger.warn("About to rename sourcePath: {} to targetPath: {}", sourcePath, targetPath);
             if (fs.rename(sourcePath, targetPath)) {
                 if (!fs.delete(new Path(source), true)) {
-                    LOGGER.warn("Failed to delete source: {}", source);
+                    logger.warn("Failed to delete source: {}", source);
                 }
             } else {
-                LOGGER.warn("Failed to rename sourcePath: {} to targetPath: {}", sourcePath, targetPath);
-                LOGGER.warn("About to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
+                logger.warn("Failed to rename sourcePath: {} to targetPath: {}", sourcePath, targetPath);
+                logger.warn("About to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
                 if (!FileUtil.copy(fs, sourcePath, fs, targetPath, true, hadoopConfig)) {
-                    LOGGER.warn("Failed to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
+                    logger.warn("Failed to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
                 } else {
                     if (!fs.delete(new Path(source), true)) {
-                        LOGGER.warn("Failed to delete source: {}", source);
+                        logger.warn("Failed to delete source: {}", source);
                     }
                 }
             }

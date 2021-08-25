@@ -24,15 +24,22 @@ import java.util.Map;
 import java.util.Set;
 
 public interface DataProcessingJob {
+
+    String STATE_PROCESSING_ERROR = "processing-error";
+
+    long getStartTimestamp();
+
+    long getDuration();
+
     Map<DataIdentifier, Set<DataInstance>> getInputInstances();
 
     Set<DataIdentifier> getOutputIdentifiers();
 
-    Map<DataIdentifier, String> getProcessingStatus();
-
     WriteMode getWriteMode();
+
     DataResolver getOutputDataResolver();
 
+    Map<DataIdentifier, String> getProcessingStatus();
     void registerProcessingStatus(DataIdentifier dataIdentifier, String status);
 
     void execute();

@@ -22,6 +22,7 @@ import org.apache.spark.sql.SparkSession;
 import java.util.Map;
 
 public interface SparkDataProcessingJob extends DataProcessingJob, AutoCloseable {
+
     void init(SparkSession sparkSession);
 
     Map<String, Object> getWriterOptions();
@@ -35,4 +36,6 @@ public interface SparkDataProcessingJob extends DataProcessingJob, AutoCloseable
      */
     @Override
     void close();
+
+    void finalizeJob();
 }
