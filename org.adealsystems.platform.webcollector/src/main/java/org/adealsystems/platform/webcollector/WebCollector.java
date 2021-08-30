@@ -130,12 +130,13 @@ public class WebCollector<Q, R> {
         if (LOGGER.isInfoEnabled()) {
             long absoluteMillis = (System.nanoTime() - startTime) / MILLIS_IN_NANO;
             long accumulatedMillis = consumer.getAccumulatedMillis();
+            if (accumulatedMillis == 0) {
+                accumulatedMillis = 1;
+            }
             int percentage = (int) (((100.0d / accumulatedMillis) * absoluteMillis) + 0.5d);
             int totalQueries = consumer.getTotalQueries();
             int failedQueries = consumer.getFailedQueries();
             int totalResults = consumer.getTotalResults();
-            long averageMillisPerQueryAbsolute = absoluteMillis / totalQueries;
-            long averageMillisPerQueryAccumulated = accumulatedMillis / totalQueries;
 
             LOGGER.info("Accumulated execution time: {}ms", accumulatedMillis);
             LOGGER.info("Absolute execution time   : {}ms", absoluteMillis);
@@ -143,8 +144,12 @@ public class WebCollector<Q, R> {
             LOGGER.info("Total queries             : {}", totalQueries);
             LOGGER.info("Failed queries            : {}", failedQueries);
             LOGGER.info("Total results             : {}", totalResults);
-            LOGGER.info("Average per Query (abs)   : {}ms", averageMillisPerQueryAbsolute);
-            LOGGER.info("Average per Query (acc)   : {}ms", averageMillisPerQueryAccumulated);
+            if (totalQueries != 0) {
+                long averageMillisPerQueryAbsolute = absoluteMillis / totalQueries;
+                long averageMillisPerQueryAccumulated = accumulatedMillis / totalQueries;
+                LOGGER.info("Average per Query (abs)   : {}ms", averageMillisPerQueryAbsolute);
+                LOGGER.info("Average per Query (acc)   : {}ms", averageMillisPerQueryAccumulated);
+            }
         }
         if (failure.get()) {
             WebCollectorException exception = new WebCollectorException("Failed to execute!");
