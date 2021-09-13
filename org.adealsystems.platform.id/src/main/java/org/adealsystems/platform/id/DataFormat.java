@@ -24,6 +24,7 @@ public enum DataFormat {
     CSV_PIPE(".csv"),
     JSON(".json"),
     AVRO(".avro"),
+    PARQUET(".parquet"),
     STATE(".state");
 
     private final String extension;

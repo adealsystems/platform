@@ -534,6 +534,8 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
                 return readJsonAsDataset(path);
             case AVRO:
                 return readAvroAsDataset(path);
+            case PARQUET:
+                return readParquetAsDataset(path);
             default:
                 throw new UnsupportedDataFormatException(dataFormat);
         }
@@ -588,6 +590,9 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
             case AVRO:
                 writeDatasetAsAvro(result, path, storeAsSingleFile, sparkContext, writerOptions);
                 return;
+            case PARQUET:
+                writeDatasetAsParquet(result, path, storeAsSingleFile, sparkContext, writerOptions);
+                return;
             default:
                 throw new UnsupportedDataFormatException(dataFormat);
         }
@@ -626,6 +631,12 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
     private Dataset<Row> readAvroAsDataset(String fileName) {
         return getSparkSession().read() //
             .format("avro") //
+            .load(fileName);
+    }
+
+    private Dataset<Row> readParquetAsDataset(String fileName) {
+        return getSparkSession().read() //
+            .format("parquet") //
             .load(fileName);
     }
 
@@ -709,6 +720,37 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         DataFrameWriter<Row> writer = dataset.write()
             .mode(SaveMode.Overwrite)
             .format("avro");
+
+        for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
+            Object value = option.getValue();
+            Class<?> valueClass = value.getClass();
+            if (Long.class.isAssignableFrom(valueClass)) {
+                writer.option(option.getKey(), (long) value);
+            } else if (Double.class.isAssignableFrom(valueClass)) {
+                writer.option(option.getKey(), (double) value);
+            } else if (Boolean.class.isAssignableFrom(valueClass)) {
+                writer.option(option.getKey(), (boolean) value);
+            } else {
+                writer.option(option.getKey(), (String) value);
+            }
+        }
+
+        writer.save(targetPath);
+
+        if (storeAsSingleFile) {
+            moveFile(sparkContext, targetPath, fileName);
+        }
+    }
+
+    private static void writeDatasetAsParquet(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
+        String targetPath = fileName;
+        if (storeAsSingleFile) {
+            targetPath = fileName + "__temp";
+        }
+
+        DataFrameWriter<Row> writer = dataset.write()
+            .mode(SaveMode.Overwrite)
+            .format("parquet");
 
         for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
             Object value = option.getValue();
