@@ -80,8 +80,8 @@ public abstract class AbstractParquetWell<E> implements Well<E> {
                 close();
                 return null;
             }
-        } catch (IOException e) {
-            throw new WellException("Exception while reading record!", e);
+        } catch (Throwable t) {
+            throw new WellException("Exception while reading record!", t);
         }
 
         try {
