@@ -3,7 +3,7 @@ project.ext.versions = [
         'groovy'   : '3.0.8',
         'hadoop'   : '3.3.1',
         'jackson'  : '2.12.5',
-        'junit5'   : '5.7.2',
+        'junit5'   : '5.8.1',
         'logback'  : '1.2.5',
         'parquet'  : '1.12.0',
         'slf4j'    : '1.7.32',
