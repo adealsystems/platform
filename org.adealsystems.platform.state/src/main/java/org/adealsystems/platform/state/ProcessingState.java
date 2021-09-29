@@ -29,11 +29,12 @@ public final class ProcessingState {
     private List<String> errors;
     private Map<String, String> attributes;
 
-    public static ProcessingState getFailedState(String... errors) {
-        return getFailedState(errors == null ? null : Arrays.asList(errors));
+    public static ProcessingState createFailedState(String... errors) {
+        Objects.requireNonNull(errors, "errors must not be null!");
+        return createFailedState(Arrays.asList(errors));
     }
 
-    public static ProcessingState getFailedState(List<String> errors) {
+    public static ProcessingState createFailedState(List<String> errors) {
         Objects.requireNonNull(errors, "errors must not be null!");
         if (errors.isEmpty()) {
             throw new IllegalArgumentException("errors must not be empty!");
@@ -44,10 +45,24 @@ public final class ProcessingState {
         return state;
     }
 
-    public static ProcessingState getFailedState(Throwable throwable) {
+    public static ProcessingState createFailedState(String message, Throwable throwable) {
+        Objects.requireNonNull(message, "message must not be null!");
         Objects.requireNonNull(throwable, "throwable must not be null!");
+        return createFailedStateInternal(message, throwable);
+    }
 
+    public static ProcessingState createFailedState(Throwable throwable) {
+        Objects.requireNonNull(throwable, "throwable must not be null!");
+        return createFailedStateInternal(null, throwable);
+    }
+
+    private static ProcessingState createFailedStateInternal(String message, Throwable throwable) {
         List<String> errors = new ArrayList<>();
+
+        if (message != null) {
+            errors.add(message);
+        }
+
         Throwable current = throwable;
         do {
             errors.add(current.toString());

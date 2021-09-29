@@ -22,7 +22,7 @@ class ProcessingStateSpec extends Specification {
 
     def "creating failed state works for string array"() {
         when:
-        ProcessingState result = ProcessingState.getFailedState("error")
+        ProcessingState result = ProcessingState.createFailedState("error")
 
         then:
         result.errors == ["error"] as List
@@ -31,7 +31,7 @@ class ProcessingStateSpec extends Specification {
 
     def "creating failed state works for string list"() {
         when:
-        ProcessingState result = ProcessingState.getFailedState(["error"] as List)
+        ProcessingState result = ProcessingState.createFailedState(["error"] as List)
 
         then:
         result.errors == ["error"] as List
@@ -40,7 +40,7 @@ class ProcessingStateSpec extends Specification {
 
     def "creating failed state with null array fails as expected"() {
         when:
-        ProcessingState.getFailedState((String[]) null)
+        ProcessingState.createFailedState((String[]) null)
 
         then:
         NullPointerException ex = thrown()
@@ -49,7 +49,7 @@ class ProcessingStateSpec extends Specification {
 
     def "creating failed state with null list fails as expected"() {
         when:
-        ProcessingState.getFailedState((List<String>) null)
+        ProcessingState.createFailedState((List<String>) null)
 
         then:
         NullPointerException ex = thrown()
@@ -58,7 +58,7 @@ class ProcessingStateSpec extends Specification {
 
     def "creating failed state with empty array fails as expected"() {
         when:
-        ProcessingState.getFailedState((String[]) [])
+        ProcessingState.createFailedState((String[]) [])
 
         then:
         IllegalArgumentException ex = thrown()
@@ -67,7 +67,7 @@ class ProcessingStateSpec extends Specification {
 
     def "creating failed state with empty list fails as expected"() {
         when:
-        ProcessingState.getFailedState((List<String>) [])
+        ProcessingState.createFailedState((List<String>) [])
 
         then:
         IllegalArgumentException ex = thrown()
@@ -80,7 +80,7 @@ class ProcessingStateSpec extends Specification {
         Throwable t = new IllegalStateException("foo", cause)
 
         when:
-        ProcessingState state = ProcessingState.getFailedState(t)
+        ProcessingState state = ProcessingState.createFailedState(t)
         def errors = state.errors
 
         then:
@@ -90,5 +90,51 @@ class ProcessingStateSpec extends Specification {
             "java.lang.IllegalStateException: foo",
             "java.lang.IllegalStateException: bar",
         ]
+    }
+
+    def "creating state from message and throwable works as expected"() {
+        given:
+        Throwable cause = new IllegalStateException("bar")
+        Throwable t = new IllegalStateException("foo", cause)
+
+        when:
+        ProcessingState state = ProcessingState.createFailedState("message", t)
+        def errors = state.errors
+
+        then:
+        errors != null
+        errors.size() == 3
+        errors == [
+            "message",
+            "java.lang.IllegalStateException: foo",
+            "java.lang.IllegalStateException: bar",
+        ]
+    }
+
+    def "creating failed state with null throwable fails as expected"() {
+        when:
+        ProcessingState.createFailedState((Throwable) null)
+
+        then:
+        NullPointerException ex = thrown()
+        ex.message == "throwable must not be null!"
+    }
+
+    def "creating failed state with null message and throwable fails as expected"() {
+        when:
+        ProcessingState.createFailedState(null, new IllegalStateException("foo"))
+
+        then:
+        NullPointerException ex = thrown()
+        ex.message == "message must not be null!"
+    }
+
+    def "creating failed state with message and null throwable fails as expected"() {
+        when:
+        ProcessingState.createFailedState("message", (Throwable) null)
+
+        then:
+        NullPointerException ex = thrown()
+        ex.message == "throwable must not be null!"
     }
 }
