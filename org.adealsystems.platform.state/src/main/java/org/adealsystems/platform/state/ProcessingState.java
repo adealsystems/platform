@@ -18,6 +18,7 @@ package org.adealsystems.platform.state;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,21 @@ public final class ProcessingState {
         if (errors.isEmpty()) {
             throw new IllegalArgumentException("errors must not be empty!");
         }
+
+        ProcessingState state = new ProcessingState();
+        state.setErrors(errors);
+        return state;
+    }
+
+    public static ProcessingState getFailedState(Throwable throwable) {
+        Objects.requireNonNull(throwable, "throwable must not be null!");
+
+        List<String> errors = new ArrayList<>();
+        Throwable current = throwable;
+        do {
+            errors.add(current.toString());
+            current = current.getCause();
+        } while (current != null);
 
         ProcessingState state = new ProcessingState();
         state.setErrors(errors);

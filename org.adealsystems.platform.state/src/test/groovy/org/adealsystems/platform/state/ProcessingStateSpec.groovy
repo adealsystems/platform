@@ -73,4 +73,22 @@ class ProcessingStateSpec extends Specification {
         IllegalArgumentException ex = thrown()
         ex.message == "errors must not be empty!"
     }
+
+    def "creating state from throwable works as expected"() {
+        given:
+        Throwable cause = new IllegalStateException("bar")
+        Throwable t = new IllegalStateException("foo", cause)
+
+        when:
+        ProcessingState state = ProcessingState.getFailedState(t)
+        def errors = state.errors
+
+        then:
+        errors != null
+        errors.size() == 2
+        errors == [
+            "java.lang.IllegalStateException: foo",
+            "java.lang.IllegalStateException: bar",
+        ]
+    }
 }
