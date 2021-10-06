@@ -27,9 +27,14 @@ import org.adealsystems.platform.state.ProcessingStateRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.Objects;
 import java.util.Optional;
@@ -42,10 +47,41 @@ public class ProcessingStateRepositoryImpl implements ProcessingStateRepository 
     public void setProcessingState(DataInstance dataInstance, ProcessingState state) {
         Objects.requireNonNull(state, "state must not be null!");
         DataInstance derived = deriveStateInstance(dataInstance);
-        try (OutputStream os = derived.getOutputStream()) {
+        String pathString = derived.getPath();
+        if (pathString == null) {
+            throw new IllegalStateException("Could not resolve path from " + derived + "!");
+        }
+        String tempPathString = pathString + ".temp";
+        Path tempPath = new File(tempPathString).toPath();
+        Path parent = tempPath.getParent();
+        try {
+            Files.createDirectories(parent);
+        } catch (IOException e) {
+            throw new ProcessingStateException("Exception while creating parent directory " + parent + "!", e);
+        }
+        try (OutputStream os = new BufferedOutputStream(Files.newOutputStream(tempPath))) {
             OBJECT_MAPPER.writeValue(os, state);
         } catch (IOException e) {
             throw new ProcessingStateException("Exception while writing processing state!", e);
+        }
+
+        Path path = new File(pathString).toPath();
+        try {
+            Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            return;
+        } catch (IOException e) {
+            LOGGER.warn("Failed to move {} to {}!", tempPath, path, e);
+        }
+        // move failed, let's try to copy instead...
+        try {
+            Files.copy(tempPath, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (IOException e) {
+            throw new ProcessingStateException("Exception while copying " + tempPath + " to " + path + "!", e);
+        }
+        try {
+            Files.deleteIfExists(tempPath);
+        } catch (IOException e) {
+            LOGGER.warn("Failed to delete {}!", tempPath, e);
         }
     }
 
