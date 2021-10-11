@@ -170,6 +170,21 @@ class JsonlWellSpec extends Specification {
         ex.cause.message.startsWith("nope")
     }
 
+    def 'empty input works as expected'() {
+        when:
+        JsonlWell<Entry> instance = new JsonlWell<>(Entry, new ByteArrayInputStream(new byte[0]), new ObjectMapper())
+        then:
+        !instance.isConsumed()
+
+        when:
+        List<Entry> objects = instance.iterator().collect()
+
+        then:
+        objects == []
+        and:
+        instance.isConsumed()
+    }
+
     private static byte[] getExampleBytes() {
         "{\"value\":\"Entry 1\"}\n{\"value\":\"Entry 2\"}\n{\"value\":\"Entry 3\"}\n".getBytes(StandardCharsets.UTF_8)
     }
