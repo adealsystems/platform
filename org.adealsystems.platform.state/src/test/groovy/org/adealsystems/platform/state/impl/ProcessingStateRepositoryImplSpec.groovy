@@ -21,19 +21,15 @@ import org.adealsystems.platform.id.DataIdentifier
 import org.adealsystems.platform.id.DataInstance
 import org.adealsystems.platform.id.DataResolver
 import org.adealsystems.platform.id.DefaultNamingStrategy
-import org.adealsystems.platform.id.file.FileDataResolutionStrategy
+import org.adealsystems.platform.id.memory.MemoryDataResolutionStrategy
 import org.adealsystems.platform.state.ProcessingState
 import spock.lang.Specification
-import spock.lang.TempDir
 
 class ProcessingStateRepositoryImplSpec extends Specification {
 
-    @TempDir
-    File tempDir
-
     def "reading missing returns expected value"() {
         given:
-        FileDataResolutionStrategy dataResolutionStrategy = new FileDataResolutionStrategy(new DefaultNamingStrategy(), tempDir)
+        MemoryDataResolutionStrategy dataResolutionStrategy = new MemoryDataResolutionStrategy(new DefaultNamingStrategy())
         DataResolver dataResolver = new DataResolver(dataResolutionStrategy)
         DataIdentifier dataIdentifier = new DataIdentifier("source", "use_case", DataFormat.CSV_SEMICOLON)
         DataInstance dataInstance = dataResolver.createCurrentInstance(dataIdentifier)
@@ -48,7 +44,7 @@ class ProcessingStateRepositoryImplSpec extends Specification {
 
     def "writing and reading works"() {
         given:
-        FileDataResolutionStrategy dataResolutionStrategy = new FileDataResolutionStrategy(new DefaultNamingStrategy(), tempDir)
+        MemoryDataResolutionStrategy dataResolutionStrategy = new MemoryDataResolutionStrategy(new DefaultNamingStrategy())
         DataResolver dataResolver = new DataResolver(dataResolutionStrategy)
         DataIdentifier dataIdentifier = new DataIdentifier("source", "use_case", DataFormat.CSV_SEMICOLON)
         DataInstance dataInstance = dataResolver.createCurrentInstance(dataIdentifier)
@@ -59,10 +55,9 @@ class ProcessingStateRepositoryImplSpec extends Specification {
 
         when:
         instance.setProcessingState(dataInstance, state)
-        and: 'writing twice works'
-        instance.setProcessingState(dataInstance, state)
         and:
         Optional<ProcessingState> read = instance.getProcessingState(dataInstance)
+        println("data keys: " + dataResolutionStrategy.data.keySet())
 
         then:
         read == Optional.of(state)
@@ -70,7 +65,7 @@ class ProcessingStateRepositoryImplSpec extends Specification {
 
     def "writing, deleting and reading returns expected value"() {
         given:
-        FileDataResolutionStrategy dataResolutionStrategy = new FileDataResolutionStrategy(new DefaultNamingStrategy(), tempDir)
+        MemoryDataResolutionStrategy dataResolutionStrategy = new MemoryDataResolutionStrategy(new DefaultNamingStrategy())
         DataResolver dataResolver = new DataResolver(dataResolutionStrategy)
         DataIdentifier dataIdentifier = new DataIdentifier("source", "use_case", DataFormat.CSV_SEMICOLON)
         DataInstance dataInstance = dataResolver.createCurrentInstance(dataIdentifier)
