@@ -42,6 +42,13 @@ def platformIo = project(':org.adealsystems.platform.io') {
     }
 }
 
+def platformIoTransform = project(':org.adealsystems.platform.io.transform') {
+    dependencies {
+        implementation libraries.'slf4j-api'
+        implementation platformIo
+    }
+}
+
 def platformIoTest = project(':org.adealsystems.platform.io.test') {
     dependencies {
     }
