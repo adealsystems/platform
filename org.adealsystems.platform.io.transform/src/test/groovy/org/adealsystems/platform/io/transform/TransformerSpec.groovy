@@ -16,6 +16,7 @@
 
 package org.adealsystems.platform.io.transform
 
+import org.adealsystems.platform.io.transform.test.BrokenDataObjectList
 import org.adealsystems.platform.io.transform.test.BrokenStringIterable
 import org.adealsystems.platform.io.transform.test.DataObject
 import org.adealsystems.platform.io.transform.test.DataObjectDrainFactory
@@ -39,7 +40,8 @@ class TransformerSpec extends Specification {
         !metrics.hasErrors()
         metrics.readEntries == 20
         metrics.writtenEntries == 20
-        metrics.skippedEntries == 0
+        metrics.skippedInputEntries == 0
+        metrics.skippedOutputEntries == 0
         metrics.totalInputs == 2
         metrics.transformedInputs == 2
         metrics.skippedInputs == 0
@@ -48,6 +50,7 @@ class TransformerSpec extends Specification {
         metrics.writeErrors == 0
         metrics.inputErrors == 0
         metrics.inputIterationErrors == 0
+        metrics.outputIterationErrors == 0
 
         def drainList = drainFactory.getDrainInstance().content
         drainList.size() == 20
@@ -70,7 +73,8 @@ class TransformerSpec extends Specification {
         !metrics.hasErrors()
         metrics.readEntries == 10
         metrics.writtenEntries == 10
-        metrics.skippedEntries == 0
+        metrics.skippedInputEntries == 0
+        metrics.skippedOutputEntries == 0
         metrics.totalInputs == 1
         metrics.transformedInputs == 1
         metrics.skippedInputs == 0
@@ -79,6 +83,7 @@ class TransformerSpec extends Specification {
         metrics.writeErrors == 0
         metrics.inputErrors == 0
         metrics.inputIterationErrors == 0
+        metrics.outputIterationErrors == 0
 
         def drainList = drainFactory.getDrainInstance().content
         drainList.size() == 10
@@ -101,7 +106,8 @@ class TransformerSpec extends Specification {
         !metrics.hasErrors()
         metrics.readEntries == 20
         metrics.writtenEntries == 10
-        metrics.skippedEntries == 10
+        metrics.skippedInputEntries == 10
+        metrics.skippedOutputEntries == 0
         metrics.totalInputs == 2
         metrics.transformedInputs == 2
         metrics.skippedInputs == 0
@@ -110,11 +116,111 @@ class TransformerSpec extends Specification {
         metrics.writeErrors == 0
         metrics.inputErrors == 0
         metrics.inputIterationErrors == 0
+        metrics.outputIterationErrors == 0
 
         def drainList = drainFactory.getDrainInstance().content
         drainList.size() == 10
         drainList.contains(new DataObject(7, "foo 7"))
         !drainList.contains(new DataObject(8, "foo 8"))
+    }
+
+    def "alternative skipping works as expected"() {
+        given:
+        DataObjectDrainFactory drainFactory = new DataObjectDrainFactory()
+        DataObjectWellFactory wellFactory = new DataObjectWellFactory()
+        Transformer<String, DataObject, String, DataObject> instance =
+            new Transformer(wellFactory, drainFactory, TransformerSpec::alternativeSkippingConversion)
+
+        when:
+        def metrics = instance.transform(["foo", "bar"], "output")
+
+        then:
+        metrics != null
+        !metrics.hasErrors()
+        metrics.readEntries == 20
+        metrics.writtenEntries == 10
+        metrics.skippedInputEntries == 10
+        metrics.skippedOutputEntries == 0
+        metrics.totalInputs == 2
+        metrics.transformedInputs == 2
+        metrics.skippedInputs == 0
+        metrics.conversionErrors == 0
+        metrics.readErrors == 0
+        metrics.writeErrors == 0
+        metrics.inputErrors == 0
+        metrics.inputIterationErrors == 0
+        metrics.outputIterationErrors == 0
+
+        def drainList = drainFactory.getDrainInstance().content
+        drainList.size() == 10
+        drainList.contains(new DataObject(7, "foo 7"))
+        !drainList.contains(new DataObject(8, "foo 8"))
+    }
+
+    def "double with null works as expected"() {
+        given:
+        DataObjectDrainFactory drainFactory = new DataObjectDrainFactory()
+        DataObjectWellFactory wellFactory = new DataObjectWellFactory()
+        Transformer<String, DataObject, String, DataObject> instance =
+            new Transformer(wellFactory, drainFactory, TransformerSpec::doubleWithNullConversion)
+
+        when:
+        def metrics = instance.transform(["foo", "bar"], "output")
+
+        then:
+        metrics != null
+        !metrics.hasErrors()
+        metrics.readEntries == 20
+        metrics.writtenEntries == 40
+        metrics.skippedInputEntries == 0
+        metrics.skippedOutputEntries == 20
+        metrics.totalInputs == 2
+        metrics.transformedInputs == 2
+        metrics.skippedInputs == 0
+        metrics.conversionErrors == 0
+        metrics.readErrors == 0
+        metrics.writeErrors == 0
+        metrics.inputErrors == 0
+        metrics.inputIterationErrors == 0
+        metrics.outputIterationErrors == 0
+
+        def drainList = drainFactory.getDrainInstance().content
+        drainList.size() == 40
+        drainList.contains(new DataObject(7, "foo 7"))
+        drainList.contains(new DataObject(8, "foo 8"))
+    }
+
+    def "broken output collection works as expected"() {
+        given:
+        DataObjectDrainFactory drainFactory = new DataObjectDrainFactory()
+        DataObjectWellFactory wellFactory = new DataObjectWellFactory()
+        Transformer<String, DataObject, String, DataObject> instance =
+            new Transformer(wellFactory, drainFactory, TransformerSpec::brokenCollectionConversion)
+
+        when:
+        def metrics = instance.transform(["foo", "bar"], "output")
+
+        then:
+        metrics != null
+        metrics.hasErrors()
+        metrics.readEntries == 20
+        metrics.writtenEntries == 20
+        metrics.skippedInputEntries == 0
+        metrics.skippedOutputEntries == 0
+        metrics.totalInputs == 2
+        metrics.transformedInputs == 2
+        metrics.skippedInputs == 0
+        metrics.conversionErrors == 0
+        metrics.readErrors == 0
+        metrics.writeErrors == 0
+        metrics.inputErrors == 0
+        metrics.inputIterationErrors == 0
+        metrics.outputIterationErrors == 20
+
+        def drainList = drainFactory.getDrainInstance().content
+        drainList.size() == 20
+        drainList.contains(new DataObject(7, "foo 7"))
+        drainList.contains(new DataObject(8, "foo 8"))
     }
 
     def "failing conversion works as expected"() {
@@ -132,7 +238,8 @@ class TransformerSpec extends Specification {
         metrics.hasErrors()
         metrics.readEntries == 20
         metrics.writtenEntries == 10
-        metrics.skippedEntries == 10 // conversion error is also counted as skipped
+        metrics.skippedInputEntries == 10 // conversion error is also counted as skipped
+        metrics.skippedOutputEntries == 0
         metrics.totalInputs == 2
         metrics.transformedInputs == 2
         metrics.skippedInputs == 0
@@ -141,6 +248,7 @@ class TransformerSpec extends Specification {
         metrics.writeErrors == 0
         metrics.inputErrors == 0
         metrics.inputIterationErrors == 0
+        metrics.outputIterationErrors == 0
 
         def drainList = drainFactory.getDrainInstance().content
         drainList.size() == 10
@@ -163,7 +271,8 @@ class TransformerSpec extends Specification {
         !metrics.hasErrors()
         metrics.readEntries == 20
         metrics.writtenEntries == 20
-        metrics.skippedEntries == 0
+        metrics.skippedInputEntries == 0
+        metrics.skippedOutputEntries == 0
         metrics.totalInputs == 4
         metrics.transformedInputs == 2
         metrics.skippedInputs == 2
@@ -172,6 +281,7 @@ class TransformerSpec extends Specification {
         metrics.writeErrors == 0
         metrics.inputErrors == 0
         metrics.inputIterationErrors == 0
+        metrics.outputIterationErrors == 0
 
         def drainList = drainFactory.getDrainInstance().content
         drainList.size() == 20
@@ -194,7 +304,8 @@ class TransformerSpec extends Specification {
         !metrics.hasErrors()
         metrics.readEntries == 30
         metrics.writtenEntries == 25
-        metrics.skippedEntries == 5
+        metrics.skippedInputEntries == 5
+        metrics.skippedOutputEntries == 0
         metrics.totalInputs == 3
         metrics.transformedInputs == 3
         metrics.skippedInputs == 0
@@ -203,6 +314,7 @@ class TransformerSpec extends Specification {
         metrics.writeErrors == 0
         metrics.inputErrors == 0
         metrics.inputIterationErrors == 0
+        metrics.outputIterationErrors == 0
 
         def drainList = drainFactory.getDrainInstance().content
         drainList.size() == 25
@@ -226,7 +338,8 @@ class TransformerSpec extends Specification {
         metrics.hasErrors()
         metrics.readEntries == 6
         metrics.writtenEntries == 5
-        metrics.skippedEntries == 0
+        metrics.skippedInputEntries == 0
+        metrics.skippedOutputEntries == 0
         metrics.totalInputs == 1
         metrics.transformedInputs == 0
         metrics.skippedInputs == 0
@@ -235,6 +348,7 @@ class TransformerSpec extends Specification {
         metrics.writeErrors == 1
         metrics.inputErrors == 0
         metrics.inputIterationErrors == 0
+        metrics.outputIterationErrors == 0
 
         def drainList = drainFactory.getBrokenDrainInstance().content
         drainList.size() == 5
@@ -256,7 +370,8 @@ class TransformerSpec extends Specification {
         metrics.hasErrors()
         metrics.readEntries == 30
         metrics.writtenEntries == 30
-        metrics.skippedEntries == 0
+        metrics.skippedInputEntries == 0
+        metrics.skippedOutputEntries == 0
         metrics.totalInputs == 4
         metrics.transformedInputs == 2
         metrics.skippedInputs == 0
@@ -265,6 +380,7 @@ class TransformerSpec extends Specification {
         metrics.writeErrors == 0
         metrics.inputErrors == 0
         metrics.inputIterationErrors == 0
+        metrics.outputIterationErrors == 0
 
         def drainList = drainFactory.getDrainInstance().content
         drainList.size() == 30
@@ -288,7 +404,8 @@ class TransformerSpec extends Specification {
         metrics.hasErrors()
         metrics.readEntries == 10
         metrics.writtenEntries == 10
-        metrics.skippedEntries == 0
+        metrics.skippedInputEntries == 0
+        metrics.skippedOutputEntries == 0
         metrics.totalInputs == 1
         metrics.transformedInputs == 1
         metrics.skippedInputs == 0
@@ -297,6 +414,7 @@ class TransformerSpec extends Specification {
         metrics.writeErrors == 0
         metrics.inputErrors == 0
         metrics.inputIterationErrors == 1
+        metrics.outputIterationErrors == 0
 
         def drainList = drainFactory.getDrainInstance().content
         drainList.size() == 10
@@ -318,7 +436,8 @@ class TransformerSpec extends Specification {
         metrics.hasErrors()
         metrics.readEntries == 20
         metrics.writtenEntries == 20
-        metrics.skippedEntries == 0
+        metrics.skippedInputEntries == 0
+        metrics.skippedOutputEntries == 0
         metrics.totalInputs == 4
         metrics.transformedInputs == 2
         metrics.skippedInputs == 0
@@ -327,6 +446,7 @@ class TransformerSpec extends Specification {
         metrics.writeErrors == 0
         metrics.inputErrors == 2
         metrics.inputIterationErrors == 0
+        metrics.outputIterationErrors == 0
 
         def drainList = drainFactory.getDrainInstance().content
         drainList.size() == 20
@@ -411,20 +531,41 @@ class TransformerSpec extends Specification {
         ex.message == "drainFactory returned null for \"null\"!"
     }
 
-    static DataObject skippingConversion(DataObject input) {
+    def "identity function works as expected"() {
+        expect:
+        Transformer.identityFunction(null) == null
+        Transformer.identityFunction("foo") == ["foo"]
+    }
+
+    static Collection<DataObject> skippingConversion(DataObject input) {
         if (input == null || input.id % 2 == 0) {
             return null
         }
-        return input
+        return Collections.singletonList(input)
     }
 
-    static DataObject failingConversion(DataObject input) {
+    static Collection<DataObject> alternativeSkippingConversion(DataObject input) {
+        if (input == null || input.id % 2 == 0) {
+            return Collections.emptyList()
+        }
+        return Collections.singletonList(input)
+    }
+
+    static Collection<DataObject> doubleWithNullConversion(DataObject input) {
+        return Arrays.asList(input, null, input)
+    }
+
+    static Collection<DataObject> brokenCollectionConversion(DataObject input) {
+        return new BrokenDataObjectList(Collections.singletonList(input))
+    }
+
+    static Collection<DataObject> failingConversion(DataObject input) {
         if (input == null) {
             return null
         }
         if (input.id % 2 == 0) {
             throw new IllegalStateException("Conversion failed because this is a test!")
         }
-        return input
+        return Collections.singletonList(input)
     }
 }

@@ -24,7 +24,8 @@ class TransformerMetricsSpec extends Specification {
         TransformerMetrics instance = new TransformerMetrics()
         instance.readEntries = 1
         instance.writtenEntries = 1
-        instance.skippedEntries = 1
+        instance.skippedInputEntries = 1
+        instance.skippedOutputEntries = 1
         instance.totalInputs = 1
         instance.transformedInputs = 1
         instance.skippedInputs = 1
@@ -33,19 +34,22 @@ class TransformerMetricsSpec extends Specification {
         instance.writeErrors = 1
         instance.inputErrors = 1
         instance.inputIterationErrors = 1
+        instance.outputIterationErrors = 1
 
         TransformerMetrics other = new TransformerMetrics()
         other.readEntries = 2
         other.writtenEntries = 3
-        other.skippedEntries = 4
-        other.totalInputs = 5
-        other.transformedInputs = 6
-        other.skippedInputs = 7
-        other.conversionErrors = 8
-        other.readErrors = 9
-        other.writeErrors = 10
-        other.inputErrors = 11
-        other.inputIterationErrors = 12
+        other.skippedInputEntries = 4
+        other.skippedOutputEntries = 5
+        other.totalInputs = 6
+        other.transformedInputs = 7
+        other.skippedInputs = 8
+        other.conversionErrors = 9
+        other.readErrors = 10
+        other.writeErrors = 11
+        other.inputErrors = 12
+        other.inputIterationErrors = 13
+        other.outputIterationErrors = 14
 
         when: 'other is added to instance'
         instance.add(other)
@@ -53,28 +57,32 @@ class TransformerMetricsSpec extends Specification {
         then: 'instance contains the added result'
         instance.readEntries == 3
         instance.writtenEntries == 4
-        instance.skippedEntries == 5
-        instance.totalInputs == 6
-        instance.transformedInputs == 7
-        instance.skippedInputs == 8
-        instance.conversionErrors == 9
-        instance.readErrors == 10
-        instance.writeErrors == 11
-        instance.inputErrors == 12
-        instance.inputIterationErrors == 13
+        instance.skippedInputEntries == 5
+        instance.skippedOutputEntries == 6
+        instance.totalInputs == 7
+        instance.transformedInputs == 8
+        instance.skippedInputs == 9
+        instance.conversionErrors == 10
+        instance.readErrors == 11
+        instance.writeErrors == 12
+        instance.inputErrors == 13
+        instance.inputIterationErrors == 14
+        instance.outputIterationErrors == 15
 
         and: 'other has not changed'
         other.readEntries == 2
         other.writtenEntries == 3
-        other.skippedEntries == 4
-        other.totalInputs == 5
-        other.transformedInputs == 6
-        other.skippedInputs == 7
-        other.conversionErrors == 8
-        other.readErrors == 9
-        other.writeErrors == 10
-        other.inputErrors == 11
-        other.inputIterationErrors == 12
+        other.skippedInputEntries == 4
+        other.skippedOutputEntries == 5
+        other.totalInputs == 6
+        other.transformedInputs == 7
+        other.skippedInputs == 8
+        other.conversionErrors == 9
+        other.readErrors == 10
+        other.writeErrors == 11
+        other.inputErrors == 12
+        other.inputIterationErrors == 13
+        other.outputIterationErrors == 14
     }
 
     def "sanity checks"() {
@@ -83,7 +91,8 @@ class TransformerMetricsSpec extends Specification {
         and:
         instance.readEntries = readEntries
         instance.writtenEntries = writtenEntries
-        instance.skippedEntries = skippedEntries
+        instance.skippedInputEntries = skippedInputEntries
+        instance.skippedOutputEntries = skippedOutputEntries
         instance.totalInputs = totalInputs
         instance.transformedInputs = transformedInputs
         instance.skippedInputs = skippedInputs
@@ -92,11 +101,13 @@ class TransformerMetricsSpec extends Specification {
         instance.writeErrors = writeErrors
         instance.inputErrors = inputErrors
         instance.inputIterationErrors = inputIterationErrors
+        instance.outputIterationErrors = outputIterationErrors
 
         expect:
         instance.readEntries == readEntries
         instance.writtenEntries == writtenEntries
-        instance.skippedEntries == skippedEntries
+        instance.skippedInputEntries == skippedInputEntries
+        instance.skippedOutputEntries == skippedOutputEntries
         instance.totalInputs == totalInputs
         instance.transformedInputs == transformedInputs
         instance.skippedInputs == skippedInputs
@@ -105,6 +116,7 @@ class TransformerMetricsSpec extends Specification {
         instance.writeErrors == writeErrors
         instance.inputErrors == inputErrors
         instance.inputIterationErrors == inputIterationErrors
+        instance.outputIterationErrors == outputIterationErrors
 
         and:
         instance.hasErrors() == hasErrors
@@ -118,19 +130,21 @@ class TransformerMetricsSpec extends Specification {
         }
 
         where:
-        readEntries | writtenEntries | skippedEntries | totalInputs | transformedInputs | skippedInputs | conversionErrors | readErrors | writeErrors | inputErrors | inputIterationErrors | equal | hasErrors
-        0           | 0              | 0              | 0           | 0                 | 0             | 0                | 0          | 0           | 0           | 0                    | true  | false
-        1           | 0              | 0              | 0           | 0                 | 0             | 0                | 0          | 0           | 0           | 0                    | false | false
-        0           | 1              | 0              | 0           | 0                 | 0             | 0                | 0          | 0           | 0           | 0                    | false | false
-        0           | 0              | 1              | 0           | 0                 | 0             | 0                | 0          | 0           | 0           | 0                    | false | false
-        0           | 0              | 0              | 1           | 0                 | 0             | 0                | 0          | 0           | 0           | 0                    | false | false
-        0           | 0              | 0              | 0           | 1                 | 0             | 0                | 0          | 0           | 0           | 0                    | false | false
-        0           | 0              | 0              | 0           | 0                 | 1             | 0                | 0          | 0           | 0           | 0                    | false | false
-        0           | 0              | 0              | 0           | 0                 | 0             | 1                | 0          | 0           | 0           | 0                    | false | true
-        0           | 0              | 0              | 0           | 0                 | 0             | 0                | 1          | 0           | 0           | 0                    | false | true
-        0           | 0              | 0              | 0           | 0                 | 0             | 0                | 0          | 1           | 0           | 0                    | false | true
-        0           | 0              | 0              | 0           | 0                 | 0             | 0                | 0          | 0           | 1           | 0                    | false | true
-        0           | 0              | 0              | 0           | 0                 | 0             | 0                | 0          | 0           | 0           | 1                    | false | true
+        readEntries | writtenEntries | skippedInputEntries | skippedOutputEntries | totalInputs | transformedInputs | skippedInputs | conversionErrors | readErrors | writeErrors | inputErrors | inputIterationErrors | outputIterationErrors | equal | hasErrors
+        0           | 0              | 0                   | 0                    | 0           | 0                 | 0             | 0                | 0          | 0           | 0           | 0                    | 0                     | true  | false
+        1           | 0              | 0                   | 0                    | 0           | 0                 | 0             | 0                | 0          | 0           | 0           | 0                    | 0                     | false | false
+        0           | 1              | 0                   | 0                    | 0           | 0                 | 0             | 0                | 0          | 0           | 0           | 0                    | 0                     | false | false
+        0           | 0              | 1                   | 0                    | 0           | 0                 | 0             | 0                | 0          | 0           | 0           | 0                    | 0                     | false | false
+        0           | 0              | 0                   | 1                    | 0           | 0                 | 0             | 0                | 0          | 0           | 0           | 0                    | 0                     | false | false
+        0           | 0              | 0                   | 0                    | 1           | 0                 | 0             | 0                | 0          | 0           | 0           | 0                    | 0                     | false | false
+        0           | 0              | 0                   | 0                    | 0           | 1                 | 0             | 0                | 0          | 0           | 0           | 0                    | 0                     | false | false
+        0           | 0              | 0                   | 0                    | 0           | 0                 | 1             | 0                | 0          | 0           | 0           | 0                    | 0                     | false | false
+        0           | 0              | 0                   | 0                    | 0           | 0                 | 0             | 1                | 0          | 0           | 0           | 0                    | 0                     | false | true
+        0           | 0              | 0                   | 0                    | 0           | 0                 | 0             | 0                | 1          | 0           | 0           | 0                    | 0                     | false | true
+        0           | 0              | 0                   | 0                    | 0           | 0                 | 0             | 0                | 0          | 1           | 0           | 0                    | 0                     | false | true
+        0           | 0              | 0                   | 0                    | 0           | 0                 | 0             | 0                | 0          | 0           | 1           | 0                    | 0                     | false | true
+        0           | 0              | 0                   | 0                    | 0           | 0                 | 0             | 0                | 0          | 0           | 0           | 1                    | 0                     | false | true
+        0           | 0              | 0                   | 0                    | 0           | 0                 | 0             | 0                | 0          | 0           | 0           | 0                    | 1                     | false | true
     }
 
     @SuppressWarnings(['ChangeToOperator', 'GrEqualsBetweenInconvertibleTypes'])

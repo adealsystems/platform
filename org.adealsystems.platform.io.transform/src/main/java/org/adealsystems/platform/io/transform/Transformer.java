@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Function;
@@ -49,7 +50,7 @@ public class Transformer<I, J, O, P> {
 
     private final WellFactory<I, J> wellFactory;
     private final DrainFactory<O, P> drainFactory;
-    private final Function<J, P> convertFunction;
+    private final Function<J, Collection<P>> convertFunction;
 
     /**
      * Create instance with the given parameters.
@@ -59,8 +60,8 @@ public class Transformer<I, J, O, P> {
      * Output entries are written to a <code>Drain</code> created with the given <code>DrainFactory</code>.
      * <p>
      * Conversion is performed by the given <code>convertFunction</code>.
-     * Returning <code>null</code> from the <code>convertFunction</code> will not cause any problems but simply
-     * skip the entry. This can be used to filter input entries.
+     * Returning <code>null</code> or an empty <code>Collection</code> from the <code>convertFunction</code> will
+     * not cause any problems but simply skip the input entry. This can be used to filter input entries.
      * <p>
      * If neither conversion nor filtering is necessary, you can use <code>Transformer::identityFunction</code> as the
      * <code>convertFunction</code>.
@@ -71,7 +72,7 @@ public class Transformer<I, J, O, P> {
      * @throws NullPointerException if any parameter is null
      * @see Transformer#identityFunction <code>Transformer::identityFunction</code> if neither conversion nor filtering is required
      */
-    public Transformer(WellFactory<I, J> wellFactory, DrainFactory<O, P> drainFactory, Function<J, P> convertFunction) {
+    public Transformer(WellFactory<I, J> wellFactory, DrainFactory<O, P> drainFactory, Function<J, Collection<P>> convertFunction) {
         this.wellFactory = Objects.requireNonNull(wellFactory, "wellFactory must not be null!");
         this.drainFactory = Objects.requireNonNull(drainFactory, "drainFactory must not be null!");
         this.convertFunction = Objects.requireNonNull(convertFunction, "convertFunction must not be null!");
@@ -125,14 +126,19 @@ public class Transformer<I, J, O, P> {
     /**
      * This method can be used as <code>convertFunction</code> if neither conversion nor filtering is required.
      * <p>
-     * It simply returns the given <code>input</code>.
+     * It simply returns <code>null</code> if <code>input</code> was null or a <code>List</code>
+     * containing <code>input</code> otherwise.
      *
      * @param input the input
      * @param <E>   the type of both input parameter and return type
-     * @return the original input
+     * @return <code>null</code> if <code>input</code> was null or a <code>List</code>
+     * containing <code>input</code> otherwise.
      */
-    public static <E> E identityFunction(E input) {
-        return input;
+    public static <E> Collection<E> identityFunction(E input) {
+        if (input == null) {
+            return null;
+        }
+        return Collections.singletonList(input);
     }
 
     private void processInputs(Iterable<I> inputs, Drain<P> drain, TransformerMetrics metrics) {
@@ -195,10 +201,30 @@ public class Transformer<I, J, O, P> {
     private boolean processEntry(J entry, Drain<P> drain, TransformerMetrics metrics) {
         metrics.addReadEntry();
 
-        P outputEntry = convert(entry, metrics);
-        if (outputEntry == null) {
+        Collection<P> outputEntries = convert(entry, metrics);
+        if (outputEntries == null || outputEntries.isEmpty()) {
             LOGGER.debug("Skipping {}...", entry);
-            metrics.addSkippedEntry();
+            metrics.addSkippedInputEntry();
+            return true;
+        }
+
+        try {
+            for (P outputEntry : outputEntries) {
+                if (!writeOutputEntry(outputEntry, drain, metrics)) {
+                    return false;
+                }
+            }
+        } catch (Throwable t) {
+            LOGGER.warn("Exception while iterating outputs!", t);
+            metrics.addOutputIterationError();
+        }
+
+        return true;
+    }
+
+    private boolean writeOutputEntry(P outputEntry, Drain<P> drain, TransformerMetrics metrics) {
+        if (outputEntry == null) {
+            metrics.addSkippedOutputEntry();
             return true;
         }
 
@@ -213,7 +239,8 @@ public class Transformer<I, J, O, P> {
         }
     }
 
-    private P convert(J input, TransformerMetrics metrics) {
+    @SuppressWarnings("PMD.ReturnEmptyCollectionRatherThanNull")
+    private Collection<P> convert(J input, TransformerMetrics metrics) {
         if (input == null) {
             return null;
         }

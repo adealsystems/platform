@@ -28,12 +28,17 @@ import java.util.Objects;
  *     <dt>writtenEntries</dt>
  *     <dd>The total number of entries written to the output.</dd>
  *
- *     <dt>skippedEntries</dt>
- *     <dd>The total number of skipped entries.
+ *     <dt>skippedInputEntries</dt>
+ *     <dd>The total number of skipped input entries.
  * <p>
  *     Entries are skipped if the <code>convertFunction</code> returns
- *     <code>null</code> or throws an exception during conversion. <code>writtenEntries</code> plus
- *     <code>skippedEntries</code> should always be equal to <code>readEntries</code>.</dd>
+ *     <code>null</code>, an empty <code>Collection</code> or throws an exception during conversion.</dd>
+ *
+ *     <dt>skippedOutputEntries</dt>
+ *     <dd>The total number of skipped output entries.
+ * <p>
+ *     Skipped output entries are <code>null</code> values in the <code>Collection</code> returned by the
+ *     <code>convertFunction</code>. This should ideally be avoided.
  *
  *     <dt>totalInputs</dt>
  *     <dd>The total number of processed inputs.</dd>
@@ -80,12 +85,20 @@ import java.util.Objects;
  *     <code>Iterable</code>. <code>ConcurrentModificationException</code> would be one example.
  * <p>
  *     This should not happen and would indicate a bug in your code.</dd>
+ *
+ *     <dt>outputIterationErrors</dt>
+ *     <dd>The number of output iteration errors, i.e. exceptions thrown while iterating over the
+ *     <code>Collection</code> returned by the <code>convertFunction</code>.
+ *     <code>ConcurrentModificationException</code> would be one example.
+ * <p>
+ *     This should not happen and would indicate a bug in your code.</dd>
  * </dl>
  */
 public class TransformerMetrics {
     private int readEntries;
     private int writtenEntries;
-    private int skippedEntries;
+    private int skippedInputEntries;
+    private int skippedOutputEntries;
     private int totalInputs;
     private int transformedInputs;
     private int skippedInputs;
@@ -94,6 +107,7 @@ public class TransformerMetrics {
     private int writeErrors;
     private int inputErrors;
     private int inputIterationErrors;
+    private int outputIterationErrors;
 
     public int getReadEntries() {
         return readEntries;
@@ -111,12 +125,20 @@ public class TransformerMetrics {
         this.writtenEntries = writtenEntries;
     }
 
-    public int getSkippedEntries() {
-        return skippedEntries;
+    public int getSkippedInputEntries() {
+        return skippedInputEntries;
     }
 
-    public void setSkippedEntries(int skippedEntries) {
-        this.skippedEntries = skippedEntries;
+    public void setSkippedInputEntries(int skippedInputEntries) {
+        this.skippedInputEntries = skippedInputEntries;
+    }
+
+    public int getSkippedOutputEntries() {
+        return skippedOutputEntries;
+    }
+
+    public void setSkippedOutputEntries(int skippedOutputEntries) {
+        this.skippedOutputEntries = skippedOutputEntries;
     }
 
     public int getTotalInputs() {
@@ -183,6 +205,14 @@ public class TransformerMetrics {
         this.inputIterationErrors = inputIterationErrors;
     }
 
+    public int getOutputIterationErrors() {
+        return outputIterationErrors;
+    }
+
+    public void setOutputIterationErrors(int outputIterationErrors) {
+        this.outputIterationErrors = outputIterationErrors;
+    }
+
     public void addReadEntry() {
         readEntries++;
     }
@@ -191,8 +221,12 @@ public class TransformerMetrics {
         writtenEntries++;
     }
 
-    public void addSkippedEntry() {
-        skippedEntries++;
+    public void addSkippedInputEntry() {
+        skippedInputEntries++;
+    }
+
+    public void addSkippedOutputEntry() {
+        skippedOutputEntries++;
     }
 
     public void addTotalInput() {
@@ -227,6 +261,10 @@ public class TransformerMetrics {
         inputIterationErrors++;
     }
 
+    public void addOutputIterationError() {
+        outputIterationErrors++;
+    }
+
     /**
      * Adds the given metrics to this metrics.
      *
@@ -238,7 +276,8 @@ public class TransformerMetrics {
 
         this.readEntries += metrics.readEntries;
         this.writtenEntries += metrics.writtenEntries;
-        this.skippedEntries += metrics.skippedEntries;
+        this.skippedInputEntries += metrics.skippedInputEntries;
+        this.skippedOutputEntries += metrics.skippedOutputEntries;
         this.totalInputs += metrics.totalInputs;
         this.transformedInputs += metrics.transformedInputs;
         this.skippedInputs += metrics.skippedInputs;
@@ -247,10 +286,11 @@ public class TransformerMetrics {
         this.writeErrors += metrics.writeErrors;
         this.inputErrors += metrics.inputErrors;
         this.inputIterationErrors += metrics.inputIterationErrors;
+        this.outputIterationErrors += metrics.outputIterationErrors;
     }
 
     public boolean hasErrors() {
-        return conversionErrors != 0 || readErrors != 0 || writeErrors != 0 || inputErrors != 0 || inputIterationErrors != 0;
+        return conversionErrors != 0 || readErrors != 0 || writeErrors != 0 || inputErrors != 0 || inputIterationErrors != 0 || outputIterationErrors != 0;
     }
 
     @Override
@@ -258,12 +298,12 @@ public class TransformerMetrics {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         TransformerMetrics that = (TransformerMetrics) o;
-        return readEntries == that.readEntries && writtenEntries == that.writtenEntries && skippedEntries == that.skippedEntries && totalInputs == that.totalInputs && transformedInputs == that.transformedInputs && skippedInputs == that.skippedInputs && conversionErrors == that.conversionErrors && readErrors == that.readErrors && writeErrors == that.writeErrors && inputErrors == that.inputErrors && inputIterationErrors == that.inputIterationErrors;
+        return readEntries == that.readEntries && writtenEntries == that.writtenEntries && skippedInputEntries == that.skippedInputEntries && skippedOutputEntries == that.skippedOutputEntries && totalInputs == that.totalInputs && transformedInputs == that.transformedInputs && skippedInputs == that.skippedInputs && conversionErrors == that.conversionErrors && readErrors == that.readErrors && writeErrors == that.writeErrors && inputErrors == that.inputErrors && inputIterationErrors == that.inputIterationErrors && outputIterationErrors == that.outputIterationErrors;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(readEntries, writtenEntries, skippedEntries, totalInputs, transformedInputs, skippedInputs, conversionErrors, readErrors, writeErrors, inputErrors, inputIterationErrors);
+        return Objects.hash(readEntries, writtenEntries, skippedInputEntries, skippedOutputEntries, totalInputs, transformedInputs, skippedInputs, conversionErrors, readErrors, writeErrors, inputErrors, inputIterationErrors, outputIterationErrors);
     }
 
     @Override
@@ -271,7 +311,8 @@ public class TransformerMetrics {
         return "TransformerMetrics{" +
             "readEntries=" + readEntries +
             ", writtenEntries=" + writtenEntries +
-            ", skippedEntries=" + skippedEntries +
+            ", skippedInputEntries=" + skippedInputEntries +
+            ", skippedOutputEntries=" + skippedOutputEntries +
             ", totalInputs=" + totalInputs +
             ", transformedInputs=" + transformedInputs +
             ", skippedInputs=" + skippedInputs +
@@ -280,6 +321,7 @@ public class TransformerMetrics {
             ", writeErrors=" + writeErrors +
             ", inputErrors=" + inputErrors +
             ", inputIterationErrors=" + inputIterationErrors +
+            ", outputIterationErrors=" + outputIterationErrors +
             '}';
     }
 }
