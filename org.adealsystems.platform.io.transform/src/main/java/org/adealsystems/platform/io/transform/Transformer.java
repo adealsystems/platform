@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Function;
@@ -50,7 +49,7 @@ public class Transformer<I, J, O, P> {
 
     private final WellFactory<I, J> wellFactory;
     private final DrainFactory<O, P> drainFactory;
-    private final Function<J, Collection<P>> convertFunction;
+    private final Function<J, Iterable<P>> convertFunction;
 
     /**
      * Create instance with the given parameters.
@@ -72,7 +71,7 @@ public class Transformer<I, J, O, P> {
      * @throws NullPointerException if any parameter is null
      * @see Transformer#identityFunction <code>Transformer::identityFunction</code> if neither conversion nor filtering is required
      */
-    public Transformer(WellFactory<I, J> wellFactory, DrainFactory<O, P> drainFactory, Function<J, Collection<P>> convertFunction) {
+    public Transformer(WellFactory<I, J> wellFactory, DrainFactory<O, P> drainFactory, Function<J, Iterable<P>> convertFunction) {
         this.wellFactory = Objects.requireNonNull(wellFactory, "wellFactory must not be null!");
         this.drainFactory = Objects.requireNonNull(drainFactory, "drainFactory must not be null!");
         this.convertFunction = Objects.requireNonNull(convertFunction, "convertFunction must not be null!");
@@ -134,7 +133,7 @@ public class Transformer<I, J, O, P> {
      * @return <code>null</code> if <code>input</code> was null or a <code>List</code>
      * containing <code>input</code> otherwise.
      */
-    public static <E> Collection<E> identityFunction(E input) {
+    public static <E> Iterable<E> identityFunction(E input) {
         if (input == null) {
             return null;
         }
@@ -201,15 +200,17 @@ public class Transformer<I, J, O, P> {
     private boolean processEntry(J entry, Drain<P> drain, TransformerMetrics metrics) {
         metrics.addReadEntry();
 
-        Collection<P> outputEntries = convert(entry, metrics);
-        if (outputEntries == null || outputEntries.isEmpty()) {
+        Iterable<P> outputEntries = convert(entry, metrics);
+        if (outputEntries == null) {
             LOGGER.debug("Skipping {}...", entry);
             metrics.addSkippedInputEntry();
             return true;
         }
 
+        boolean empty = true;
         try {
             for (P outputEntry : outputEntries) {
+                empty = false;
                 if (!writeOutputEntry(outputEntry, drain, metrics)) {
                     return false;
                 }
@@ -217,6 +218,11 @@ public class Transformer<I, J, O, P> {
         } catch (Throwable t) {
             LOGGER.warn("Exception while iterating outputs!", t);
             metrics.addOutputIterationError();
+        }
+
+        if (empty) {
+            LOGGER.debug("Skipping {}...", entry);
+            metrics.addSkippedInputEntry();
         }
 
         return true;
@@ -240,7 +246,7 @@ public class Transformer<I, J, O, P> {
     }
 
     @SuppressWarnings("PMD.ReturnEmptyCollectionRatherThanNull")
-    private Collection<P> convert(J input, TransformerMetrics metrics) {
+    private Iterable<P> convert(J input, TransformerMetrics metrics) {
         if (input == null) {
             return null;
         }
