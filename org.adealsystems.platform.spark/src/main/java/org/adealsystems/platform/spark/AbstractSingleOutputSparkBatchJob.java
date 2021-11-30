@@ -237,6 +237,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
     @Override
     public void finalizeJob() {
         if (jobFinalizer == null) {
+            logger.info("No job finalizer defined. Returning...");
             return;
         }
 
@@ -471,8 +472,10 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         if (writeMode == WriteMode.DATE || writeMode == WriteMode.BOTH) {
             DataInstance dateInstance = dataResolver.createDateInstance(outputIdentifier, invocationDate);
 
-            if (resultWriterInterceptor != null) {
-                logger.info("Registering result of {} by sparkResultWriterInterceptor.", dateInstance);
+            if (resultWriterInterceptor == null) {
+                logger.info("NOT registering result of {} because resultWriterInterceptor is null!", dateInstance);
+            } else {
+                logger.info("Registering result of {} with resultWriterInterceptor.", dateInstance);
                 resultWriterInterceptor.registerResult(outputLocation, dateInstance, outputDataset);
             }
 
