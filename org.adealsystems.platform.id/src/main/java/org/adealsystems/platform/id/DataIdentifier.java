@@ -41,7 +41,10 @@ public final class DataIdentifier implements Comparable<DataIdentifier> {
         this.source = checkElement("source", source, PATTERN, false);
         this.useCase = checkElement("useCase", useCase, PATTERN, false);
         this.configuration = checkElement("configuration", configuration, CONFIGURATION_PATTERN, true);
-        this.dataFormat = Objects.requireNonNull(dataFormat, "dataFormat must not be null!");
+        if (dataFormat == null) {
+            throw new DataIdentifierCreationException("dataFormat must not be null!");
+        }
+        this.dataFormat = dataFormat;
     }
 
     static String checkElement(String name, String value, boolean optional) {
@@ -49,14 +52,18 @@ public final class DataIdentifier implements Comparable<DataIdentifier> {
     }
 
     static String checkElement(String name, String value, Pattern pattern, boolean optional) {
-        Objects.requireNonNull(name, "name must not be null!");
+        if (name == null) {
+            throw new DataIdentifierCreationException("name must not be null!");
+        }
         if (optional && value == null) {
             return null;
         }
 
-        Objects.requireNonNull(value, name + " must not be null!");
+        if (value == null) {
+            throw new DataIdentifierCreationException(name + " must not be null!");
+        }
         if (!pattern.matcher(value).matches()) {
-            throw new IllegalArgumentException(name + " value '" + value + "' doesn't match the pattern '" + pattern.pattern() + "'!");
+            throw new DataIdentifierCreationException(name + " value doesn't match the pattern '" + pattern.pattern() + "'!", value);
         }
 
         return value;
@@ -116,16 +123,28 @@ public final class DataIdentifier implements Comparable<DataIdentifier> {
     }
 
     public static DataIdentifier fromString(String input) {
-        Objects.requireNonNull(input, "input must not be null!");
+        if (input == null) {
+            throw new DataIdentifierCreationException("input must not be null!");
+        }
+
         StringTokenizer tok = new StringTokenizer(input, SEPARATOR);
         int tokenCount = tok.countTokens();
         if (tokenCount != 3 && tokenCount != 4) {
-            throw new IllegalArgumentException("Expected three or four tokens separated by '" + SEPARATOR + "' but got " + tokenCount + "!");
+            throw new DataIdentifierCreationException("Expected three or four tokens separated by '" + SEPARATOR + "' but got " + tokenCount + "!", input);
         }
-        String source = tok.nextToken();
-        String useCase = tok.nextToken();
-        String configuration = tokenCount == 4 ? tok.nextToken() : null;
-        DataFormat dataFormat = DataFormat.valueOf(tok.nextToken());
+
+        String source = tok.nextToken(); // NOPMD
+        String useCase = tok.nextToken(); // NOPMD
+        String configuration = tokenCount == 4 ? tok.nextToken() : null; // NOPMD
+        String dataFormatValue = tok.nextToken();
+        DataFormat dataFormat;
+        try {
+            dataFormat = DataFormat.valueOf(dataFormatValue);
+        }
+        catch(IllegalArgumentException ex) {
+            throw new DataIdentifierCreationException("Error creating DataFormat!", ex.getMessage(), ex);
+        }
+
         return new DataIdentifier(source, useCase, configuration, dataFormat);
     }
 

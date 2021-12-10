@@ -44,19 +44,19 @@ class DataIdentifierSpec extends Specification {
         new DataIdentifier(source, useCase, configuration, dataFormat)
 
         then:
-        Exception ex = thrown()
+        DataIdentifierCreationException ex = thrown()
         ex.class == expectedExceptionType
         ex.message == expectedMessage
-
+        ex.getValue() == errorValue
 
         where:
-        source    | useCase    | configuration | dataFormat | expectedExceptionType    | expectedMessage
-        null      | "use_case" | "config"      | CSV_COMMA  | NullPointerException     | "source must not be null!"
-        "source"  | null       | "config"      | CSV_COMMA  | NullPointerException     | "useCase must not be null!"
-        "source"  | "use_case" | "config"      | null       | NullPointerException     | "dataFormat must not be null!"
-        "_broken" | "use_case" | "config"      | CSV_COMMA  | IllegalArgumentException | "source value '_broken' doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!"
-        "source"  | "_broken"  | "config"      | CSV_COMMA  | IllegalArgumentException | "useCase value '_broken' doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!"
-        "source"  | "use_case" | "_broken"     | CSV_COMMA  | IllegalArgumentException | "configuration value '_broken' doesn't match the pattern '" + DataIdentifier.CONFIGURATION_PATTERN_STRING + "'!"
+        source    | useCase    | configuration | dataFormat | expectedExceptionType           | expectedMessage                                                                                        | errorValue
+        null      | "use_case" | "config"      | CSV_COMMA  | DataIdentifierCreationException | "source must not be null!"                                                                             | null
+        "source"  | null       | "config"      | CSV_COMMA  | DataIdentifierCreationException | "useCase must not be null!"                                                                            | null
+        "source"  | "use_case" | "config"      | null       | DataIdentifierCreationException | "dataFormat must not be null!"                                                                         | null
+        "_broken" | "use_case" | "config"      | CSV_COMMA  | DataIdentifierCreationException | "source value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!"                      | "_broken"
+        "source"  | "_broken"  | "config"      | CSV_COMMA  | DataIdentifierCreationException | "useCase value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!"                     | "_broken"
+        "source"  | "use_case" | "_broken"     | CSV_COMMA  | DataIdentifierCreationException | "configuration value doesn't match the pattern '" + DataIdentifier.CONFIGURATION_PATTERN_STRING + "'!" | "_broken"
     }
 
     def '#original withConfiguration(#configuration) returns #expectedResult.'() {
@@ -104,18 +104,19 @@ class DataIdentifierSpec extends Specification {
         DataIdentifier.checkElement(name, value, optional)
 
         then:
-        Exception ex = thrown()
+        DataIdentifierCreationException ex = thrown()
         ex.class == expectedExceptionType
         ex.message == expectedMessage
+        ex.value == errorValue
 
         where:
-        name  | value    | optional | expectedExceptionType    | expectedMessage
-        null  | null     | false    | NullPointerException     | "name must not be null!"
-        "foo" | null     | false    | NullPointerException     | "foo must not be null!"
-        "foo" | "_abc"   | false    | IllegalArgumentException | "foo value '_abc' doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!"
-        "foo" | "a__abc" | false    | IllegalArgumentException | "foo value 'a__abc' doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!"
-        "foo" | "a_abc_" | false    | IllegalArgumentException | "foo value 'a_abc_' doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!"
-        "foo" | "0_abc"  | false    | IllegalArgumentException | "foo value '0_abc' doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!"
+        name  | value    | optional | expectedExceptionType           | expectedMessage                                                                | errorValue
+        null  | null     | false    | DataIdentifierCreationException | "name must not be null!"                                                       | null
+        "foo" | null     | false    | DataIdentifierCreationException | "foo must not be null!"                                                        | null
+        "foo" | "_abc"   | false    | DataIdentifierCreationException | "foo value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!" | "_abc"
+        "foo" | "a__abc" | false    | DataIdentifierCreationException | "foo value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!" | "a__abc"
+        "foo" | "a_abc_" | false    | DataIdentifierCreationException | "foo value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!" | "a_abc_"
+        "foo" | "0_abc"  | false    | DataIdentifierCreationException | "foo value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!" | "0_abc"
     }
 
     def 'DataIdentifier.fromString(#input) produces expected result #expectedResult'() {
@@ -138,18 +139,19 @@ class DataIdentifierSpec extends Specification {
         DataIdentifier.fromString(input)
 
         then:
-        Exception ex = thrown()
+        DataIdentifierCreationException ex = thrown()
         ex.class == expectedException
         ex.message == expectedMessage
+        ex.value == errorValue
 
         where:
-        input                      | expectedException        | expectedMessage
-        null                       | NullPointerException     | "input must not be null!"
-        "source"                   | IllegalArgumentException | "Expected three or four tokens separated by ':' but got 1!"
-        "source:"                  | IllegalArgumentException | "Expected three or four tokens separated by ':' but got 1!"
-        "source:use_case"          | IllegalArgumentException | "Expected three or four tokens separated by ':' but got 2!"
-        "source:use_case:x:y:z"    | IllegalArgumentException | "Expected three or four tokens separated by ':' but got 5!"
-        "source:use_case:config:X" | IllegalArgumentException | "No enum constant org.adealsystems.platform.id.DataFormat.X"
+        input                      | expectedException               | expectedMessage                                             | errorValue
+        null                       | DataIdentifierCreationException | "input must not be null!"                                   | null
+        "source"                   | DataIdentifierCreationException | "Expected three or four tokens separated by ':' but got 1!" | "source"
+        "source:"                  | DataIdentifierCreationException | "Expected three or four tokens separated by ':' but got 1!" | "source:"
+        "source:use_case"          | DataIdentifierCreationException | "Expected three or four tokens separated by ':' but got 2!" | "source:use_case"
+        "source:use_case:x:y:z"    | DataIdentifierCreationException | "Expected three or four tokens separated by ':' but got 5!" | "source:use_case:x:y:z"
+        "source:use_case:config:X" | DataIdentifierCreationException | "Error creating DataFormat!"                                | "No enum constant org.adealsystems.platform.id.DataFormat.X"
     }
 
     def 'Comparable: #inputString is #description #otherString'() {
