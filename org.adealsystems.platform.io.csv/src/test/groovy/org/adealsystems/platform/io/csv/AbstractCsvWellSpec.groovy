@@ -45,9 +45,13 @@ class AbstractCsvWellSpec extends Specification {
         instance.addAll([new Entry("Key 2", "Value \"2"), new Entry("Key 3", "Value 3")])
         instance.close()
 
+        expect:
+        instance.CSVFormat == OUTPUT_CSV_FORMAT
+
         when:
         EntryCsvWell well = new EntryCsvWell(new ByteArrayInputStream(bos.toByteArray()), INPUT_CSV_FORMAT, compression)
         then:
+        well.CSVFormat == INPUT_CSV_FORMAT
         !well.isConsumed()
 
         when:

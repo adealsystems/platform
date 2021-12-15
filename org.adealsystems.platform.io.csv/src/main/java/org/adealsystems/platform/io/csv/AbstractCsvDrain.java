@@ -33,6 +33,7 @@ import java.util.Objects;
 public abstract class AbstractCsvDrain<E> implements Drain<E> {
     private final String[] header;
     private final List<String> headerList;
+    private final CSVFormat csvFormat;
     private CSVPrinter printer;
 
     protected AbstractCsvDrain(OutputStream outputStream, CSVFormat csvFormat)
@@ -51,6 +52,7 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
      */
     AbstractCsvDrain(BufferedWriter writer, CSVFormat csvFormat)
         throws IOException {
+        this.csvFormat = Objects.requireNonNull(csvFormat, "csvFormat must not be null!");
         this.header = resolveHeader(csvFormat);
         this.headerList = Collections.unmodifiableList(Arrays.asList(header));
         this.printer = csvFormat.print(writer);
@@ -59,6 +61,10 @@ public abstract class AbstractCsvDrain<E> implements Drain<E> {
     private static String[] resolveHeader(CSVFormat csvFormat) {
         Objects.requireNonNull(csvFormat, "csvFormat must not be null!");
         return Objects.requireNonNull(csvFormat.getHeader(), "csvFormat does not contain a header!");
+    }
+
+    public CSVFormat getCSVFormat() {
+        return csvFormat;
     }
 
     public List<String> getHeaders() {

@@ -33,6 +33,9 @@ class AbstractCsvDrainSpec extends Specification {
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
         AbstractCsvDrain<Entry> instance = new EntryCsvDrain(bos, CSV_FORMAT, compression)
 
+        expect:
+        instance.CSVFormat == CSV_FORMAT
+
         when:
         instance.add(new Entry("Key 1", "Value 1"))
         and:

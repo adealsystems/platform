@@ -36,6 +36,7 @@ import java.util.Objects;
 
 public abstract class AbstractCsvWell<E> implements Well<E> {
     private final Class<E> clazz;
+    private final CSVFormat csvFormat;
     private CSVParser parser;
     private final String[] header;
     private final List<String> headerList;
@@ -61,7 +62,7 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
         throws IOException {
         this.clazz = Objects.requireNonNull(clazz, "clazz must not be null!");
         Objects.requireNonNull(reader, "reader must not be null!");
-        Objects.requireNonNull(csvFormat, "csvFormat must not be null!");
+        this.csvFormat = Objects.requireNonNull(csvFormat, "csvFormat must not be null!");
         this.parser = csvFormat.parse(reader);
         this.header = resolveHeader(parser);
         this.headerList = Collections.unmodifiableList(Arrays.asList(header));
@@ -77,6 +78,10 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
     @Override
     public boolean isConsumed() {
         return consumed;
+    }
+
+    public CSVFormat getCSVFormat() {
+        return csvFormat;
     }
 
     public List<String> getHeaders() {
