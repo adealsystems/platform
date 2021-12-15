@@ -22,9 +22,11 @@ import org.apache.commons.csv.CSVFormat
 import spock.lang.Specification
 
 class AbstractCsvDrainSpec extends Specification {
-    final CSVFormat CSV_FORMAT = CSVFormat.DEFAULT
-        .withHeader("key", "value")
-        .withDelimiter(';' as char)
+    final CSVFormat CSV_FORMAT = CSVFormat.Builder.create()
+        .setHeader("key", "value")
+        .setDelimiter(';' as char)
+        .setEscape('\\' as char) // see https://issues.apache.org/jira/projects/CSV/issues/CSV-294
+        .build()
 
     def 'adding to the drain with compression #compression works'(Compression compression) {
         given:
@@ -34,7 +36,7 @@ class AbstractCsvDrainSpec extends Specification {
         when:
         instance.add(new Entry("Key 1", "Value 1"))
         and:
-        instance.addAll([new Entry("Key 2", "Value 2"), new Entry("Key 3", "Value 3")])
+        instance.addAll([new Entry("Key 2", "Value \"2"), new Entry("Key 3", "Value 3")])
         and:
         instance.close()
 
@@ -42,7 +44,7 @@ class AbstractCsvDrainSpec extends Specification {
         List<String> lines = readLines(bos.toByteArray(), compression)
 
         then:
-        lines == ['key;value', 'Key 1;Value 1', 'Key 2;Value 2', 'Key 3;Value 3']
+        lines == ['key;value', 'Key 1;Value 1', 'Key 2;"Value \\"2"', 'Key 3;Value 3']
 
         where:
         compression << Compression.values()

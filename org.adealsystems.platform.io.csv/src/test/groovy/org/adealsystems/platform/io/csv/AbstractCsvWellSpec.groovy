@@ -24,20 +24,25 @@ import org.apache.commons.csv.CSVFormat
 import spock.lang.Specification
 
 class AbstractCsvWellSpec extends Specification {
-    final CSVFormat OUTPUT_CSV_FORMAT = CSVFormat.DEFAULT
-        .withHeader("key", "value")
-        .withDelimiter(';' as char)
+    final CSVFormat OUTPUT_CSV_FORMAT = CSVFormat.Builder.create()
+        .setHeader("key", "value")
+        .setDelimiter(';' as char)
+        .setEscape('\\' as char) // see https://issues.apache.org/jira/projects/CSV/issues/CSV-294
+        .build()
 
-    final CSVFormat INPUT_CSV_FORMAT = CSVFormat.DEFAULT
-        .withFirstRecordAsHeader()
-        .withDelimiter(';' as char)
+    final CSVFormat INPUT_CSV_FORMAT = CSVFormat.Builder.create()
+        .setHeader()
+        .setSkipHeaderRecord(true)
+        .setDelimiter(';' as char)
+        .setEscape('\\' as char) // see https://issues.apache.org/jira/projects/CSV/issues/CSV-294
+        .build()
 
     def 'iterating over data with compression #compression works'(Compression compression) {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
         AbstractCsvDrain<Entry> instance = new EntryCsvDrain(bos, OUTPUT_CSV_FORMAT, compression)
         instance.add(new Entry("Key 1", "Value 1"))
-        instance.addAll([new Entry("Key 2", "Value 2"), new Entry("Key 3", "Value 3")])
+        instance.addAll([new Entry("Key 2", "Value \"2"), new Entry("Key 3", "Value 3")])
         instance.close()
 
         when:
@@ -51,7 +56,7 @@ class AbstractCsvWellSpec extends Specification {
         then:
         objects == [
             new Entry("Key 1", "Value 1"),
-            new Entry("Key 2", "Value 2"),
+            new Entry("Key 2", "Value \"2"),
             new Entry("Key 3", "Value 3"),
         ]
         and:
