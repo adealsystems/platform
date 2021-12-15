@@ -24,8 +24,8 @@ import spock.lang.Specification
 class AbstractCsvDrainSpec extends Specification {
     final CSVFormat CSV_FORMAT = CSVFormat.Builder.create()
         .setHeader("key", "value")
-        .setDelimiter(';' as char)
-        .setEscape('\\' as char) // see https://issues.apache.org/jira/projects/CSV/issues/CSV-294
+        .setDelimiter(CsvConstants.CSV_DELIMITER_SEMICOLON)
+        .setEscape(CsvConstants.CSV_ESCAPE_CHARACTER)
         .build()
 
     def 'adding to the drain with compression #compression works'(Compression compression) {

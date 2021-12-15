@@ -26,15 +26,15 @@ import spock.lang.Specification
 class AbstractCsvWellSpec extends Specification {
     final CSVFormat OUTPUT_CSV_FORMAT = CSVFormat.Builder.create()
         .setHeader("key", "value")
-        .setDelimiter(';' as char)
-        .setEscape('\\' as char) // see https://issues.apache.org/jira/projects/CSV/issues/CSV-294
+        .setDelimiter(CsvConstants.CSV_DELIMITER_SEMICOLON)
+        .setEscape(CsvConstants.CSV_ESCAPE_CHARACTER)
         .build()
 
     final CSVFormat INPUT_CSV_FORMAT = CSVFormat.Builder.create()
         .setHeader()
         .setSkipHeaderRecord(true)
-        .setDelimiter(';' as char)
-        .setEscape('\\' as char) // see https://issues.apache.org/jira/projects/CSV/issues/CSV-294
+        .setDelimiter(CsvConstants.CSV_DELIMITER_SEMICOLON)
+        .setEscape(CsvConstants.CSV_ESCAPE_CHARACTER)
         .build()
 
     def 'iterating over data with compression #compression works'(Compression compression) {
