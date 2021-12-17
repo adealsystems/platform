@@ -22,11 +22,13 @@ import org.apache.commons.csv.CSVFormat
 import spock.lang.Specification
 
 class AbstractCsvDrainSpec extends Specification {
-    final CSVFormat CSV_FORMAT = CSVFormat.Builder.create()
+    static final CSVFormat CSV_FORMAT = CSVFormat.Builder.create()
         .setHeader("key", "value")
         .setDelimiter(CsvConstants.CSV_DELIMITER_SEMICOLON)
         .setEscape(CsvConstants.CSV_ESCAPE_CHARACTER)
         .build()
+
+    static final char ESCAPE_CHARACTER = CsvConstants.CSV_ESCAPE_CHARACTER == null ? '"' as char : CsvConstants.CSV_ESCAPE_CHARACTER
 
     def 'adding to the drain with compression #compression works'(Compression compression) {
         given:
@@ -47,7 +49,7 @@ class AbstractCsvDrainSpec extends Specification {
         List<String> lines = readLines(bos.toByteArray(), compression)
 
         then:
-        lines == ['key;value', 'Key 1;Value 1', 'Key 2;"Value \\"2"', 'Key 3;Value 3']
+        lines == ['key;value', 'Key 1;Value 1', 'Key 2;"Value ' + ESCAPE_CHARACTER + '"2"', 'Key 3;Value 3']
 
         where:
         compression << Compression.values()

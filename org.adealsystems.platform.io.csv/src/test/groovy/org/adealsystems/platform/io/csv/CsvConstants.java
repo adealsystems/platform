@@ -23,7 +23,7 @@ public interface CsvConstants {
      *
      * @see <a href="https://issues.apache.org/jira/projects/CSV/issues/CSV-294">CSV-294</a>
      */
-    char CSV_ESCAPE_CHARACTER = '\\';
+    Character CSV_ESCAPE_CHARACTER = null;
 
     char CSV_DELIMITER_SEMICOLON = ';';
 
