@@ -2,7 +2,7 @@ project.ext.versions = [
         'bytebuddy': '1.12.6',
         'groovy'   : '3.0.9',
         'hadoop'   : '3.3.1',
-        'jackson'  : '2.13.0',
+        'jackson'  : '2.13.1',
         'junit5'   : '5.8.2',
         'logback'  : '1.2.9',
         'parquet'  : '1.12.0',
