@@ -62,6 +62,8 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
     private static final String PIPE = "|";
     private static final String SUCCESS_INDICATOR = "_SUCCESS";
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractSingleOutputSparkBatchJob.class);
+
     private final DataResolverRegistry dataResolverRegistry;
     private final DataLocation outputLocation;
     private final Set<DataIdentifier> outputIdentifiers;
@@ -435,17 +437,17 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         logger.info("Reading {} from '{}'.", dataInstance, path);
         switch (dataFormat) {
             case CSV_COMMA:
-                return readCsvAsDataset(COMMA, path);
+                return readCsvAsDataset(getSparkSession(), COMMA, path);
             case CSV_SEMICOLON:
-                return readCsvAsDataset(SEMICOLON, path);
+                return readCsvAsDataset(getSparkSession(), SEMICOLON, path);
             case CSV_PIPE:
-                return readCsvAsDataset(PIPE, path);
+                return readCsvAsDataset(getSparkSession(), PIPE, path);
             case JSON:
-                return readJsonAsDataset(path);
+                return readJsonAsDataset(getSparkSession(), path);
             case AVRO:
-                return readAvroAsDataset(path);
+                return readAvroAsDataset(getSparkSession(), path);
             case PARQUET:
-                return readParquetAsDataset(path);
+                return readParquetAsDataset(getSparkSession(), path);
             default:
                 throw new UnsupportedDataFormatException(dataFormat);
         }
@@ -479,19 +481,23 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
                 resultWriterInterceptor.registerResult(outputLocation, dateInstance, outputDataset);
             }
 
-            writeOutput(dateInstance, outputDataset);
+            writeOutputInternal(dateInstance, outputDataset, storeAsSingleFile, sparkContext, writerOptions);
         }
 
         if (writeMode == WriteMode.CURRENT || writeMode == WriteMode.BOTH) {
             DataInstance currentInstance = dataResolver.createCurrentInstance(outputIdentifier);
-            writeOutput(currentInstance, outputDataset);
+            writeOutputInternal(currentInstance, outputDataset, storeAsSingleFile, sparkContext, writerOptions);
         }
     }
 
-    private void writeOutput(DataInstance dataInstance, Dataset<Row> result) {
+    static void writeOutputInternal(DataInstance dataInstance,
+                                    Dataset<Row> result,
+                                    boolean storeAsSingleFile,
+                                    JavaSparkContext sparkContext,
+                                    Map<String, Object> writerOptions) {
         Objects.requireNonNull(dataInstance, "dataInstance must not be null!");
         String path = dataInstance.getPath();
-        logger.info("Writing {} to '{}'.", dataInstance, path);
+        LOGGER.info("Writing {} to '{}'.", dataInstance, path);
         DataFormat dataFormat = dataInstance.getDataFormat();
         switch (dataFormat) {
             case CSV_COMMA:
@@ -531,35 +537,37 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         return sparkContext;
     }
 
-    private Dataset<Row> readCsvAsDataset(String delimiter, String fileName) {
-        // TODO: option names
-        // https://spark.apache.org/docs/2.4.3/api/java/org/apache/spark/sql/DataFrameWriter.html#csv-java.lang.String-
-        return getSparkSession().read() //
-            .option("header", "true") //
-            .option("inferSchema", "true") //
-            .option("delimiter", delimiter) // TODO: option names
-            .option("emptyValue", "") // TODO: option names
+    static Dataset<Row> readCsvAsDataset(SparkSession sparkSession, String delimiter, String fileName) {
+        // TODO: double-check option names
+        // https://spark.apache.org/docs/3.0.1/api/java/org/apache/spark/sql/DataFrameWriter.html#csv-java.lang.String-
+        return sparkSession.read()
+            .option("header", "true")
+            .option("inferSchema", "true")
+            .option("quote", "\"")
+            .option("escape", "\"")
+            .option("sep", delimiter)
+            .option("emptyValue", "")
             .csv(fileName);
     }
 
-    private Dataset<Row> readJsonAsDataset(String fileName) {
-        return getSparkSession().read() //
+    static Dataset<Row> readJsonAsDataset(SparkSession sparkSession, String fileName) {
+        return sparkSession.read() //
             .json(fileName);
     }
 
-    private Dataset<Row> readAvroAsDataset(String fileName) {
-        return getSparkSession().read() //
+    static Dataset<Row> readAvroAsDataset(SparkSession sparkSession, String fileName) {
+        return sparkSession.read() //
             .format("avro") //
             .load(fileName);
     }
 
-    private Dataset<Row> readParquetAsDataset(String fileName) {
-        return getSparkSession().read() //
+    static Dataset<Row> readParquetAsDataset(SparkSession sparkSession, String fileName) {
+        return sparkSession.read() //
             .format("parquet") //
             .load(fileName);
     }
 
-    private static void writeDatasetAsCsv(
+    static void writeDatasetAsCsv(
         String delimiter,
         Dataset<Row> dataset,
         String fileName,
@@ -572,26 +580,16 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             targetPath = fileName + "__temp";
         }
 
-        // https://spark.apache.org/docs/2.4.3/api/java/org/apache/spark/sql/DataFrameWriter.html#csv-java.lang.String-
+        // https://spark.apache.org/docs/3.0.1/api/java/org/apache/spark/sql/DataFrameWriter.html#csv-java.lang.String-
         DataFrameWriter<Row> writer = dataset.write()
             .mode(SaveMode.Overwrite)
             .option("header", "true")
-            .option("delimiter", delimiter) // TODO: option names
-            .option("emptyValue", ""); // TODO: option names
+            .option("quote", "\"")
+            .option("escape", "\"")
+            .option("sep", delimiter)
+            .option("emptyValue", "");
 
-        for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
-            Object value = option.getValue();
-            Class<?> valueClass = value.getClass();
-            if (Long.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (long) value);
-            } else if (Double.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (double) value);
-            } else if (Boolean.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (boolean) value);
-            } else {
-                writer.option(option.getKey(), (String) value);
-            }
-        }
+        setWriterOptions(writer, writerOptions);
 
         writer.csv(targetPath);
 
@@ -600,7 +598,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         }
     }
 
-    private static void writeDatasetAsJson(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
+    static void writeDatasetAsJson(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
         String targetPath = fileName;
         if (storeAsSingleFile) {
             targetPath = fileName + "__temp";
@@ -609,19 +607,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         DataFrameWriter<Row> writer = dataset.write()
             .mode(SaveMode.Overwrite);
 
-        for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
-            Object value = option.getValue();
-            Class<?> valueClass = value.getClass();
-            if (Long.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (long) value);
-            } else if (Double.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (double) value);
-            } else if (Boolean.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (boolean) value);
-            } else {
-                writer.option(option.getKey(), (String) value);
-            }
-        }
+        setWriterOptions(writer, writerOptions);
 
         writer.json(targetPath);
 
@@ -630,7 +616,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         }
     }
 
-    private static void writeDatasetAsAvro(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
+    static void writeDatasetAsAvro(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
         String targetPath = fileName;
         if (storeAsSingleFile) {
             targetPath = fileName + "__temp";
@@ -640,19 +626,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             .mode(SaveMode.Overwrite)
             .format("avro");
 
-        for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
-            Object value = option.getValue();
-            Class<?> valueClass = value.getClass();
-            if (Long.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (long) value);
-            } else if (Double.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (double) value);
-            } else if (Boolean.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (boolean) value);
-            } else {
-                writer.option(option.getKey(), (String) value);
-            }
-        }
+        setWriterOptions(writer, writerOptions);
 
         writer.save(targetPath);
 
@@ -661,7 +635,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         }
     }
 
-    private static void writeDatasetAsParquet(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
+    static void writeDatasetAsParquet(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
         String targetPath = fileName;
         if (storeAsSingleFile) {
             targetPath = fileName + "__temp";
@@ -671,24 +645,37 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             .mode(SaveMode.Overwrite)
             .format("parquet");
 
-        for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
-            Object value = option.getValue();
-            Class<?> valueClass = value.getClass();
-            if (Long.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (long) value);
-            } else if (Double.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (double) value);
-            } else if (Boolean.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (boolean) value);
-            } else {
-                writer.option(option.getKey(), (String) value);
-            }
-        }
+        setWriterOptions(writer, writerOptions);
 
         writer.save(targetPath);
 
         if (storeAsSingleFile) {
             moveFile(sparkContext, targetPath, fileName);
+        }
+    }
+
+    private static void setWriterOptions(DataFrameWriter<Row> writer, Map<String, Object> writerOptions) {
+        for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
+            String key = option.getKey();
+            Object value = option.getValue();
+            if (value == null) {
+                writer.option(key, null);
+                continue;
+            }
+            Class<?> valueClass = value.getClass();
+            if (Long.class.isAssignableFrom(valueClass)) {
+                writer.option(key, (long) value);
+            } else if (Double.class.isAssignableFrom(valueClass)) {
+                writer.option(key, (double) value);
+            } else if (Boolean.class.isAssignableFrom(valueClass)) {
+                writer.option(key, (boolean) value);
+            } else if (String.class.isAssignableFrom(valueClass)) {
+                writer.option(key, (String) value);
+            } else {
+                String valueClassName = valueClass.getName();
+                LOGGER.error("Ignoring unsupported value class {} for writer-option '{}'!", valueClassName, key);
+                //writer.option(key, value.toString()); // null was already handled
+            }
         }
     }
 

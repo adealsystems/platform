@@ -30,10 +30,8 @@ import org.adealsystems.platform.process.exceptions.UnregisteredDataIdentifierEx
 import org.adealsystems.platform.process.exceptions.UnregisteredDataResolverException;
 import org.adealsystems.platform.process.exceptions.UnsupportedDataFormatException;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.UDFRegistration;
 import org.slf4j.Logger;
@@ -51,7 +49,11 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import static org.adealsystems.platform.spark.AbstractSingleOutputSparkBatchJob.moveFile;
+import static org.adealsystems.platform.spark.AbstractSingleOutputSparkBatchJob.readAvroAsDataset;
+import static org.adealsystems.platform.spark.AbstractSingleOutputSparkBatchJob.readCsvAsDataset;
+import static org.adealsystems.platform.spark.AbstractSingleOutputSparkBatchJob.readJsonAsDataset;
+import static org.adealsystems.platform.spark.AbstractSingleOutputSparkBatchJob.readParquetAsDataset;
+import static org.adealsystems.platform.spark.AbstractSingleOutputSparkBatchJob.writeOutputInternal;
 
 public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataProcessingJob {
     private static final String SEMICOLON = ";";
@@ -526,17 +528,17 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         logger.info("Reading {} from '{}'.", dataInstance, path);
         switch (dataFormat) {
             case CSV_COMMA:
-                return readCsvAsDataset(COMMA, path);
+                return readCsvAsDataset(getSparkSession(), COMMA, path);
             case CSV_SEMICOLON:
-                return readCsvAsDataset(SEMICOLON, path);
+                return readCsvAsDataset(getSparkSession(), SEMICOLON, path);
             case CSV_PIPE:
-                return readCsvAsDataset(PIPE, path);
+                return readCsvAsDataset(getSparkSession(), PIPE, path);
             case JSON:
-                return readJsonAsDataset(path);
+                return readJsonAsDataset(getSparkSession(), path);
             case AVRO:
-                return readAvroAsDataset(path);
+                return readAvroAsDataset(getSparkSession(), path);
             case PARQUET:
-                return readParquetAsDataset(path);
+                return readParquetAsDataset(getSparkSession(), path);
             default:
                 throw new UnsupportedDataFormatException(dataFormat);
         }
@@ -563,41 +565,12 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
                 resultWriterInterceptor.registerResult(outputLocation, dateInstance, outputDataset);
             }
 
-            writeOutput(dateInstance, outputDataset);
+            writeOutputInternal(dateInstance, outputDataset, storeAsSingleFile, sparkContext, writerOptions);
         }
 
         if (writeMode == WriteMode.CURRENT || writeMode == WriteMode.BOTH) {
             DataInstance currentInstance = dataResolver.createCurrentInstance(outputIdentifier);
-            writeOutput(currentInstance, outputDataset);
-        }
-    }
-
-    private void writeOutput(DataInstance dataInstance, Dataset<Row> result) {
-        Objects.requireNonNull(dataInstance, "dataInstance must not be null!");
-        String path = dataInstance.getPath();
-        logger.info("Writing {} to '{}'.", dataInstance, path);
-        DataFormat dataFormat = dataInstance.getDataFormat();
-        switch (dataFormat) {
-            case CSV_COMMA:
-                writeDatasetAsCsv(COMMA, result, path, storeAsSingleFile, sparkContext, writerOptions);
-                return;
-            case CSV_SEMICOLON:
-                writeDatasetAsCsv(SEMICOLON, result, path, storeAsSingleFile, sparkContext, writerOptions);
-                return;
-            case CSV_PIPE:
-                writeDatasetAsCsv(PIPE, result, path, storeAsSingleFile, sparkContext, writerOptions);
-                return;
-            case JSON:
-                writeDatasetAsJson(result, path, storeAsSingleFile, sparkContext, writerOptions);
-                return;
-            case AVRO:
-                writeDatasetAsAvro(result, path, storeAsSingleFile, sparkContext, writerOptions);
-                return;
-            case PARQUET:
-                writeDatasetAsParquet(result, path, storeAsSingleFile, sparkContext, writerOptions);
-                return;
-            default:
-                throw new UnsupportedDataFormatException(dataFormat);
+            writeOutputInternal(currentInstance, outputDataset, storeAsSingleFile, sparkContext, writerOptions);
         }
     }
 
@@ -613,166 +586,5 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
             throw new IllegalStateException("sparkContext has not been initialized!");
         }
         return sparkContext;
-    }
-
-    private Dataset<Row> readCsvAsDataset(String delimiter, String fileName) {
-        // TODO: option names
-        // https://spark.apache.org/docs/2.4.3/api/java/org/apache/spark/sql/DataFrameWriter.html#csv-java.lang.String-
-        return getSparkSession().read() //
-            .option("header", "true") //
-            .option("inferSchema", "true") //
-            .option("delimiter", delimiter) // TODO: option names
-            .option("emptyValue", "") // TODO: option names
-            .csv(fileName);
-    }
-
-    private Dataset<Row> readJsonAsDataset(String fileName) {
-        return getSparkSession().read() //
-            .json(fileName);
-    }
-
-    private Dataset<Row> readAvroAsDataset(String fileName) {
-        return getSparkSession().read() //
-            .format("avro") //
-            .load(fileName);
-    }
-
-    private Dataset<Row> readParquetAsDataset(String fileName) {
-        return getSparkSession().read() //
-            .format("parquet") //
-            .load(fileName);
-    }
-
-    private static void writeDatasetAsCsv(
-        String delimiter,
-        Dataset<Row> dataset,
-        String fileName,
-        boolean storeAsSingleFile,
-        JavaSparkContext sparkContext,
-        Map<String, Object> writerOptions
-    ) {
-        String targetPath = fileName;
-        if (storeAsSingleFile) {
-            targetPath = fileName + "__temp";
-        }
-
-        // https://spark.apache.org/docs/2.4.3/api/java/org/apache/spark/sql/DataFrameWriter.html#csv-java.lang.String-
-        DataFrameWriter<Row> writer = dataset.write()
-            .mode(SaveMode.Overwrite)
-            .option("header", "true")
-            .option("delimiter", delimiter) // TODO: option names
-            .option("emptyValue", ""); // TODO: option names
-
-        for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
-            Object value = option.getValue();
-            Class<?> valueClass = value.getClass();
-            if (Long.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (long) value);
-            } else if (Double.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (double) value);
-            } else if (Boolean.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (boolean) value);
-            } else {
-                writer.option(option.getKey(), (String) value);
-            }
-        }
-
-        writer.csv(targetPath);
-
-        if (storeAsSingleFile) {
-            moveFile(sparkContext, targetPath, fileName);
-        }
-    }
-
-    private static void writeDatasetAsJson(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
-        String targetPath = fileName;
-        if (storeAsSingleFile) {
-            targetPath = fileName + "__temp";
-        }
-
-        DataFrameWriter<Row> writer = dataset.write()
-            .mode(SaveMode.Overwrite);
-
-        for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
-            Object value = option.getValue();
-            Class<?> valueClass = value.getClass();
-            if (Long.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (long) value);
-            } else if (Double.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (double) value);
-            } else if (Boolean.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (boolean) value);
-            } else {
-                writer.option(option.getKey(), (String) value);
-            }
-        }
-
-        writer.json(targetPath);
-
-        if (storeAsSingleFile) {
-            moveFile(sparkContext, targetPath, fileName);
-        }
-    }
-
-    private static void writeDatasetAsAvro(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
-        String targetPath = fileName;
-        if (storeAsSingleFile) {
-            targetPath = fileName + "__temp";
-        }
-
-        DataFrameWriter<Row> writer = dataset.write()
-            .mode(SaveMode.Overwrite)
-            .format("avro");
-
-        for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
-            Object value = option.getValue();
-            Class<?> valueClass = value.getClass();
-            if (Long.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (long) value);
-            } else if (Double.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (double) value);
-            } else if (Boolean.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (boolean) value);
-            } else {
-                writer.option(option.getKey(), (String) value);
-            }
-        }
-
-        writer.save(targetPath);
-
-        if (storeAsSingleFile) {
-            moveFile(sparkContext, targetPath, fileName);
-        }
-    }
-
-    private static void writeDatasetAsParquet(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
-        String targetPath = fileName;
-        if (storeAsSingleFile) {
-            targetPath = fileName + "__temp";
-        }
-
-        DataFrameWriter<Row> writer = dataset.write()
-            .mode(SaveMode.Overwrite)
-            .format("parquet");
-
-        for (Map.Entry<String, Object> option : writerOptions.entrySet()) {
-            Object value = option.getValue();
-            Class<?> valueClass = value.getClass();
-            if (Long.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (long) value);
-            } else if (Double.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (double) value);
-            } else if (Boolean.class.isAssignableFrom(valueClass)) {
-                writer.option(option.getKey(), (boolean) value);
-            } else {
-                writer.option(option.getKey(), (String) value);
-            }
-        }
-
-        writer.save(targetPath);
-
-        if (storeAsSingleFile) {
-            moveFile(sparkContext, targetPath, fileName);
-        }
     }
 }
