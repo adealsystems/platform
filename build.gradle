@@ -27,7 +27,7 @@ buildscript {
         classpath "org.springframework.boot:spring-boot-gradle-plugin:2.3.0.RELEASE"
         classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
         classpath "de.thetaphi:forbiddenapis:3.2"
-        classpath "gradle.plugin.com.github.jengelman.gradle.plugins:shadow:7.0.0"
+        classpath "gradle.plugin.com.github.johnrengelman:shadow:7.1.2"
         classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:2.2.2"
         classpath "gradle.plugin.org.cadixdev.gradle:licenser:0.6.1"
         //classpath "gradle.plugin.org.ec4j.gradle:editorconfig-gradle-plugin:0.0.3"
