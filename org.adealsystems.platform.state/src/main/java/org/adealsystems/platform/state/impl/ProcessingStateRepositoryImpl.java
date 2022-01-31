@@ -45,7 +45,7 @@ public class ProcessingStateRepositoryImpl implements ProcessingStateRepository 
         try (OutputStream os = derived.getOutputStream()) {
             OBJECT_MAPPER.writeValue(os, state);
         } catch (IOException e) {
-            throw new ProcessingStateException("Exception while writing processing state!", e);
+            throw new ProcessingStateException("Exception while writing processing state for " + derived + "!", e);
         }
     }
 
@@ -55,7 +55,7 @@ public class ProcessingStateRepositoryImpl implements ProcessingStateRepository 
         try (InputStream is = derived.getInputStream()) {
             return Optional.of(OBJECT_MAPPER.readValue(is, ProcessingState.class));
         } catch (IOException e) {
-            LOGGER.warn("Exception while reading processing state!", e);
+            LOGGER.warn("Exception while reading processing state for {}!", derived, e);
             return Optional.empty();
         }
     }
@@ -66,7 +66,7 @@ public class ProcessingStateRepositoryImpl implements ProcessingStateRepository 
         try {
             return derived.delete();
         } catch (IOException e) {
-            throw new ProcessingStateException("Exception while deleting processing state!", e);
+            throw new ProcessingStateException("Exception while deleting processing state for " + derived + "!", e);
         }
     }
 
