@@ -10,7 +10,7 @@ project.ext.versions = [
         'scala'    : '2.12',
         'spark'    : '3.1.2',
         'spock'    : '2.0-groovy-3.0',
-        'spring'   : '5.3.14',
+        'spring'   : '5.3.15',
 ]
 
 project.ext.libraries = [
