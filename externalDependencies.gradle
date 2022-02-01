@@ -6,7 +6,7 @@ project.ext.versions = [
         'junit5'   : '5.8.2',
         'logback'  : '1.2.10',
         'parquet'  : '1.12.0',
-        'slf4j'    : '1.7.32',
+        'slf4j'    : '1.7.35',
         'scala'    : '2.12',
         'spark'    : '3.1.2',
         'spock'    : '2.0-groovy-3.0',
