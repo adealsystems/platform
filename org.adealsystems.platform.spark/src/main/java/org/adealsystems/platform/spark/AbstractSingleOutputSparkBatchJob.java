@@ -194,7 +194,8 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         return datasetLogger;
     }
 
-    protected LocalDate getInvocationDate() {
+    @Override
+    public LocalDate getInvocationDate() {
         return invocationDate;
     }
 

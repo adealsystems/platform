@@ -19,6 +19,7 @@ package org.adealsystems.platform.spark;
 import org.adealsystems.platform.process.DataProcessingJob;
 import org.apache.spark.sql.SparkSession;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 public interface SparkDataProcessingJob extends DataProcessingJob, AutoCloseable {
@@ -30,6 +31,8 @@ public interface SparkDataProcessingJob extends DataProcessingJob, AutoCloseable
     void setWriterOptions(Map<String, Object> options);
 
     void setWriterOption(String name, Object value);
+
+    LocalDate getInvocationDate();
 
     /**
      * May only throw RuntimeExceptions.

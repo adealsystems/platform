@@ -188,7 +188,8 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         return datasetLogger;
     }
 
-    protected LocalDate getInvocationDate() {
+    @Override
+    public LocalDate getInvocationDate() {
         return invocationDate;
     }
 
