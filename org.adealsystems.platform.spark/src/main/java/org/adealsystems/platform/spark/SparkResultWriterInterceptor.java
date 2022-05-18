@@ -22,5 +22,5 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
 public interface SparkResultWriterInterceptor {
-    void registerResult(DataLocation outputLocation, DataInstance dataInstance, Dataset<Row> result);
+    DataInstance registerResult(DataLocation outputLocation, DataInstance dataInstance, Dataset<Row> result);
 }

@@ -562,7 +562,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
                 logger.info("NOT registering result of {} because resultWriterInterceptor is null!", dateInstance);
             } else {
                 logger.info("Registering result of {} with resultWriterInterceptor.", dateInstance);
-                resultWriterInterceptor.registerResult(outputLocation, dateInstance, outputDataset);
+                dateInstance = resultWriterInterceptor.registerResult(outputLocation, dateInstance, outputDataset);
             }
 
             writeOutputInternal(dateInstance, outputDataset, storeAsSingleFile, sparkContext, writerOptions);
