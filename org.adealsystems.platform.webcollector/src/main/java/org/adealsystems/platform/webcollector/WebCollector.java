@@ -65,12 +65,11 @@ public class WebCollector<Q, R> {
     }
 
     public synchronized void execute(Iterable<Q> queries, Drain<R> resultDrain, Drain<Metrics<Q>> metricsDrain) {
+        execute(queries, resultDrain, metricsDrain, 24, false);
+    }
+
+    public synchronized void execute(Iterable<Q> queries, Drain<R> resultDrain, Drain<Metrics<Q>> metricsDrain, int awaitTerminationHours, boolean retry) {
         Objects.requireNonNull(queries, "queries must not be null!");
-
-        // clearing queues to enable multiple calls
-        reset();
-
-        ExecutorService producerExecutorService = createProducerExecutorService();
 
         Consumer consumer = new Consumer(resultDrain, metricsDrain);
         Thread consumerThread = new Thread(consumer, "WebCollector-Consumer-Thread");
@@ -78,38 +77,51 @@ public class WebCollector<Q, R> {
         if (LOGGER.isDebugEnabled()) LOGGER.debug("Started consumer thread.");
 
         long startTime = System.nanoTime();
-        for (Q query : queries) {
-            if (failure.get()) {
-                break;
+
+        int producerRetryCountdown = retry ? 1 : 0;
+        while(producerRetryCountdown >= 0) {
+            // clearing queues to enable multiple calls
+            reset();
+
+            ExecutorService producerExecutorService = createProducerExecutorService();
+
+            for (Q query : queries) {
+                if (failure.get()) {
+                    break;
+                }
+                try {
+                    incomingQueue.put(new QueryEntity(query));
+                } catch (InterruptedException e) {
+                    if (LOGGER.isWarnEnabled()) LOGGER.warn("Interrupted!", e);
+                    break;
+                }
             }
+
             try {
-                incomingQueue.put(new QueryEntity(query));
+                // signal that we are done.
+                incomingQueue.put(sentinel);
             } catch (InterruptedException e) {
                 if (LOGGER.isWarnEnabled()) LOGGER.warn("Interrupted!", e);
+            }
+
+            try {
+                // wait until all producers are done.
+                // this means that every producer has seen the sentinel value
+                producerExecutorService.shutdown();
+
+                if (LOGGER.isDebugEnabled()) LOGGER.debug("Waiting for shutdown of producers...");
+                if (!producerExecutorService.awaitTermination(awaitTerminationHours, TimeUnit.HOURS)) {
+                    if (LOGGER.isWarnEnabled()) LOGGER.warn("Awaiting termination failed!");
+                } else {
+                    if (LOGGER.isDebugEnabled()) LOGGER.debug("All producers are done!");
+                    break;
+                }
+            } catch (InterruptedException e) {
+                if (LOGGER.isWarnEnabled()) LOGGER.warn("Awaiting termination interrupted!", e);
                 break;
             }
-        }
 
-        try {
-            // signal that we are done.
-            incomingQueue.put(sentinel);
-        } catch (InterruptedException e) {
-            if (LOGGER.isWarnEnabled()) LOGGER.warn("Interrupted!", e);
-        }
-
-        try {
-            // wait until all producers are done.
-            // this means that every producer has seen the sentinel value
-            producerExecutorService.shutdown();
-
-            if (LOGGER.isDebugEnabled()) LOGGER.debug("Waiting for shutdown of producers...");
-            if (!producerExecutorService.awaitTermination(1, TimeUnit.DAYS)) {
-                if (LOGGER.isWarnEnabled()) LOGGER.warn("Awaiting termination failed!");
-            } else {
-                if (LOGGER.isDebugEnabled()) LOGGER.debug("All producers are done!");
-            }
-        } catch (InterruptedException e) {
-            if (LOGGER.isWarnEnabled()) LOGGER.warn("Awaiting termination interrupted!", e);
+            producerRetryCountdown--;
         }
 
         // no more results will show up.
@@ -127,6 +139,7 @@ public class WebCollector<Q, R> {
         } catch (InterruptedException e) {
             if (LOGGER.isWarnEnabled()) LOGGER.warn("Interrupted while waiting for consumer thread!", e);
         }
+
         if (LOGGER.isInfoEnabled()) {
             long absoluteMillis = (System.nanoTime() - startTime) / MILLIS_IN_NANO;
             long accumulatedMillis = consumer.getAccumulatedMillis();
@@ -151,6 +164,7 @@ public class WebCollector<Q, R> {
                 LOGGER.info("Average per Query (acc)   : {}ms", averageMillisPerQueryAccumulated);
             }
         }
+
         if (failure.get()) {
             WebCollectorException exception = new WebCollectorException("Failed to execute!");
             for (Throwable t : consumer.getThrowables()) {
