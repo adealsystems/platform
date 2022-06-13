@@ -78,6 +78,7 @@ public class WebCollector<Q, R> {
 
         long startTime = System.nanoTime();
 
+        boolean success = false;
         int producerRetryCountdown = retry ? 1 : 0;
         while(producerRetryCountdown >= 0) {
             // clearing queues to enable multiple calls
@@ -110,18 +111,25 @@ public class WebCollector<Q, R> {
                 producerExecutorService.shutdown();
 
                 if (LOGGER.isDebugEnabled()) LOGGER.debug("Waiting for shutdown of producers...");
-                if (!producerExecutorService.awaitTermination(awaitTerminationHours, TimeUnit.HOURS)) {
-                    if (LOGGER.isWarnEnabled()) LOGGER.warn("Awaiting termination failed!");
-                } else {
+                if (producerExecutorService.awaitTermination(awaitTerminationHours, TimeUnit.HOURS)) {
                     if (LOGGER.isDebugEnabled()) LOGGER.debug("All producers are done!");
-                    break;
+                    success = true;
+                    break; // success
                 }
+
+                if (LOGGER.isWarnEnabled()) LOGGER.warn("Awaiting termination failed!");
+                List<Runnable> incompleteTasks = producerExecutorService.shutdownNow();
+                if (LOGGER.isWarnEnabled()) LOGGER.warn("{} incomplete tasks: {}", incompleteTasks.size(), incompleteTasks);
             } catch (InterruptedException e) {
                 if (LOGGER.isWarnEnabled()) LOGGER.warn("Awaiting termination interrupted!", e);
                 break;
             }
 
             producerRetryCountdown--;
+        }
+
+        if (!success && LOGGER.isWarnEnabled()) {
+            LOGGER.warn("Identified some incomplete producer tasks after retry");
         }
 
         // no more results will show up.
