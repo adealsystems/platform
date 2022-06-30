@@ -564,7 +564,13 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         DataResolver dataResolver = getOutputDataResolver();
 
         getDatasetLogger().showInfo("About to write the following data for " + outputIdentifier, outputDataset);
+
         outputDataset = outputDataset.repartition(1); // always repartition(1) before writing!
+
+        if (writeMode == WriteMode.BOTH) {
+            outputDataset = outputDataset.cache(); // optimize for multiple outputs
+        }
+
         if (writeMode == WriteMode.DATE || writeMode == WriteMode.BOTH) {
             DataInstance dateInstance = dataResolver.createDateInstance(outputIdentifier, invocationDate);
 
@@ -636,7 +642,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         // https://spark.apache.org/docs/3.0.1/api/java/org/apache/spark/sql/DataFrameWriter.html#csv-java.lang.String-
         return sparkSession.read()
             .option("header", "true")
-            .option("inferSchema", "true")
+            //            .option("inferSchema", "true")
             .option("quote", "\"")
             .option("escape", "\"")
             .option("sep", delimiter)
