@@ -40,8 +40,11 @@ public class DataIdentifierCreationException extends IllegalArgumentException {
         return value;
     }
 
+
     @Override
     public String toString() {
-        return "DataIdentifierCreationException{} " + super.toString();
+        return "DataIdentifierCreationException{" +
+            "value='" + value + '\'' +
+            "} " + super.toString();
     }
 }
