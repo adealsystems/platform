@@ -70,7 +70,7 @@ def platformIoLine = project(':org.adealsystems.platform.io.line') {
     }
 }
 
-project(':org.adealsystems.platform.io.csv') {
+def platformIoCsv = project(':org.adealsystems.platform.io.csv') {
     dependencies {
         implementation platformIo
         implementation platformIoCompression
@@ -80,7 +80,7 @@ project(':org.adealsystems.platform.io.csv') {
     }
 }
 
-project(':org.adealsystems.platform.io.json') {
+def platformIoJson = project(':org.adealsystems.platform.io.json') {
     dependencies {
         implementation platformIo
         implementation platformIoCompression
@@ -89,7 +89,7 @@ project(':org.adealsystems.platform.io.json') {
     }
 }
 
-project(':org.adealsystems.platform.io.avro') {
+def platformIoAvro = project(':org.adealsystems.platform.io.avro') {
     dependencies {
         implementation platformIo
         implementation libraries.'avro'
@@ -100,7 +100,7 @@ project(':org.adealsystems.platform.io.avro') {
     }
 }
 
-project(':org.adealsystems.platform.io.parquet') {
+def platformIoParquet = project(':org.adealsystems.platform.io.parquet') {
     dependencies {
         implementation platformIo
         implementation libraries.'avro'
@@ -244,6 +244,21 @@ project(':org.adealsystems.platform.webcollector') {
         implementation libraries.'httpclient'
         runtimeOnly libraries.'httpcore'
         testImplementation libraries.'jackson-databind'
+        testRuntimeOnly libraries.'logback-classic'
+        testRuntimeOnly libraries.'jcl-over-slf4j'
+    }
+}
+
+project(':org.adealsystems.platform.sqlcollector') {
+    dependencies {
+        implementation platformIo
+        implementation platformIoCsv
+        // implementation platformIoAvro
+
+        implementation platformTime
+
+        implementation libraries.'commons-csv'
+        implementation libraries.'slf4j-api'
         testRuntimeOnly libraries.'logback-classic'
         testRuntimeOnly libraries.'jcl-over-slf4j'
     }
