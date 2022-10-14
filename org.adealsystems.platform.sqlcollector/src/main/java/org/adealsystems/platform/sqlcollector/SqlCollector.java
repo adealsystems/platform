@@ -322,8 +322,6 @@ public class SqlCollector<Q, R> {
             for (; ; ) {
                 try {
                     QueryEntity queryEntity = incomingQueue.take();
-                    if (LOGGER.isInfoEnabled())
-                        LOGGER.info("Start processing {}, queries remaining in the incoming queue: {}", queryEntity.getQuery(), incomingQueue.size());
 
                     // check sentinel value
                     if (queryEntity.isSentinel()) {
@@ -339,9 +337,19 @@ public class SqlCollector<Q, R> {
                         break;
                     }
 
+                    Q query = queryEntity.getQuery();
+
+                    if (LOGGER.isInfoEnabled()) {
+                        if (query == null) {
+                            LOGGER.info("Remaining queries in the incoming queue: {}", incomingQueue.size()); // NOPMD
+                        }
+                        else {
+                            LOGGER.info("Start processing {}, remaining queries in the incoming queue: {}", query, incomingQueue.size()); // NOPMD
+                        }
+                    }
+
                     queryEntity.setTimestamp(System.currentTimeMillis());
                     long startTime = System.nanoTime();
-                    Q query = queryEntity.getQuery();
                     try (Drain<R> drain = drainFactory.createDrain(query)) {
                         long count = executeQuery(query, drain, metricsDrain);
                         LOGGER.debug("Collected {} entries", count);
