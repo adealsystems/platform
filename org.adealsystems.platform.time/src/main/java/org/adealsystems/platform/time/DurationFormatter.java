@@ -120,12 +120,12 @@ public final class DurationFormatter {
                 continue;
             }
 
-            int length;
-            String key;
             if (matcher.groupCount() != 3) {
                 throw new IllegalArgumentException("Expecting 2 or 3 regex groups, but found " + matcher.groupCount() + "!");
             }
 
+            int length;
+            String key;
             try {
                 length = Integer.parseInt(matcher.group(1));
             }
@@ -158,6 +158,8 @@ public final class DurationFormatter {
                 case MILLISECONDS:
                     result.append(formatValue(millis, length));
                     break;
+                default:
+                    throw new IllegalStateException("Unexpected key '" + key + "'!");
             }
 
             pos = value.indexOf(PARAM);
