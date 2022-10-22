@@ -18,6 +18,7 @@ package org.adealsystems.platform.time
 
 import spock.lang.Specification
 
+
 class DurationFormatterSpec extends Specification {
 
     def 'DurationFormatter works as expected'() {
@@ -29,6 +30,7 @@ class DurationFormatterSpec extends Specification {
 
         where:
         millis                                                                        | format           | expected
+        100                                                                           | '%%%S %'         | '%100 %'
         100                                                                           | '%d:%H:%m:%s:%S' | '0:0:0:0:100'
         999                                                                           | '%d:%H:%m:%s:%S' | '0:0:0:0:999'
         1000                                                                          | '%d:%H:%m:%s:%S' | '0:0:0:1:0'
@@ -44,5 +46,19 @@ class DurationFormatterSpec extends Specification {
         5 * 60 * 60 * 1000 + 15 * 60 * 1000 + 15 * 1000 + 70                          | '%h:%m %t'       | '5:15 am'
         17 * 60 * 60 * 1000 + 15 * 60 * 1000 + 15 * 1000 + 70                         | '%h:%m %t'       | '5:15 pm'
         17 * 60 * 60 * 1000 + 15 * 60 * 1000 + 15 * 1000 + 70                         | '%H:%m'          | '17:15'
+    }
+
+    def 'DurationFormatter with length pattern works as expected'() {
+        when:
+        def value = DurationFormatter.fromMillis(millis).format(format)
+
+        then:
+        value == expected
+
+        where:
+        millis | format               | expected
+        100    | '%d:%2H:%2m:%2s:%3S' | '0:00:00:00:100'
+        999    | '%d:%2H:%2m:%2s:%3S' | '0:00:00:00:999'
+        1      | '%d:%2H:%2m:%2s:%3S' | '0:00:00:00:001'
     }
 }

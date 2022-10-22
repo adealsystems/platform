@@ -17,6 +17,8 @@
 package org.adealsystems.platform.time;
 
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class DurationFormatter {
     private final int days;
@@ -34,6 +36,19 @@ public final class DurationFormatter {
     public static final char MINUTES = 'm';
     public static final char SECONDS = 's';
     public static final char MILLISECONDS = 'S';
+
+    public static final String PATTERN_VALUE = "([2-9][0-9]*)?" +
+        '('
+        + DAYS + '|'
+        + HOURS_12 + '|'
+        + HOURS_24 + '|'
+        + HOUR_ZONE + '|'
+        + MINUTES + '|'
+        + SECONDS + '|'
+        + MILLISECONDS
+        + ')'
+        + "(.*)";
+    public static final Pattern PATTERN = Pattern.compile(PATTERN_VALUE);
 
     private DurationFormatter(int days, int hours, int minutes, int seconds, long millis) {
         this.days = days;
@@ -77,45 +92,71 @@ public final class DurationFormatter {
         StringBuilder result = new StringBuilder();
         int pos = value.indexOf(PARAM);
         while (pos >= 0) {
-            String staticPart = value.substring(0, pos);
-            result.append(staticPart);
-
-            if (pos == value.length()) {
-                result.append(PARAM);
+            if (pos == value.length() - 1) {
+                // special handling: '%' is a last character
                 break;
             }
 
-            char key = value.charAt(pos + 1);
-            value = value.substring(pos + 2);
+            // add static part before placeholder
+            String staticPart = value.substring(0, pos);
+            result.append(staticPart);
 
-            switch (key) {
-                case PARAM:
-                    // '%%' - replace with a single '%'
-                    result.append(PARAM);
-                    break;
+            // remove leading '%'
+            value = value.substring(pos + 1);
+
+            char nextChar = value.charAt(0);
+            if (nextChar == PARAM) {
+                // '%%' - replace with a single '%'
+                result.append(PARAM);
+                value = value.substring(1);
+                pos = value.indexOf(PARAM);
+                continue;
+            }
+
+            Matcher matcher = PATTERN.matcher(value);
+            if (!matcher.matches()) {
+                result.append(PARAM);
+                pos = value.indexOf(PARAM);
+                continue;
+            }
+
+            int length;
+            String key;
+            if (matcher.groupCount() != 3) {
+                throw new IllegalArgumentException("Expecting 2 or 3 regex groups, but found " + matcher.groupCount() + "!");
+            }
+
+            try {
+                length = Integer.parseInt(matcher.group(1));
+            }
+            catch(NumberFormatException ex) {
+                length = -1;
+            }
+
+            key = matcher.group(2);
+            value = matcher.group(3);
+
+            switch (key.charAt(0)) {
                 case DAYS:
-                    result.append(days);
+                    result.append(formatValue(days, length));
                     break;
                 case HOURS_12:
-                    result.append((hours > 12) ? hours - 12 : hours);
+                    result.append(formatValue((hours > 12) ? hours - 12 : hours, length));
                     break;
                 case HOUR_ZONE:
                     result.append((hours > 12) ? "pm" : "am");
                     break;
                 case HOURS_24:
-                    result.append(hours);
+                    result.append(formatValue(hours, length));
                     break;
                 case MINUTES:
-                    result.append(minutes);
+                    result.append(formatValue(minutes, length));
                     break;
                 case SECONDS:
-                    result.append(seconds);
+                    result.append(formatValue(seconds, length));
                     break;
                 case MILLISECONDS:
-                    result.append(millis);
-                    break;
-                default:
-                    result.append(PARAM).append(key);
+                    result.append(formatValue(millis, length));
                     break;
             }
 
@@ -123,6 +164,36 @@ public final class DurationFormatter {
         }
 
         result.append(value);
+
+        return result.toString();
+    }
+
+    private String formatValue(int value, int length) {
+        if (length == -1) {
+            return String.valueOf(value);
+        }
+
+        StringBuilder result = new StringBuilder();
+        result.append(value);
+
+        while (result.length() < length) {
+            result.insert(0, "0");
+        }
+
+        return result.toString();
+    }
+
+    private String formatValue(long value, int length) {
+        if (length == -1) {
+            return String.valueOf(value);
+        }
+
+        StringBuilder result = new StringBuilder();
+        result.append(value);
+
+        while (result.length() < length) {
+            result.insert(0, "0");
+        }
 
         return result.toString();
     }
