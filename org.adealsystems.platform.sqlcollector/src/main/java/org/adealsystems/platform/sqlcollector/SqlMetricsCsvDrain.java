@@ -40,10 +40,10 @@ public class SqlMetricsCsvDrain<Q> extends AbstractCsvDrain<SqlCollector.SqlMetr
                 return metrics.getStartTimestamp().toString();
             case SqlCollector.SqlMetrics.COLUMN_INIT_DURATION:
                 DurationFormatter initDur = DurationFormatter.fromMillis(metrics.getInitDuration());
-                return initDur.format("%2m:%2s");
+                return initDur.format("%2H:%2m:%2s");
             case SqlCollector.SqlMetrics.COLUMN_DELIVERY_DURATION:
                 DurationFormatter deliveryDur = DurationFormatter.fromMillis(metrics.getDeliveryDuration());
-                return deliveryDur.format("%2m:%2s");
+                return deliveryDur.format("%2H:%2m:%2s");
             case SqlCollector.SqlMetrics.COLUMN_END_TIMESTAMP:
                 return metrics.getEndTimestamp().toString();
             case SqlCollector.SqlMetrics.COLUMN_QUERY:
