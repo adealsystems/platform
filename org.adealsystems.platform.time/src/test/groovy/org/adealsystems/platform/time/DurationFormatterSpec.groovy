@@ -21,6 +21,28 @@ import spock.lang.Specification
 
 class DurationFormatterSpec extends Specification {
 
+    def 'Basics of DurationFormatter working as expected'() {
+        when:
+        def value = DurationFormatter.fromMillis(millis).format(format)
+
+        then:
+        value == expected
+
+        where:
+        millis | format    | expected
+        1000   | '%S'      | '1000'
+        1000   | '%s'      | '1'
+        1000   | '%2s'     | '01'
+        999    | '%s.%S'   | '0.999'
+        1000   | '%s.%S'   | '1.0'
+        1001   | '%s.%S'   | '1.1'
+        1001   | '%2s.%3S' | '01.001'
+        1001   | '%S'      | '1001'
+        1001   | '%s'      | '1'
+
+        100    | '%%%S %'  | '%100 %'
+    }
+
     def 'DurationFormatter works as expected'() {
         when:
         def value = DurationFormatter.fromMillis(millis).format(format)
@@ -30,22 +52,18 @@ class DurationFormatterSpec extends Specification {
 
         where:
         millis                                                                        | format           | expected
-        100                                                                           | '%%%S %'         | '%100 %'
-        100                                                                           | '%d:%H:%m:%s:%S' | '0:0:0:0:100'
-        999                                                                           | '%d:%H:%m:%s:%S' | '0:0:0:0:999'
-        1000                                                                          | '%d:%H:%m:%s:%S' | '0:0:0:1:0'
-        1001                                                                          | '%d:%H:%m:%s:%S' | '0:0:0:1:1'
-        15 * 1000                                                                     | '%d:%H:%m:%s:%S' | '0:0:0:15:0'
-        15 * 1000 + 70                                                                | '%d:%H:%m:%s:%S' | '0:0:0:15:70'
-        3 * 60 * 1000 + 15 * 1000 + 70                                                | '%d:%H:%m:%s:%S' | '0:0:3:15:70'
-        5 * 60 * 60 * 1000 + 3 * 60 * 1000 + 15 * 1000 + 70                           | '%d:%H:%m:%s:%S' | '0:5:3:15:70'
-        7 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000 + 3 * 60 * 1000 + 15 * 1000 + 70 | '%d:%H:%m:%s:%S' | '7:5:3:15:70'
+        100                                                                           | '%d:%h:%m:%s:%S' | '0:0:0:0:100'
+        999                                                                           | '%d:%h:%m:%s:%S' | '0:0:0:0:999'
+        1000                                                                          | '%d:%h:%m:%s:%S' | '0:0:0:1:0'
+        1001                                                                          | '%d:%h:%m:%s:%S' | '0:0:0:1:1'
+        15 * 1000                                                                     | '%d:%h:%m:%s:%S' | '0:0:0:15:0'
+        15 * 1000 + 70                                                                | '%d:%h:%m:%s:%S' | '0:0:0:15:70'
+        3 * 60 * 1000 + 15 * 1000 + 70                                                | '%d:%h:%m:%s:%S' | '0:0:3:15:70'
+        5 * 60 * 60 * 1000 + 3 * 60 * 1000 + 15 * 1000 + 70                           | '%d:%h:%m:%s:%S' | '0:5:3:15:70'
+        7 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000 + 3 * 60 * 1000 + 15 * 1000 + 70 | '%d:%h:%m:%s:%S' | '7:5:3:15:70'
 
-        5 * 60 * 60 * 1000 + 15 * 60 * 1000 + 15 * 1000 + 70                          | '%Hh %mm'        | '5h 15m'
         5 * 60 * 60 * 1000 + 15 * 60 * 1000 + 15 * 1000 + 70                          | '%hh %mm'        | '5h 15m'
-        5 * 60 * 60 * 1000 + 15 * 60 * 1000 + 15 * 1000 + 70                          | '%h:%m %t'       | '5:15 am'
-        17 * 60 * 60 * 1000 + 15 * 60 * 1000 + 15 * 1000 + 70                         | '%h:%m %t'       | '5:15 pm'
-        17 * 60 * 60 * 1000 + 15 * 60 * 1000 + 15 * 1000 + 70                         | '%H:%m'          | '17:15'
+        17 * 60 * 60 * 1000 + 15 * 60 * 1000 + 15 * 1000 + 70                         | '%h:%m'          | '17:15'
     }
 
     def 'DurationFormatter with length pattern works as expected'() {
@@ -57,8 +75,8 @@ class DurationFormatterSpec extends Specification {
 
         where:
         millis | format               | expected
-        100    | '%d:%2H:%2m:%2s:%3S' | '0:00:00:00:100'
-        999    | '%d:%2H:%2m:%2s:%3S' | '0:00:00:00:999'
-        1      | '%d:%2H:%2m:%2s:%3S' | '0:00:00:00:001'
+        100    | '%d:%2h:%2m:%2s:%3S' | '0:00:00:00:100'
+        999    | '%d:%2h:%2m:%2s:%3S' | '0:00:00:00:999'
+        1      | '%d:%2h:%2m:%2s:%3S' | '0:00:00:00:001'
     }
 }

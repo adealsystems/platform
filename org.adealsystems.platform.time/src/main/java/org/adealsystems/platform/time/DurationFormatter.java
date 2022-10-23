@@ -16,6 +16,12 @@
 
 package org.adealsystems.platform.time;
 
+import org.apache.commons.text.StringSubstitutor;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,19 +36,22 @@ public final class DurationFormatter {
     public static final char PARAM = '%';
 
     public static final char DAYS = 'd';
-    public static final char HOURS_12 = 'h';
-    public static final char HOURS_24 = 'H';
-    public static final char HOUR_ZONE = 't';
+    public static final char HOURS = 'h';
     public static final char MINUTES = 'm';
     public static final char SECONDS = 's';
     public static final char MILLISECONDS = 'S';
+    public static final List<Character> ORDERED_PARAMS = Arrays.asList(
+        DAYS,
+        HOURS,
+        MINUTES,
+        SECONDS,
+        MILLISECONDS
+    );
 
     public static final String PATTERN_VALUE = "([2-9][0-9]*)?" +
         '('
         + DAYS + '|'
-        + HOURS_12 + '|'
-        + HOURS_24 + '|'
-        + HOUR_ZONE + '|'
+        + HOURS + '|'
         + MINUTES + '|'
         + SECONDS + '|'
         + MILLISECONDS
@@ -88,6 +97,9 @@ public final class DurationFormatter {
 
     public String format(String pattern) {
         String value = pattern;
+
+        Map<String, String> placeholders = new HashMap<>();
+        int highestIndex = Integer.MAX_VALUE;
 
         StringBuilder result = new StringBuilder();
         int pos = value.indexOf(PARAM);
@@ -138,25 +150,29 @@ public final class DurationFormatter {
 
             switch (key.charAt(0)) {
                 case DAYS:
-                    result.append(formatValue(days, length));
+                    highestIndex = ORDERED_PARAMS.indexOf(DAYS);
+                    placeholders.put("DAYS", formatValue(days, length));
+                    result.append("${DAYS}");
                     break;
-                case HOURS_12:
-                    result.append(formatValue((hours > 12) ? hours - 12 : hours, length));
-                    break;
-                case HOUR_ZONE:
-                    result.append((hours > 12) ? "pm" : "am");
-                    break;
-                case HOURS_24:
-                    result.append(formatValue(hours, length));
+                case HOURS:
+                    highestIndex = Math.min(highestIndex, ORDERED_PARAMS.indexOf(HOURS));
+                    placeholders.put("HOURS", formatValue(hours, length));
+                    result.append("${HOURS}");
                     break;
                 case MINUTES:
-                    result.append(formatValue(minutes, length));
+                    highestIndex = Math.min(highestIndex, ORDERED_PARAMS.indexOf(MINUTES));
+                    placeholders.put("MINUTES", formatValue(minutes, length));
+                    result.append("${MINUTES}");
                     break;
                 case SECONDS:
-                    result.append(formatValue(seconds, length));
+                    highestIndex = Math.min(highestIndex, ORDERED_PARAMS.indexOf(SECONDS));
+                    placeholders.put("SECONDS", formatValue(seconds, length));
+                    result.append("${SECONDS}");
                     break;
                 case MILLISECONDS:
-                    result.append(formatValue(millis, length));
+                    highestIndex = Math.min(highestIndex, ORDERED_PARAMS.indexOf(MILLISECONDS));
+                    placeholders.put("MILLIS", formatValue(millis, length));
+                    result.append("${MILLIS}");
                     break;
                 default:
                     throw new IllegalStateException("Unexpected key '" + key + "'!");
@@ -167,7 +183,54 @@ public final class DurationFormatter {
 
         result.append(value);
 
-        return result.toString();
+        switch (highestIndex) {
+            case 0:
+                // DAYS
+                break;
+            case 1:
+                // HOURS
+                if (days > 0) {
+                    placeholders.put("HOURS", formatValue(
+                        (long) days * 24
+                            + hours, 2));
+                }
+                break;
+            case 2:
+                // MINUTES
+                if (days > 0 || hours > 0) {
+                    placeholders.put("MINUTES", formatValue(
+                        (long) days * 24
+                            + (long) hours * 60
+                            + minutes, 2));
+                }
+                break;
+            case 3:
+                // SECONDS
+                if (days > 0 || hours > 0 || minutes > 0) {
+                    placeholders.put("SECONDS", formatValue(
+                        (long) days * 24
+                            + (long) hours * 60
+                            + (long) minutes * 60
+                            + seconds, 2));
+                }
+                break;
+            case 4:
+                // MILLIS
+                if (days > 0 || hours > 0 || minutes > 0 || seconds > 0) {
+                    placeholders.put("MILLIS", formatValue(
+                        (long) days * 24
+                            + (long) hours * 60
+                            + (long) minutes * 60
+                            + (long) seconds * 1000
+                            + millis, 2));
+                }
+                break;
+            default:
+                // nothing to do
+                break;
+        }
+
+        return StringSubstitutor.replace(result.toString(), placeholders);
     }
 
     private String formatValue(int value, int length) {

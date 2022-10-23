@@ -10,6 +10,7 @@ def platformTime = project(':org.adealsystems.platform.time') {
     description = "Time-related code"
     dependencies {
         implementation libraries.'slf4j-api'
+        implementation libraries.'commons-text'
     }
 }
 
