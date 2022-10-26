@@ -379,6 +379,8 @@ public class SqlCollector<Q, R> {
         public static final String COLUMN_DELIVERY_DURATION = "DELIVERY_DURATION";
         public static final String COLUMN_END_TIMESTAMP = "END_TIMESTAMP";
         public static final String COLUMN_QUERY = "QUERY";
+        public static final String COLUMN_SUCCESS = "SUCCESS";
+        public static final String COLUMN_MESSAGE = "MESSAGE";
 
         public static final String[] COLUMNS = {
             COLUMN_ID,
@@ -388,6 +390,8 @@ public class SqlCollector<Q, R> {
             COLUMN_DELIVERY_DURATION,
             COLUMN_END_TIMESTAMP,
             COLUMN_QUERY,
+            COLUMN_SUCCESS,
+            COLUMN_MESSAGE,
         };
 
         private final String id;
@@ -397,6 +401,8 @@ public class SqlCollector<Q, R> {
         private final long deliveryDuration;
         private final LocalDateTime endTimestamp;
         private final Q query;
+        private final boolean success;
+        private final String message;
 
         public SqlMetrics(
             String id,
@@ -414,6 +420,30 @@ public class SqlCollector<Q, R> {
             this.deliveryDuration = deliveryDuration;
             this.endTimestamp = Objects.requireNonNull(endTimestamp, "endTimestamp must not be null!");
             this.query = Objects.requireNonNull(query, "query must not be null!");
+            this.success = true;
+            this.message = null;
+        }
+
+        public SqlMetrics(
+            String id,
+            long resultCount,
+            LocalDateTime startTimestamp,
+            long initDuration,
+            long deliveryDuration,
+            LocalDateTime endTimestamp,
+            Q query,
+            boolean success,
+            String message
+        ) {
+            this.id = Objects.requireNonNull(id, "id must not be null!");
+            this.resultCount = resultCount;
+            this.startTimestamp = Objects.requireNonNull(startTimestamp, "startTimestamp must not be null!");
+            this.initDuration = initDuration;
+            this.deliveryDuration = deliveryDuration;
+            this.endTimestamp = Objects.requireNonNull(endTimestamp, "endTimestamp must not be null!");
+            this.query = Objects.requireNonNull(query, "query must not be null!");
+            this.success = success;
+            this.message = message;
         }
 
         public String getId() {
@@ -444,6 +474,14 @@ public class SqlCollector<Q, R> {
             return query;
         }
 
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -452,15 +490,16 @@ public class SqlCollector<Q, R> {
             return resultCount == that.resultCount
                 && initDuration == that.initDuration
                 && deliveryDuration == that.deliveryDuration
-                && Objects.equals(id, that.id)
+                && success == that.success && Objects.equals(id, that.id)
                 && Objects.equals(startTimestamp, that.startTimestamp)
                 && Objects.equals(endTimestamp, that.endTimestamp)
-                && Objects.equals(query, that.query);
+                && Objects.equals(query, that.query)
+                && Objects.equals(message, that.message);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(id, resultCount, startTimestamp, initDuration, deliveryDuration, endTimestamp, query);
+            return Objects.hash(id, resultCount, startTimestamp, initDuration, deliveryDuration, endTimestamp, query, success, message);
         }
 
         @Override
@@ -473,6 +512,8 @@ public class SqlCollector<Q, R> {
                 ", deliveryDuration=" + deliveryDuration +
                 ", endTimestamp=" + endTimestamp +
                 ", query=" + query +
+                ", success=" + success +
+                ", message='" + message + '\'' +
                 '}';
         }
     }

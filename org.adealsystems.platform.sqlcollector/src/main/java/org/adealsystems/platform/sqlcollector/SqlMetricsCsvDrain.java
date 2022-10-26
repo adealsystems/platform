@@ -48,6 +48,10 @@ public class SqlMetricsCsvDrain<Q> extends AbstractCsvDrain<SqlCollector.SqlMetr
                 return metrics.getEndTimestamp().toString();
             case SqlCollector.SqlMetrics.COLUMN_QUERY:
                 return metrics.getQuery().toString();
+            case SqlCollector.SqlMetrics.COLUMN_SUCCESS:
+                return String.valueOf(metrics.isSuccess());
+            case SqlCollector.SqlMetrics.COLUMN_MESSAGE:
+                return metrics.getMessage();
             default:
                 throw new IllegalArgumentException("Unknown/unsupported column name '" + columnName + "'!");
         }
