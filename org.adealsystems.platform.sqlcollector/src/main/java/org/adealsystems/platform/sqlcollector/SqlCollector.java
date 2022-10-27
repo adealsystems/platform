@@ -43,6 +43,7 @@ public class SqlCollector<Q, R> {
     private final ThreadLocal<SqlClientBundle> clientBundleThreadLocal = new ThreadLocal<>();
     private final BlockingQueue<QueryEntity> incomingQueue;
     private final BlockingQueue<QueryEntity> failedQueue;
+    private final BlockingQueue<Q> successQueue;
     private final QueryEntity sentinel = new QueryEntity();
     private final SqlClientFactory clientFactory;
     private final SqlQuery<Q, R> sqlQuery;
@@ -67,6 +68,7 @@ public class SqlCollector<Q, R> {
 
         incomingQueue = new ArrayBlockingQueue<>(queueSize);
         failedQueue = new ArrayBlockingQueue<>(queueSize);
+        successQueue = new ArrayBlockingQueue<>(queueSize);
 
         this.maxRetries = 5; // TODO: parameter, check
     }
@@ -90,6 +92,11 @@ public class SqlCollector<Q, R> {
             for (Q query : queries) {
                 if (failure.get()) {
                     break;
+                }
+
+                if (successQueue.contains(query)) {
+                    LOGGER.info("Skipping already processed query {}", query);
+                    continue;
                 }
 
                 try {
@@ -353,6 +360,9 @@ public class SqlCollector<Q, R> {
                     try (Drain<R> drain = drainFactory.createDrain(query)) {
                         long count = executeQuery(query, drain, metricsDrain);
                         LOGGER.debug("Collected {} entries", count);
+                        if (query != null) {
+                            successQueue.add(query);
+                        }
                     } catch (Throwable e) {
                         if (LOGGER.isWarnEnabled()) LOGGER.warn("Exception while performing query {}!", queryEntity, e);
                         failure.set(true);
