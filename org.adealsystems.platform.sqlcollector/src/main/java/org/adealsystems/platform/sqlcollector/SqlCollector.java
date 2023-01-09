@@ -24,12 +24,16 @@ import org.slf4j.LoggerFactory;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -50,7 +54,7 @@ public class SqlCollector<Q, R> {
     private final DrainFactory<Q, R> drainFactory;
     private final Drain<SqlMetrics<Q>> metricsDrain;
     private final DataSource dataSource;
-    private final int maxRetries;
+    private final ExecutorService supervisorExecutor;
 
     public SqlCollector(
         DataSource dataSource,
@@ -66,11 +70,11 @@ public class SqlCollector<Q, R> {
         this.drainFactory = Objects.requireNonNull(drainFactory, "drainFactory must not be null!");
         this.metricsDrain = metricsDrain;
 
+        this.supervisorExecutor = Executors.newSingleThreadExecutor();
+
         incomingQueue = new ArrayBlockingQueue<>(queueSize);
         failedQueue = new ArrayBlockingQueue<>(queueSize);
         successQueue = new ArrayBlockingQueue<>(queueSize);
-
-        this.maxRetries = 5; // TODO: parameter, check
     }
 
     public synchronized void reset() {
@@ -134,6 +138,9 @@ public class SqlCollector<Q, R> {
                 if (LOGGER.isWarnEnabled()) LOGGER.warn("Awaiting termination interrupted!", e);
                 break;
             }
+            finally {
+                supervisorExecutor.shutdownNow();
+            }
 
             workerRetryCountdown--;
         }
@@ -165,13 +172,20 @@ public class SqlCollector<Q, R> {
 
     @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     private ExecutorService createExecutorService() {
-        ExecutorService result = Executors.newFixedThreadPool(WORKER_THREAD_COUNT);
+        ExecutorService executor = Executors.newFixedThreadPool(WORKER_THREAD_COUNT);
+
+        Supervisor supervisor = new Supervisor(executor);
+
+        // start all workers
         for (int i = 0; i < WORKER_THREAD_COUNT; i++) {
-            result.execute(new Worker());
+            supervisor.addNewWorker();
         }
 
+        // start the supervisor
+        supervisorExecutor.execute(supervisor);
+
         if (LOGGER.isDebugEnabled()) LOGGER.debug("Registered {} workers.", WORKER_THREAD_COUNT);
-        return result;
+        return executor;
     }
 
     private class QueryEntity {
@@ -272,7 +286,7 @@ public class SqlCollector<Q, R> {
     @SuppressWarnings("PMD.CloseResource")
     private long executeQuery(Q query, Drain<R> resultDrain, Drain<SqlMetrics<Q>> metricsDrain) {
         Throwable throwable = null;
-        for (int i = 0; i < maxRetries; i++) {
+        for (int i = 0; i < sqlQuery.getMaxRetries(); i++) {
             try {
                 SqlClientBundle clientBundle = resolveClientBundle();
                 return sqlQuery.perform(clientBundle, query, resultDrain, metricsDrain);
@@ -284,7 +298,7 @@ public class SqlCollector<Q, R> {
             // next call to resolveClient returns a fresh instance
             resetClientBundle();
         }
-        if (LOGGER.isWarnEnabled()) LOGGER.warn("Bailing out after {} retries: {}", maxRetries, query);
+        if (LOGGER.isWarnEnabled()) LOGGER.warn("Bailing out after {} retries: {}", sqlQuery.getMaxRetries(), query);
         throw new SqlCollectorException("Failed to execute " + query + "!", throwable);
     }
 
@@ -295,7 +309,8 @@ public class SqlCollector<Q, R> {
             // via call to resetClientBundle()
             result = clientFactory.createInstance(dataSource);
             clientBundleThreadLocal.set(result);
-            if (LOGGER.isDebugEnabled()) LOGGER.debug("Created fresh client with data-source {}.", result.getDataSource());
+            if (LOGGER.isDebugEnabled())
+                LOGGER.debug("Created fresh client with data-source {}.", result.getDataSource());
         }
 
         return result;
@@ -323,10 +338,70 @@ public class SqlCollector<Q, R> {
         }
     }
 
-    private class Worker implements Runnable {
+    private class Supervisor implements Runnable {
+        private final ExecutorService executor;
+        private final Set<WorkerBundle> workers = new HashSet<>();
+
+        private Supervisor(ExecutorService executor) {
+            this.executor = executor;
+        }
+
+        public void addNewWorker() {
+            Worker worker = new Worker();
+            Future<?> future = executor.submit(worker);
+            workers.add(new WorkerBundle(worker, future));
+        }
+
         @Override
         public void run() {
-            for (; ; ) {
+            long maxDuration = sqlQuery.getMaxExecutionTime();
+
+            while (true) {
+                if (LOGGER.isInfoEnabled()) LOGGER.info("Starting worker verification");
+
+                long current = System.currentTimeMillis();
+
+                Iterator<WorkerBundle> iter = workers.iterator();
+                while (iter.hasNext()) {
+                    WorkerBundle bundle = iter.next();
+                    Worker worker = bundle.worker;
+
+                    Long workerStartTimestamp = worker.getStartQueryTimestamp();
+                    if (workerStartTimestamp == null) {
+                        if (LOGGER.isDebugEnabled()) LOGGER.debug("worker is waiting or starting a new query");
+                        continue;
+                    }
+
+                    if (current - worker.startQueryTimestamp <= maxDuration) {
+                        if (LOGGER.isDebugEnabled()) LOGGER.debug("worker is executing query and has enough time");
+                        continue;
+                    }
+
+                    if (LOGGER.isInfoEnabled())
+                        LOGGER.info("Query execution exceeds specified timeout of {} ms and will be cancelled", maxDuration);
+                    Future<?> future = bundle.future;
+                    future.cancel(true);
+                    iter.remove();
+
+                    addNewWorker();
+                }
+
+                try {
+                    Thread.sleep(1_000);
+                } catch (InterruptedException ex) {
+                    return;
+                }
+            }
+        }
+    }
+
+    private class Worker implements Runnable {
+
+        private Long startQueryTimestamp = null;
+
+        @Override
+        public void run() {
+            while (true) {
                 try {
                     QueryEntity queryEntity = incomingQueue.take();
 
@@ -349,13 +424,13 @@ public class SqlCollector<Q, R> {
                     if (LOGGER.isInfoEnabled()) {
                         if (query == null) {
                             LOGGER.info("Remaining queries in the incoming queue: {}", incomingQueue.size()); // NOPMD
-                        }
-                        else {
+                        } else {
                             LOGGER.info("Start processing {}, remaining queries in the incoming queue: {}", query, incomingQueue.size()); // NOPMD
                         }
                     }
 
-                    queryEntity.setTimestamp(System.currentTimeMillis());
+                    startQueryTimestamp = System.currentTimeMillis();
+                    queryEntity.setTimestamp(startQueryTimestamp);
                     long startTime = System.nanoTime();
                     try (Drain<R> drain = drainFactory.createDrain(query)) {
                         long count = executeQuery(query, drain, metricsDrain);
@@ -368,16 +443,32 @@ public class SqlCollector<Q, R> {
                         failure.set(true);
                         queryEntity.setThrowable(e);
                         failedQueue.put(queryEntity);
+                    } finally {
+                        startQueryTimestamp = null;
                     }
                     queryEntity.setDuration((System.nanoTime() - startTime) / MILLIS_IN_NANO);
-                } catch (InterruptedException e) {
-                    LOGGER.warn("Interrupted!", e);
+                } catch (InterruptedException ex) {
+                    LOGGER.warn("Interrupted!", ex);
                     break;
                 }
             }
 
             // get rid of lingering client since we are done
             resetClientBundle();
+        }
+
+        public Long getStartQueryTimestamp() {
+            return startQueryTimestamp;
+        }
+    }
+
+    private class WorkerBundle {
+        private final Worker worker;
+        private final Future<?> future;
+
+        WorkerBundle(Worker worker, Future<?> future) {
+            this.worker = worker;
+            this.future = future;
         }
     }
 
