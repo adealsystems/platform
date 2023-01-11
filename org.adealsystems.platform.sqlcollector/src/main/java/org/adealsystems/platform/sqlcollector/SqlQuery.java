@@ -19,9 +19,19 @@ package org.adealsystems.platform.sqlcollector;
 import org.adealsystems.platform.io.Drain;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public interface SqlQuery<Q, R> {
+
     long getMaxExecutionTime();
+
     int getMaxRetries();
-    long perform(SqlClientBundle sqlClientBundle, Q query, Drain<R> resultDrain, Drain<SqlCollector.SqlMetrics<Q>> metricsDrain) throws IOException;
+
+    long perform(
+        SqlClientBundle sqlClientBundle,
+        Q query,
+        Drain<R> resultDrain,
+        Drain<SqlCollector.SqlMetrics<Q>> metricsDrain,
+        AtomicBoolean cancelFlag
+    ) throws IOException;
 }

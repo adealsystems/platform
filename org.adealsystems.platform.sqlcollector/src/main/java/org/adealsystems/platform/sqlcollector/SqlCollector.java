@@ -18,6 +18,7 @@ package org.adealsystems.platform.sqlcollector;
 
 import org.adealsystems.platform.io.Drain;
 import org.adealsystems.platform.io.DrainFactory;
+import org.adealsystems.platform.time.DurationFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +26,6 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -33,7 +33,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -42,6 +41,7 @@ public class SqlCollector<Q, R> {
 
     private static final int MILLIS_IN_NANO = 1_000_000;
     private static final int WORKER_THREAD_COUNT = 4;
+    private static final long SUPERVISOR_CHECK_INTERVAL = 60 * 1_000; // 60 seconds
 
     private final AtomicBoolean failure = new AtomicBoolean();
     private final ThreadLocal<SqlClientBundle> clientBundleThreadLocal = new ThreadLocal<>();
@@ -85,13 +85,24 @@ public class SqlCollector<Q, R> {
     public synchronized void execute(Iterable<Q> queries, int awaitTerminationHours, boolean retry) {
         Objects.requireNonNull(queries, "queries must not be null!");
 
+        Supervisor supervisor = new Supervisor();
+        supervisorExecutor.execute(supervisor);
+
         boolean success = false;
         int workerRetryCountdown = retry ? 1 : 0;
         while (workerRetryCountdown >= 0) {
             // clearing queues to enable multiple calls
             reset();
 
-            ExecutorService executorService = createExecutorService();
+            ExecutorService workerExecutor = Executors.newFixedThreadPool(2 * WORKER_THREAD_COUNT);
+            supervisor.setWorkerExecutor(workerExecutor);
+
+            // start all workers
+            for (int i = 0; i < WORKER_THREAD_COUNT; i++) {
+                supervisor.addNewWorker();
+            }
+
+            LOGGER.debug("Registered {} workers.", WORKER_THREAD_COUNT);
 
             for (Q query : queries) {
                 if (failure.get()) {
@@ -106,7 +117,7 @@ public class SqlCollector<Q, R> {
                 try {
                     incomingQueue.put(new QueryEntity(query));
                 } catch (InterruptedException e) {
-                    if (LOGGER.isWarnEnabled()) LOGGER.warn("Interrupted!", e);
+                    LOGGER.warn("Interrupted!", e);
                     break;
                 }
             }
@@ -115,30 +126,30 @@ public class SqlCollector<Q, R> {
                 // signal that we are done.
                 incomingQueue.put(sentinel);
             } catch (InterruptedException e) {
-                if (LOGGER.isWarnEnabled()) LOGGER.warn("Interrupted!", e);
+                LOGGER.warn("Interrupted!", e);
             }
 
             try {
                 // wait until all workers are done.
                 // this means that every worker has seen the sentinel value
-                executorService.shutdown();
+                workerExecutor.shutdown();
 
-                if (LOGGER.isDebugEnabled()) LOGGER.debug("Waiting for shutdown of workers...");
-                if (executorService.awaitTermination(awaitTerminationHours, TimeUnit.HOURS)) {
-                    if (LOGGER.isDebugEnabled()) LOGGER.debug("All workers are done!");
+                LOGGER.debug("Waiting for shutdown of workers...");
+                if (workerExecutor.awaitTermination(awaitTerminationHours, TimeUnit.HOURS)) {
+                    LOGGER.debug("All workers are done!");
                     success = true;
                     break; // success
                 }
 
-                if (LOGGER.isWarnEnabled()) LOGGER.warn("Awaiting termination failed!");
-                List<Runnable> incompleteTasks = executorService.shutdownNow();
+                LOGGER.warn("Awaiting termination failed!");
+                List<Runnable> incompleteTasks = workerExecutor.shutdownNow();
                 if (LOGGER.isWarnEnabled())
                     LOGGER.warn("{} incomplete tasks: {}", incompleteTasks.size(), incompleteTasks);
             } catch (InterruptedException e) {
-                if (LOGGER.isWarnEnabled()) LOGGER.warn("Awaiting termination interrupted!", e);
+                LOGGER.warn("Awaiting termination interrupted!", e);
                 break;
-            }
-            finally {
+            } finally {
+                supervisor.stop();
                 supervisorExecutor.shutdownNow();
             }
 
@@ -157,7 +168,7 @@ public class SqlCollector<Q, R> {
                 try {
                     queryEntity = failedQueue.take();
                 } catch (InterruptedException ex) {
-                    if (LOGGER.isWarnEnabled()) LOGGER.warn("Interrupted!", ex);
+                    LOGGER.warn("Interrupted!", ex);
                     break;
                 }
 
@@ -168,24 +179,6 @@ public class SqlCollector<Q, R> {
             }
             throw exception;
         }
-    }
-
-    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
-    private ExecutorService createExecutorService() {
-        ExecutorService executor = Executors.newFixedThreadPool(WORKER_THREAD_COUNT);
-
-        Supervisor supervisor = new Supervisor(executor);
-
-        // start all workers
-        for (int i = 0; i < WORKER_THREAD_COUNT; i++) {
-            supervisor.addNewWorker();
-        }
-
-        // start the supervisor
-        supervisorExecutor.execute(supervisor);
-
-        if (LOGGER.isDebugEnabled()) LOGGER.debug("Registered {} workers.", WORKER_THREAD_COUNT);
-        return executor;
     }
 
     private class QueryEntity {
@@ -283,21 +276,21 @@ public class SqlCollector<Q, R> {
         }
     }
 
-    @SuppressWarnings("PMD.CloseResource")
-    private long executeQuery(Q query, Drain<R> resultDrain, Drain<SqlMetrics<Q>> metricsDrain) {
+    private long executeQuery(Q query, Drain<R> resultDrain, Drain<SqlMetrics<Q>> metricsDrain, AtomicBoolean cancelFlag) {
         Throwable throwable = null;
         for (int i = 0; i < sqlQuery.getMaxRetries(); i++) {
             try {
                 SqlClientBundle clientBundle = resolveClientBundle();
-                return sqlQuery.perform(clientBundle, query, resultDrain, metricsDrain);
+                return sqlQuery.perform(clientBundle, query, resultDrain, metricsDrain, cancelFlag);
             } catch (Throwable e) {
                 throwable = e;
-                if (LOGGER.isWarnEnabled()) LOGGER.warn("Failed to perform query {}!", query, throwable);
+                LOGGER.warn("Failed to perform query {}!", query, throwable);
             }
             // get rid of previous client after an error occurred
             // next call to resolveClient returns a fresh instance
             resetClientBundle();
         }
+
         if (LOGGER.isWarnEnabled()) LOGGER.warn("Bailing out after {} retries: {}", sqlQuery.getMaxRetries(), query);
         throw new SqlCollectorException("Failed to execute " + query + "!", throwable);
     }
@@ -332,64 +325,78 @@ public class SqlCollector<Q, R> {
                     conn.close();
                 }
             }
-            if (LOGGER.isDebugEnabled()) LOGGER.debug("Closed client.");
+            LOGGER.debug("Closed client.");
         } catch (Throwable t) {
-            if (LOGGER.isWarnEnabled()) LOGGER.warn("Exception while closing client!", t);
+            LOGGER.warn("Exception while closing client!", t);
         }
     }
 
     private class Supervisor implements Runnable {
-        private final ExecutorService executor;
-        private final Set<WorkerBundle> workers = new HashSet<>();
+        private final Set<Worker> workers = new HashSet<>();
 
-        private Supervisor(ExecutorService executor) {
-            this.executor = executor;
+        private ExecutorService workerExecutor;
+
+        private final AtomicBoolean running = new AtomicBoolean(true);
+
+        public void setWorkerExecutor(ExecutorService workerExecutor) {
+            this.workerExecutor = Objects.requireNonNull(workerExecutor, "workerExecutor must ot be null!");
+        }
+
+        public void stop() {
+            running.set(false);
         }
 
         public void addNewWorker() {
+            LOGGER.info("Adding a new worker");
             Worker worker = new Worker();
-            Future<?> future = executor.submit(worker);
-            workers.add(new WorkerBundle(worker, future));
+            workerExecutor.execute(worker);
+            workers.add(worker);
         }
 
         @Override
         public void run() {
             long maxDuration = sqlQuery.getMaxExecutionTime();
 
-            while (true) {
-                if (LOGGER.isInfoEnabled()) LOGGER.info("Starting worker verification");
-
-                long current = System.currentTimeMillis();
-
-                Iterator<WorkerBundle> iter = workers.iterator();
-                while (iter.hasNext()) {
-                    WorkerBundle bundle = iter.next();
-                    Worker worker = bundle.worker;
-
-                    Long workerStartTimestamp = worker.getStartQueryTimestamp();
-                    if (workerStartTimestamp == null) {
-                        if (LOGGER.isDebugEnabled()) LOGGER.debug("worker is waiting or starting a new query");
-                        continue;
-                    }
-
-                    if (current - worker.startQueryTimestamp <= maxDuration) {
-                        if (LOGGER.isDebugEnabled()) LOGGER.debug("worker is executing query and has enough time");
-                        continue;
-                    }
-
-                    if (LOGGER.isInfoEnabled())
-                        LOGGER.info("Query execution exceeds specified timeout of {} ms and will be cancelled", maxDuration);
-                    Future<?> future = bundle.future;
-                    future.cancel(true);
-                    iter.remove();
-
-                    addNewWorker();
-                }
-
+            while (running.get()) {
                 try {
-                    Thread.sleep(1_000);
-                } catch (InterruptedException ex) {
-                    return;
+                    if (!workers.isEmpty() && workerExecutor != null) {
+                        LOGGER.info("Starting worker verification");
+
+                        long current = System.currentTimeMillis();
+
+                        for (Worker worker : workers) {
+                            Long workerStartTimestamp = worker.getStartQueryTimestamp();
+                            if (workerStartTimestamp == null) {
+                                LOGGER.debug("Worker is waiting or starting a new query");
+                                continue;
+                            }
+
+                            long duration = current - worker.startQueryTimestamp;
+                            String durationValue = DurationFormatter.fromMillis(duration).format("%2m:%2s");
+                            if (duration <= maxDuration) {
+                                LOGGER.debug("Worker is executing query, current duration {} :{}",
+                                    durationValue, worker.currentQuery);
+                                continue;
+                            }
+
+                            String maxDurationValue = DurationFormatter.fromMillis(maxDuration).format("%2m:%2s");
+                            LOGGER.info("Worker execution time {} exceeds specified timeout of {} and will be cancelled: {}",
+                                durationValue, maxDurationValue, worker.currentQuery);
+
+                            worker.cancel();
+                        }
+                    } else {
+                        LOGGER.info("Waiting for initializing...");
+                    }
+
+                    try {
+                        Thread.sleep(SUPERVISOR_CHECK_INTERVAL);
+                    } catch (InterruptedException ex) {
+                        LOGGER.warn("Leaving after an interruption!", ex);
+                        return;
+                    }
+                } catch (Exception ex) {
+                    LOGGER.error("Unexpected exception occurred!", ex);
                 }
             }
         }
@@ -398,6 +405,8 @@ public class SqlCollector<Q, R> {
     private class Worker implements Runnable {
 
         private Long startQueryTimestamp = null;
+        private Q currentQuery = null;
+        private final AtomicBoolean cancelFlag = new AtomicBoolean(false);
 
         @Override
         public void run() {
@@ -430,21 +439,28 @@ public class SqlCollector<Q, R> {
                     }
 
                     startQueryTimestamp = System.currentTimeMillis();
+                    currentQuery = query;
+                    cancelFlag.set(false);
                     queryEntity.setTimestamp(startQueryTimestamp);
                     long startTime = System.nanoTime();
                     try (Drain<R> drain = drainFactory.createDrain(query)) {
-                        long count = executeQuery(query, drain, metricsDrain);
+                        long count = executeQuery(query, drain, metricsDrain, cancelFlag);
                         LOGGER.debug("Collected {} entries", count);
                         if (query != null) {
-                            successQueue.add(query);
+                            if (count >= 0) {
+                                successQueue.add(query);
+                            } else {
+                                failedQueue.add(queryEntity);
+                            }
                         }
                     } catch (Throwable e) {
-                        if (LOGGER.isWarnEnabled()) LOGGER.warn("Exception while performing query {}!", queryEntity, e);
+                        LOGGER.warn("Exception while performing query {}!", queryEntity, e);
                         failure.set(true);
                         queryEntity.setThrowable(e);
                         failedQueue.put(queryEntity);
                     } finally {
                         startQueryTimestamp = null;
+                        currentQuery = null;
                     }
                     queryEntity.setDuration((System.nanoTime() - startTime) / MILLIS_IN_NANO);
                 } catch (InterruptedException ex) {
@@ -460,15 +476,13 @@ public class SqlCollector<Q, R> {
         public Long getStartQueryTimestamp() {
             return startQueryTimestamp;
         }
-    }
 
-    private class WorkerBundle {
-        private final Worker worker;
-        private final Future<?> future;
+        public Q getCurrentQuery() {
+            return currentQuery;
+        }
 
-        WorkerBundle(Worker worker, Future<?> future) {
-            this.worker = worker;
-            this.future = future;
+        public void cancel() {
+            cancelFlag.set(true);
         }
     }
 
