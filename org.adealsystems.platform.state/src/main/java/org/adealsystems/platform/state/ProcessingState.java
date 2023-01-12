@@ -29,6 +29,12 @@ public final class ProcessingState {
     private List<String> errors;
     private Map<String, String> attributes;
 
+    private static final ProcessingState SUCCESS = new ProcessingState();
+
+    public static ProcessingState createSuccessState() {
+        return SUCCESS;
+    }
+
     public static ProcessingState createFailedState(String... errors) {
         Objects.requireNonNull(errors, "errors must not be null!");
         return createFailedState(Arrays.asList(errors));

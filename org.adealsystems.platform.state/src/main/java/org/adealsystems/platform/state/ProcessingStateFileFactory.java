@@ -14,23 +14,10 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.sqlcollector;
+package org.adealsystems.platform.state;
 
-import org.adealsystems.platform.io.Drain;
+import java.io.File;
 
-import java.io.IOException;
-
-public interface SqlQuery<Q, R> {
-
-    long getMaxExecutionTime();
-
-    int getMaxRetries();
-
-    long perform(
-        SqlClientBundle sqlClientBundle,
-        Q query,
-        Drain<R> resultDrain,
-        Drain<SqlCollector.SqlMetrics<Q>> metricsDrain,
-        SqlCollector.QueryExecutionContext context
-    ) throws IOException;
+public interface ProcessingStateFileFactory<T> {
+    File getProcessingStateFile(T type);
 }

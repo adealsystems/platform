@@ -18,12 +18,18 @@ package org.adealsystems.platform.sqlcollector;
 
 import org.adealsystems.platform.io.Drain;
 import org.adealsystems.platform.io.DrainFactory;
+import org.adealsystems.platform.state.ProcessingState;
+import org.adealsystems.platform.state.ProcessingStateFileFactory;
+import org.adealsystems.platform.state.impl.ProcessingStateFileWriter;
 import org.adealsystems.platform.time.DurationFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
+import java.io.File;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -53,6 +59,7 @@ public class SqlCollector<Q, R> {
     private final SqlQuery<Q, R> sqlQuery;
     private final DrainFactory<Q, R> drainFactory;
     private final Drain<SqlMetrics<Q>> metricsDrain;
+    private final ProcessingStateFileFactory<Q> processingStateFileFactory;
     private final DataSource dataSource;
     private final ExecutorService supervisorExecutor;
 
@@ -62,6 +69,7 @@ public class SqlCollector<Q, R> {
         SqlQuery<Q, R> sqlQuery,
         DrainFactory<Q, R> drainFactory,
         Drain<SqlMetrics<Q>> metricsDrain,
+        ProcessingStateFileFactory<Q> processingStateFileFactory,
         int queueSize
     ) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null!");
@@ -69,6 +77,7 @@ public class SqlCollector<Q, R> {
         this.sqlQuery = Objects.requireNonNull(sqlQuery, "sqlQuery must not be null!");
         this.drainFactory = Objects.requireNonNull(drainFactory, "drainFactory must not be null!");
         this.metricsDrain = metricsDrain;
+        this.processingStateFileFactory = processingStateFileFactory;
 
         this.supervisorExecutor = Executors.newSingleThreadExecutor();
 
@@ -94,7 +103,7 @@ public class SqlCollector<Q, R> {
             // clearing queues to enable multiple calls
             reset();
 
-            ExecutorService workerExecutor = Executors.newFixedThreadPool(2 * WORKER_THREAD_COUNT);
+            ExecutorService workerExecutor = Executors.newFixedThreadPool(WORKER_THREAD_COUNT);
             supervisor.setWorkerExecutor(workerExecutor);
 
             // start all workers
@@ -276,25 +285,6 @@ public class SqlCollector<Q, R> {
         }
     }
 
-    private long executeQuery(Q query, Drain<R> resultDrain, Drain<SqlMetrics<Q>> metricsDrain, AtomicBoolean cancelFlag) {
-        Throwable throwable = null;
-        for (int i = 0; i < sqlQuery.getMaxRetries(); i++) {
-            try {
-                SqlClientBundle clientBundle = resolveClientBundle();
-                return sqlQuery.perform(clientBundle, query, resultDrain, metricsDrain, cancelFlag);
-            } catch (Throwable e) {
-                throwable = e;
-                LOGGER.warn("Failed to perform query {}!", query, throwable);
-            }
-            // get rid of previous client after an error occurred
-            // next call to resolveClient returns a fresh instance
-            resetClientBundle();
-        }
-
-        if (LOGGER.isWarnEnabled()) LOGGER.warn("Bailing out after {} retries: {}", sqlQuery.getMaxRetries(), query);
-        throw new SqlCollectorException("Failed to execute " + query + "!", throwable);
-    }
-
     private SqlClientBundle resolveClientBundle() {
         SqlClientBundle result = clientBundleThreadLocal.get();
         if (result == null) {
@@ -365,13 +355,14 @@ public class SqlCollector<Q, R> {
                         long current = System.currentTimeMillis();
 
                         for (Worker worker : workers) {
-                            Long workerStartTimestamp = worker.getStartQueryTimestamp();
+                            QueryExecutionContext ctx = worker.getContext();
+                            Long workerStartTimestamp = ctx.getStartTimestamp();
                             if (workerStartTimestamp == null) {
                                 LOGGER.debug("Worker is waiting or starting a new query");
                                 continue;
                             }
 
-                            long duration = current - worker.startQueryTimestamp;
+                            long duration = current - workerStartTimestamp;
                             String durationValue = DurationFormatter.fromMillis(duration).format("%2m:%2s");
                             if (duration <= maxDuration) {
                                 LOGGER.debug("Worker is executing query, current duration {} :{}",
@@ -383,7 +374,7 @@ public class SqlCollector<Q, R> {
                             LOGGER.info("Worker execution time {} exceeds specified timeout of {} and will be cancelled: {}",
                                 durationValue, maxDurationValue, worker.currentQuery);
 
-                            worker.cancel();
+                            ctx.cancel();
                         }
                     } else {
                         LOGGER.info("Waiting for initializing...");
@@ -404,9 +395,8 @@ public class SqlCollector<Q, R> {
 
     private class Worker implements Runnable {
 
-        private Long startQueryTimestamp = null;
+        private final QueryExecutionContext context = new QueryExecutionContext();
         private Q currentQuery = null;
-        private final AtomicBoolean cancelFlag = new AtomicBoolean(false);
 
         @Override
         public void run() {
@@ -438,29 +428,39 @@ public class SqlCollector<Q, R> {
                         }
                     }
 
-                    startQueryTimestamp = System.currentTimeMillis();
+                    long startQueryTimestamp = System.currentTimeMillis();
+                    context.setStartTimestamp(startQueryTimestamp);
+                    context.setCancelled(false);
                     currentQuery = query;
-                    cancelFlag.set(false);
                     queryEntity.setTimestamp(startQueryTimestamp);
-                    long startTime = System.nanoTime();
+                    long startTime = System.nanoTime(); // NOPMD
+                    ProcessingState state = ProcessingState.createSuccessState();
                     try (Drain<R> drain = drainFactory.createDrain(query)) {
-                        long count = executeQuery(query, drain, metricsDrain, cancelFlag);
+                        long count = executeQuery(query, drain, metricsDrain, context);
                         LOGGER.debug("Collected {} entries", count);
+                        if (count == -1) {
+                            // cancelled query
+                            throw new IllegalStateException("Query cancelled: " + query);
+                        }
                         if (query != null) {
-                            if (count >= 0) {
-                                successQueue.add(query);
-                            } else {
-                                failedQueue.add(queryEntity);
-                            }
+                            successQueue.add(query);
                         }
                     } catch (Throwable e) {
                         LOGGER.warn("Exception while performing query {}!", queryEntity, e);
                         failure.set(true);
                         queryEntity.setThrowable(e);
                         failedQueue.put(queryEntity);
+
+                        // write error state-file
+                        state = ProcessingState.createFailedState("Error processing query " + query, e);
                     } finally {
-                        startQueryTimestamp = null;
+                        context.clear();
                         currentQuery = null;
+
+                        if (processingStateFileFactory != null) {
+                            File stateFile = processingStateFileFactory.getProcessingStateFile(query);
+                            ProcessingStateFileWriter.write(stateFile, state);
+                        }
                     }
                     queryEntity.setDuration((System.nanoTime() - startTime) / MILLIS_IN_NANO);
                 } catch (InterruptedException ex) {
@@ -473,16 +473,79 @@ public class SqlCollector<Q, R> {
             resetClientBundle();
         }
 
-        public Long getStartQueryTimestamp() {
-            return startQueryTimestamp;
-        }
-
         public Q getCurrentQuery() {
             return currentQuery;
         }
 
-        public void cancel() {
-            cancelFlag.set(true);
+        public QueryExecutionContext getContext() {
+            return context;
+        }
+
+        private long executeQuery(
+            Q query,
+            Drain<R> resultDrain,
+            Drain<SqlMetrics<Q>> metricsDrain,
+            QueryExecutionContext context
+        ) {
+            Throwable throwable = null;
+            for (int i = 0; i < sqlQuery.getMaxRetries(); i++) {
+                try {
+                    SqlClientBundle clientBundle = resolveClientBundle();
+                    return sqlQuery.perform(clientBundle, query, resultDrain, metricsDrain, context);
+                } catch (Throwable e) {
+                    throwable = e;
+                    LOGGER.warn("Failed to perform query {}!", query, throwable);
+                }
+                // get rid of previous client after an error occurred
+                // next call to resolveClient returns a fresh instance
+                resetClientBundle();
+            }
+
+            if (LOGGER.isWarnEnabled()) LOGGER.warn("Bailing out after {} retries: {}", sqlQuery.getMaxRetries(), query);
+            throw new SqlCollectorException("Failed to execute " + query + "!", throwable);
+        }
+    }
+
+    public static class QueryExecutionContext {
+        private final AtomicBoolean cancelled = new AtomicBoolean(false);
+        private Long startTimestamp;
+        private PreparedStatement statement;
+
+        public void clear() {
+            cancelled.set(false);
+            startTimestamp = null;
+            statement = null;
+        }
+
+        public void cancel() throws SQLException {
+            cancelled.set(true);
+            if (statement != null) {
+                statement.cancel();
+            }
+        }
+
+        public boolean isCancelled() {
+            return cancelled.get();
+        }
+
+        public void setCancelled(boolean cancelled) {
+            this.cancelled.set(cancelled);
+        }
+
+        public Long getStartTimestamp() {
+            return startTimestamp;
+        }
+
+        public void setStartTimestamp(Long startTimestamp) {
+            this.startTimestamp = startTimestamp;
+        }
+
+        public PreparedStatement getStatement() {
+            return statement;
+        }
+
+        public void setStatement(PreparedStatement statement) {
+            this.statement = statement;
         }
     }
 

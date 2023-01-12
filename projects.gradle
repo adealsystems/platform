@@ -116,6 +116,14 @@ def platformIoParquet = project(':org.adealsystems.platform.io.parquet') {
     }
 }
 
+def platformState = project(':org.adealsystems.platform.state') {
+    dependencies {
+        implementation libraries.'slf4j-api'
+        implementation platformId
+        implementation libraries.'jackson-databind'
+    }
+}
+
 def platformSparkTest = project(':org.adealsystems.platform.spark.test') {
     dependencies {
         implementation platformId
@@ -257,18 +265,11 @@ project(':org.adealsystems.platform.sqlcollector') {
         // implementation platformIoAvro
 
         implementation platformTime
+        implementation platformState
 
         implementation libraries.'commons-csv'
         implementation libraries.'slf4j-api'
         testRuntimeOnly libraries.'logback-classic'
         testRuntimeOnly libraries.'jcl-over-slf4j'
-    }
-}
-
-project(':org.adealsystems.platform.state') {
-    dependencies {
-        implementation libraries.'slf4j-api'
-        implementation platformId
-        implementation libraries.'jackson-databind'
     }
 }
