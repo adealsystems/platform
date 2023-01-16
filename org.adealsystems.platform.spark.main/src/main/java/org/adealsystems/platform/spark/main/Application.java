@@ -122,7 +122,7 @@ public class Application {
             try (SparkSession sparkSession = sparkSessionBuilder.getOrCreate()) {
                 try (SparkDataProcessingJob sparkJob = jobs.get(job)) {
                     currentJob = sparkJob;
-                    processJob(sparkJob, sparkSession);
+                    processJob(currentJob, sparkSession);
                 } catch (Exception ex) {
                     LOGGER.warn("Exception while processing {}!", job, ex);
                 }
@@ -130,7 +130,11 @@ public class Application {
 
             // finalizing the job
             if (currentJob != null) {
+                LOGGER.info("Finalizing job ...");
                 currentJob.finalizeJob();
+            }
+            else {
+                LOGGER.info("Unable to finalize job, because currentJob is null!");
             }
         }
     }
