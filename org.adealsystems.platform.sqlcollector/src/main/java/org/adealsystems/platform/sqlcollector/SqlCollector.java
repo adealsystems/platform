@@ -49,7 +49,6 @@ public class SqlCollector<Q, R> {
     private static final int WORKER_THREAD_COUNT = 4;
     private static final long SUPERVISOR_CHECK_INTERVAL = 60 * 1_000; // 60 seconds
 
-    private final AtomicBoolean failure = new AtomicBoolean();
     private final ThreadLocal<SqlClientBundle> clientBundleThreadLocal = new ThreadLocal<>();
     private final BlockingQueue<QueryEntity> incomingQueue;
     private final BlockingQueue<QueryEntity> failedQueue;
@@ -88,7 +87,6 @@ public class SqlCollector<Q, R> {
 
     public synchronized void reset() {
         // clearing queue to enable multiple calls
-        failure.set(false);
     }
 
     public synchronized void execute(Iterable<Q> queries, int awaitTerminationHours, boolean retry) {
@@ -114,17 +112,14 @@ public class SqlCollector<Q, R> {
             LOGGER.debug("Registered {} workers.", WORKER_THREAD_COUNT);
 
             for (Q query : queries) {
-                if (failure.get()) {
-                    break;
-                }
-
-                if (successQueue.contains(query)) {
-                    LOGGER.info("Skipping already processed query {}", query);
+                QueryEntity preparedQuery = new QueryEntity(query); // NOPMD
+                if (incomingQueue.contains(preparedQuery) || successQueue.contains(query)) {
+                    LOGGER.info("Skipping already scheduled query {}", query);
                     continue;
                 }
 
                 try {
-                    incomingQueue.put(new QueryEntity(query));
+                    incomingQueue.put(preparedQuery);
                 } catch (InterruptedException e) {
                     LOGGER.warn("Interrupted!", e);
                     break;
@@ -158,6 +153,7 @@ public class SqlCollector<Q, R> {
                 LOGGER.warn("Awaiting termination interrupted!", e);
                 break;
             } finally {
+                LOGGER.debug("Stopping supervisor thread");
                 supervisor.stop();
                 supervisorExecutor.shutdownNow();
             }
@@ -169,25 +165,21 @@ public class SqlCollector<Q, R> {
             LOGGER.warn("Identified some incomplete worker tasks after retry");
         }
 
-        if (failure.get()) {
+        if (!failedQueue.isEmpty()) {
             SqlCollectorException exception = new SqlCollectorException("Failed to execute!");
 
-            for (; ; ) {
-                QueryEntity queryEntity;
-                try {
-                    queryEntity = failedQueue.take();
-                } catch (InterruptedException ex) {
-                    LOGGER.warn("Interrupted!", ex);
-                    break;
-                }
-
+            for (QueryEntity queryEntity : failedQueue) {
                 Throwable th = queryEntity.getThrowable();
                 if (th != null) {
                     exception.addSuppressed(th);
                 }
             }
+
+            LOGGER.info("Processing done with some failed queries", exception);
             throw exception;
         }
+
+        LOGGER.info("Processing done for all queries");
     }
 
     private class QueryEntity {
@@ -358,7 +350,12 @@ public class SqlCollector<Q, R> {
                             QueryExecutionContext ctx = worker.getContext();
                             Long workerStartTimestamp = ctx.getStartTimestamp();
                             if (workerStartTimestamp == null) {
-                                LOGGER.debug("Worker is waiting or starting a new query");
+                                if (worker.isDone()) {
+                                    LOGGER.debug("Worker is done");
+                                }
+                                else {
+                                    LOGGER.debug("Worker is waiting or starting a new query");
+                                }
                                 continue;
                             }
 
@@ -383,7 +380,7 @@ public class SqlCollector<Q, R> {
                     try {
                         Thread.sleep(SUPERVISOR_CHECK_INTERVAL);
                     } catch (InterruptedException ex) {
-                        LOGGER.warn("Leaving after an interruption!", ex);
+                        LOGGER.warn("Closing supervisor after an interrupt!", ex);
                         return;
                     }
                 } catch (Exception ex) {
@@ -397,6 +394,7 @@ public class SqlCollector<Q, R> {
 
         private final QueryExecutionContext context = new QueryExecutionContext();
         private Q currentQuery = null;
+        private boolean done = false;
 
         @Override
         public void run() {
@@ -408,13 +406,9 @@ public class SqlCollector<Q, R> {
                     if (queryEntity.isSentinel()) {
                         // we are done.
                         incomingQueue.put(queryEntity); // put it back for other workers...
-                        failedQueue.put(queryEntity); // put it also to failed queue
+                        // failedQueue.put(queryEntity); // put it also to failed queue
+                        done = true;
                         if (LOGGER.isDebugEnabled()) LOGGER.debug("Thread {} is done.", Thread.currentThread());
-                        break;
-                    }
-
-                    if (failure.get()) {
-                        // just ignore any other work
                         break;
                     }
 
@@ -447,7 +441,6 @@ public class SqlCollector<Q, R> {
                         }
                     } catch (Throwable e) {
                         LOGGER.warn("Exception while performing query {}!", queryEntity, e);
-                        failure.set(true);
                         queryEntity.setThrowable(e);
                         failedQueue.put(queryEntity);
 
@@ -475,6 +468,10 @@ public class SqlCollector<Q, R> {
 
         public Q getCurrentQuery() {
             return currentQuery;
+        }
+
+        public boolean isDone() {
+            return done;
         }
 
         public QueryExecutionContext getContext() {
