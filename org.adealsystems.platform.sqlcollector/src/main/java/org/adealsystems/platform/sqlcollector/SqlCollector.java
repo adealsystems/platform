@@ -338,6 +338,9 @@ public class SqlCollector<Q, R> {
         @Override
         public void run() {
             long maxDuration = sqlQuery.getMaxExecutionTime();
+            if (maxDuration == -1) {
+                LOGGER.warn("Max duration check is disabled!");
+            }
 
             while (running.get()) {
                 try {
@@ -361,7 +364,7 @@ public class SqlCollector<Q, R> {
 
                             long duration = current - workerStartTimestamp;
                             String durationValue = DurationFormatter.fromMillis(duration).format("%2m:%2s");
-                            if (duration <= maxDuration) {
+                            if (maxDuration == -1 || duration <= maxDuration) {
                                 LOGGER.debug("Worker is executing query, current duration {} :{}",
                                     durationValue, worker.currentQuery);
                                 continue;
