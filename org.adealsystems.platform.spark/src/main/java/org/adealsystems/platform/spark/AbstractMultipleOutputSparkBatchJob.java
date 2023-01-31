@@ -60,6 +60,8 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
     private static final String COMMA = ",";
     private static final String PIPE = "|";
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMultipleOutputSparkBatchJob.class);
+
     private final DataResolverRegistry dataResolverRegistry;
     private final DataLocation outputLocation;
     private final Set<DataIdentifier> outputIdentifiers;
@@ -198,7 +200,9 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
      *
      * @param udfRegistration the UDFRegistration to be used for registration.
      */
-    protected abstract void registerUdfs(UDFRegistration udfRegistration);
+    protected void registerUdfs(UDFRegistration udfRegistration) {
+        LOGGER.debug("No user defined functions registered");
+    }
 
     /**
      * This method must register all inputs for the already defined outputIdentifier.

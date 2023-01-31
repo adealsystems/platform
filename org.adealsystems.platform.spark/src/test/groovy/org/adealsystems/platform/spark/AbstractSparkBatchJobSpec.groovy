@@ -73,14 +73,8 @@ class AbstractSparkBatchJobSpec extends AbstractBatchJobSpec {
         static final DataIdentifier TODAY_INPUT_IDENTIFIER = new DataIdentifier("input", "with_today_date", DataFormat.CSV_SEMICOLON)
         static final DataIdentifier SOME_DATE_INPUT_IDENTIFIER = new DataIdentifier("input", "with_some_date", DataFormat.CSV_SEMICOLON)
 
-
         TestBatchJob(DataResolverRegistry dataResolverRegistry) {
             super(dataResolverRegistry, DataLocation.OUTPUT, new DataIdentifier("output_source", "output_use_case", DataFormat.CSV_SEMICOLON), BatchTestTools.TODAY)
-        }
-
-        @Override
-        protected void registerUdfs(UDFRegistration udfRegistration) {
-
         }
 
         @Override

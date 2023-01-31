@@ -204,7 +204,11 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
      *
      * @param udfRegistration the UDFRegistration to be used for registration.
      */
-    protected abstract void registerUdfs(UDFRegistration udfRegistration);
+    protected void registerUdfs(UDFRegistration udfRegistration) {
+        LOGGER.debug("No user defined functions registered");
+    }
+
+    ;
 
     /**
      * This method must register all inputs for the already defined outputIdentifier.
@@ -563,7 +567,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
         DataResolver dataResolver = getOutputDataResolver();
 
-        getDatasetLogger().showInfo("About to write the following data for " + outputIdentifier, outputDataset);
+        datasetLogger.showInfo("About to write the following data for " + outputIdentifier, outputDataset);
 
         outputDataset = outputDataset.repartition(1); // always repartition(1) before writing!
 
@@ -590,11 +594,13 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         }
     }
 
-    static void writeOutputInternal(DataInstance dataInstance,
-                                    Dataset<Row> result,
-                                    boolean storeAsSingleFile,
-                                    JavaSparkContext sparkContext,
-                                    Map<String, Object> writerOptions) {
+    static void writeOutputInternal(
+        DataInstance dataInstance,
+        Dataset<Row> result,
+        boolean storeAsSingleFile,
+        JavaSparkContext sparkContext,
+        Map<String, Object> writerOptions
+    ) {
         Objects.requireNonNull(dataInstance, "dataInstance must not be null!");
         String path = dataInstance.getPath();
         LOGGER.info("Writing {} to '{}'.", dataInstance, path);
