@@ -208,8 +208,6 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         LOGGER.debug("No user defined functions registered");
     }
 
-    ;
-
     /**
      * This method must register all inputs for the already defined outputIdentifier.
      * <p>
