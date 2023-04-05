@@ -22,4 +22,12 @@ public class JobInitializationFailureException extends RuntimeException {
     public JobInitializationFailureException(String message) {
         super(message);
     }
+
+    public JobInitializationFailureException(Throwable cause) {
+        super(cause);
+    }
+
+    public JobInitializationFailureException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
