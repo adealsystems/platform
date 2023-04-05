@@ -73,6 +73,9 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
     private WriteMode writeMode;
 
+    private boolean initSuccessful = true;
+    private String initErrorMessage;
+
     private SparkSession sparkSession;
     private JavaSparkContext sparkContext;
     private long executionStartTimestamp = -1;
@@ -126,6 +129,22 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
     protected final void setWriteMode(WriteMode writeMode) {
         this.writeMode = Objects.requireNonNull(writeMode, "writeMode must not be null!");
+    }
+
+    @Override
+    public void setInitFailure(String message) {
+        initSuccessful = false;
+        initErrorMessage = message;
+    }
+
+    @Override
+    public boolean isInitSuccessful() {
+        return initSuccessful;
+    }
+
+    @Override
+    public String getInitErrorMessage() {
+        return initErrorMessage;
     }
 
     @Override
@@ -226,6 +245,10 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         executionStartTimestamp = System.currentTimeMillis();
 
         try {
+            if (!initSuccessful) {
+                throw new JobInitializationFailureException(initErrorMessage);
+            }
+
             Map<DataIdentifier, Dataset<Row>> results = processData();
             for (Map.Entry<DataIdentifier, Dataset<Row>> entry : results.entrySet()) {
                 DataIdentifier outputIdentifier = entry.getKey();
@@ -234,7 +257,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
             }
         } catch (Throwable th) {
             for (DataIdentifier dataId : getOutputIdentifiers()) {
-                registerProcessingStatus(dataId, "processing-error");
+                registerProcessingStatus(dataId, STATE_PROCESSING_ERROR);
             }
 
             throw th;

@@ -26,6 +26,12 @@ public interface SparkDataProcessingJob extends DataProcessingJob, AutoCloseable
 
     void init(SparkSession sparkSession);
 
+    void setInitFailure(String message);
+
+    boolean isInitSuccessful();
+
+    String getInitErrorMessage();
+
     Map<String, Object> getWriterOptions();
 
     void setWriterOptions(Map<String, Object> options);

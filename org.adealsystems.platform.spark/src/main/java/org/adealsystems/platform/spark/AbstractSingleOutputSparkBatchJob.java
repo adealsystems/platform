@@ -76,6 +76,9 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     private WriteMode writeMode;
 
+    private boolean initSuccessful = true;
+    private String initErrorMessage;
+
     private SparkSession sparkSession;
     private JavaSparkContext sparkContext;
     private long executionStartTimestamp = -1;
@@ -135,6 +138,22 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
     @Override
     public WriteMode getWriteMode() {
         return writeMode;
+    }
+
+    @Override
+    public void setInitFailure(String message) {
+        initSuccessful = false;
+        initErrorMessage = message;
+    }
+
+    @Override
+    public boolean isInitSuccessful() {
+        return initSuccessful;
+    }
+
+    @Override
+    public String getInitErrorMessage() {
+        return initErrorMessage;
     }
 
     @Override
@@ -230,6 +249,10 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         executionStartTimestamp = System.currentTimeMillis();
 
         try {
+            if (!initSuccessful) {
+                throw new JobInitializationFailureException(initErrorMessage);
+            }
+
             writeOutput(processData());
         } catch (Throwable th) {
             for (DataIdentifier dataId : getOutputIdentifiers()) {
