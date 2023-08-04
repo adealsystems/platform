@@ -432,8 +432,8 @@ public class SqlCollector<Q, R> {
                     queryEntity.setTimestamp(startQueryTimestamp);
                     long startTime = System.nanoTime(); // NOPMD
                     ProcessingState state = ProcessingState.createSuccessState();
-                    try (Drain<R> drain = drainFactory.createDrain(query)) {
-                        long count = executeQuery(query, drain, metricsDrain, context);
+                    try {
+                        long count = executeQuery(query, metricsDrain, context);
                         LOGGER.debug("Collected {} entries", count);
                         if (count == -1) {
                             // cancelled query
@@ -483,13 +483,12 @@ public class SqlCollector<Q, R> {
 
         private long executeQuery(
             Q query,
-            Drain<R> resultDrain,
             Drain<SqlMetrics<Q>> metricsDrain,
             QueryExecutionContext context
         ) {
             Throwable throwable = null;
             for (int i = 0; i < sqlQuery.getMaxRetries(); i++) {
-                try {
+                try (Drain<R> resultDrain = drainFactory.createDrain(query)) {
                     SqlClientBundle clientBundle = resolveClientBundle();
                     return sqlQuery.perform(clientBundle, query, resultDrain, metricsDrain, context);
                 } catch (Throwable e) {
@@ -501,7 +500,7 @@ public class SqlCollector<Q, R> {
                 resetClientBundle();
             }
 
-            if (LOGGER.isWarnEnabled()) LOGGER.warn("Bailing out after {} retries: {}", sqlQuery.getMaxRetries(), query);
+            LOGGER.warn("Bailing out after {} retries: {}", sqlQuery.getMaxRetries(), query); // NOPMD
             throw new SqlCollectorException("Failed to execute " + query + "!", throwable);
         }
     }

@@ -819,13 +819,13 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         Path sourceFSPath = new Path(source);
         try (FileSystem fs = sourceFSPath.getFileSystem(hadoopConfig)) {
             String successFilename = source + "/" + SUCCESS_INDICATOR;
-            logger.warn("successFilename: {}", successFilename);
+            logger.debug("successFilename: {}", successFilename);
             Path successPath = new Path(successFilename);
-            logger.warn("successPath: {}", successPath);
+            logger.debug("successPath: {}", successPath);
 
             while (!fs.exists(successPath)) {
                 try {
-                    logger.warn("Waiting for appearance of {}...", successFilename);
+                    logger.info("Waiting for appearance of {}...", successFilename);
                     Thread.sleep(1000);
                     // this is an endless loop
                     // and there isn't something like a _FAILURE indicator, afaik
@@ -834,7 +834,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
                     throw new IllegalStateException("Exception while waiting for success file!", e);
                 }
             }
-            logger.warn("Found successPath");
+            logger.debug("Found successPath");
             FileStatus[] globs = fs.globStatus(new Path(source + "/part-*"));
             if (globs == null) {
                 // from Globber.doGlob():
@@ -849,21 +849,21 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
                  */
                 throw new IllegalStateException("globStatus() returned null! This should not happen...");
             }
-            logger.warn("Globs: {}", (Object) globs);
+            logger.debug("Globs: {}", (Object) globs);
             if (globs.length != 1) {
                 logger.error("Expected one part but found {}! {}", globs.length, globs);
                 throw new IllegalStateException("Expected one part but found " + globs.length);
             }
             Path sourcePath = globs[0].getPath();
             Path targetPath = new Path(target);
-            logger.warn("About to rename sourcePath: {} to targetPath: {}", sourcePath, targetPath);
+            logger.debug("About to rename sourcePath: {} to targetPath: {}", sourcePath, targetPath);
             if (fs.rename(sourcePath, targetPath)) {
                 if (!fs.delete(new Path(source), true)) {
                     logger.warn("Failed to delete source: {}", source);
                 }
             } else {
                 logger.warn("Failed to rename sourcePath: {} to targetPath: {}", sourcePath, targetPath);
-                logger.warn("About to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
+                logger.debug("About to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
                 if (!FileUtil.copy(fs, sourcePath, fs, targetPath, true, hadoopConfig)) {
                     logger.warn("Failed to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
                 } else {
