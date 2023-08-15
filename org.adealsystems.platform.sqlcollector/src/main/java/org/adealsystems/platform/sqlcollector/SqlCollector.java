@@ -42,6 +42,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@SuppressWarnings("PMD.GuardLogStatement")
 public class SqlCollector<Q, R> {
     private static final Logger LOGGER = LoggerFactory.getLogger(SqlCollector.class);
 
@@ -95,6 +96,7 @@ public class SqlCollector<Q, R> {
         Supervisor supervisor = new Supervisor();
         supervisorExecutor.execute(supervisor);
 
+        List<Runnable> incompleteTasks = null;
         boolean success = false;
         int workerRetryCountdown = retry ? 1 : 0;
         while (workerRetryCountdown >= 0) {
@@ -146,9 +148,7 @@ public class SqlCollector<Q, R> {
                 }
 
                 LOGGER.warn("Awaiting termination failed!");
-                List<Runnable> incompleteTasks = workerExecutor.shutdownNow();
-                if (LOGGER.isWarnEnabled())
-                    LOGGER.warn("{} incomplete tasks: {}", incompleteTasks.size(), incompleteTasks);
+                incompleteTasks = workerExecutor.shutdownNow();
             } catch (InterruptedException e) {
                 LOGGER.warn("Awaiting termination interrupted!", e);
                 break;
@@ -161,8 +161,30 @@ public class SqlCollector<Q, R> {
             workerRetryCountdown--;
         }
 
-        if (!success && LOGGER.isWarnEnabled()) {
-            LOGGER.warn("Identified some incomplete worker tasks after retry");
+        if (!success) {
+            if (incompleteTasks != null && !incompleteTasks.isEmpty()) {
+                LOGGER.warn("Execution failed, {} incomplete tasks identified: {}", incompleteTasks.size(), incompleteTasks);
+            }
+            else {
+                LOGGER.warn("Execution failed, no incomplete tasks identified");
+            }
+
+            int incomingSize = incomingQueue.size();
+            if (incomingSize > 0) {
+                LOGGER.warn("Incoming queue contains {} queries", incomingSize);
+                while (!incomingQueue.isEmpty()) {
+                    try {
+                        QueryEntity query = incomingQueue.take();
+                        if (processingStateFileFactory != null) {
+                            File stateFile = processingStateFileFactory.getProcessingStateFile(query.getQuery());
+                            ProcessingState state = ProcessingState.createFailedState("Query not processed after global timeout: " + query);
+                            ProcessingStateFileWriter.write(stateFile, state);
+                        }
+                    } catch (InterruptedException ex) {
+                        LOGGER.warn("Error taking the head of the incoming queue!", ex);
+                    }
+                }
+            }
         }
 
         if (!failedQueue.isEmpty()) {
@@ -326,6 +348,15 @@ public class SqlCollector<Q, R> {
 
         public void stop() {
             running.set(false);
+            if (workerExecutor != null) {
+                List<Runnable> runningWorkers = workerExecutor.shutdownNow();
+                for (Runnable runningWorker : runningWorkers) {
+                    if (Worker.class.isAssignableFrom(runningWorker.getClass())) {
+                        Worker worker = (Worker) runningWorker;
+                        worker.shutdown();
+                    }
+                }
+            }
         }
 
         public void addNewWorker() {
@@ -419,9 +450,9 @@ public class SqlCollector<Q, R> {
 
                     if (LOGGER.isInfoEnabled()) {
                         if (query == null) {
-                            LOGGER.info("Remaining queries in the incoming queue: {}", incomingQueue.size()); // NOPMD
+                            LOGGER.info("Remaining queries in the incoming queue: {}", incomingQueue.size());
                         } else {
-                            LOGGER.info("Start processing {}, remaining queries in the incoming queue: {}", query, incomingQueue.size()); // NOPMD
+                            LOGGER.info("Start processing {}, remaining queries in the incoming queue: {}", query, incomingQueue.size());
                         }
                     }
 
@@ -469,6 +500,14 @@ public class SqlCollector<Q, R> {
             resetClientBundle();
         }
 
+        public void shutdown() {
+            if (processingStateFileFactory != null) {
+                File stateFile = processingStateFileFactory.getProcessingStateFile(currentQuery);
+                ProcessingState state = ProcessingState.createFailedState("Shutting down while processing query " + currentQuery);
+                ProcessingStateFileWriter.write(stateFile, state);
+            }
+        }
+
         public Q getCurrentQuery() {
             return currentQuery;
         }
@@ -500,7 +539,7 @@ public class SqlCollector<Q, R> {
                 resetClientBundle();
             }
 
-            LOGGER.warn("Bailing out after {} retries: {}", sqlQuery.getMaxRetries(), query); // NOPMD
+            LOGGER.warn("Bailing out after {} retries: {}", sqlQuery.getMaxRetries(), query);
             throw new SqlCollectorException("Failed to execute " + query + "!", throwable);
         }
     }
