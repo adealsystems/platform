@@ -429,10 +429,11 @@ public class SqlCollector<Q, R> {
         private final QueryExecutionContext context = new QueryExecutionContext();
         private Q currentQuery = null;
         private boolean done = false;
+        private boolean running = true;
 
         @Override
         public void run() {
-            while (true) {
+            while (running) {
                 try {
                     QueryEntity queryEntity = incomingQueue.take();
 
@@ -506,6 +507,8 @@ public class SqlCollector<Q, R> {
                 ProcessingState state = ProcessingState.createFailedState("Shutting down while processing query " + currentQuery);
                 ProcessingStateFileWriter.write(stateFile, state);
             }
+            
+            running = false;
         }
 
         public Q getCurrentQuery() {
