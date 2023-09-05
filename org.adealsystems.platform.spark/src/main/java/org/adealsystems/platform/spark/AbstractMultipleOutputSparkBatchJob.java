@@ -48,6 +48,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Function;
 
 import static org.adealsystems.platform.spark.AbstractSingleOutputSparkBatchJob.readAvroAsDataset;
 import static org.adealsystems.platform.spark.AbstractSingleOutputSparkBatchJob.readCsvAsDataset;
@@ -408,10 +409,34 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
      * @throws UnregisteredDataIdentifierException if no DataInstance was registered for the given DataIdentifier
      */
     protected Dataset<Row> readInputs(Collection<DataIdentifier> dataIdentifiers) {
+        return readInputs(dataIdentifiers, null);
+    }
+
+    /**
+     * Reads Datasets registered for the given data identifier and combines all of them to one Dataset.
+     * <p>
+     * This method throws an exception if more than one DataInstance was
+     * registered for the given DataIdentifier or if no DataIdentifier was
+     * registered for the given DataIdentifier at all.
+     * <p>
+     * Any exception happening during reading of the Dataset is propagated to the caller.
+     *
+     * @param dataIdentifiers data identifiers used to resolve the data instance
+     * @param cleanser function used to prepare the dataset
+     * @return the (unique) Dataset for given DataIdentifiers
+     * @throws NullPointerException                if dataIdentifiers is null
+     * @throws DuplicateUniqueIdentifierException  if more than one DataInstance was registered for the given DataIdentifier
+     * @throws UnregisteredDataIdentifierException if no DataInstance was registered for the given DataIdentifier
+     */
+    protected Dataset<Row> readInputs(Collection<DataIdentifier> dataIdentifiers, Function<Dataset<Row>, Dataset<Row>> cleanser) {
         Dataset<Row> dataset = null;
 
         for (DataIdentifier dataIdentifier : dataIdentifiers) {
             Dataset<Row> currentDataset = readInput(dataIdentifier);
+
+            if (cleanser != null) {
+                dataset = cleanser.apply(dataset);
+            }
 
             if (dataset == null) {
                 dataset = currentDataset;
