@@ -435,7 +435,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             Dataset<Row> currentDataset = readInput(dataIdentifier);
 
             if (cleanser != null) {
-                dataset = cleanser.apply(dataset);
+                currentDataset = cleanser.apply(currentDataset);
             }
 
             if (dataset == null) {

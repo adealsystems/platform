@@ -435,7 +435,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
             Dataset<Row> currentDataset = readInput(dataIdentifier);
 
             if (cleanser != null) {
-                dataset = cleanser.apply(dataset);
+                currentDataset = cleanser.apply(currentDataset);
             }
 
             if (dataset == null) {
