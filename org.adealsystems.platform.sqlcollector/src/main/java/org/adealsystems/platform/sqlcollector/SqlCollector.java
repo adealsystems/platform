@@ -164,8 +164,7 @@ public class SqlCollector<Q, R> {
         if (!success) {
             if (incompleteTasks != null && !incompleteTasks.isEmpty()) {
                 LOGGER.warn("Execution failed, {} incomplete tasks identified: {}", incompleteTasks.size(), incompleteTasks);
-            }
-            else {
+            } else {
                 LOGGER.warn("Execution failed, no incomplete tasks identified");
             }
 
@@ -348,8 +347,25 @@ public class SqlCollector<Q, R> {
 
         public void stop() {
             running.set(false);
+
+            for (Worker worker : workers) {
+                QueryExecutionContext ctx = worker.getContext();
+                if (!ctx.isCancelled()) {
+                    LOGGER.info("Trying to cancel worker {}", worker);
+                    try {
+                        ctx.cancel();
+                    } catch (SQLException ex) {
+                        LOGGER.error("Unable to cancel worker {}", worker, ex);
+                    }
+                }
+
+                LOGGER.info("Shutting down worker {}", worker);
+                worker.shutdown();
+            }
+
             if (workerExecutor != null) {
                 List<Runnable> runningWorkers = workerExecutor.shutdownNow();
+                LOGGER.info("Stopping worker executors {}", runningWorkers);
                 for (Runnable runningWorker : runningWorkers) {
                     if (Worker.class.isAssignableFrom(runningWorker.getClass())) {
                         Worker worker = (Worker) runningWorker;
@@ -386,8 +402,7 @@ public class SqlCollector<Q, R> {
                             if (workerStartTimestamp == null) {
                                 if (worker.isDone()) {
                                     LOGGER.debug("Worker is done");
-                                }
-                                else {
+                                } else {
                                     LOGGER.debug("Worker is waiting or starting a new query");
                                 }
                                 continue;
@@ -507,7 +522,7 @@ public class SqlCollector<Q, R> {
                 ProcessingState state = ProcessingState.createFailedState("Shutting down while processing query " + currentQuery);
                 ProcessingStateFileWriter.write(stateFile, state);
             }
-            
+
             running = false;
         }
 
