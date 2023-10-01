@@ -514,16 +514,17 @@ public class SqlCollector<Q, R> {
 
             // get rid of lingering client since we are done
             resetClientBundle();
+            LOGGER.info("Worker {} shut down", this);
         }
 
         public void shutdown() {
-            if (processingStateFileFactory != null) {
+            running = false;
+
+            if (processingStateFileFactory != null && currentQuery != null) {
                 File stateFile = processingStateFileFactory.getProcessingStateFile(currentQuery);
                 ProcessingState state = ProcessingState.createFailedState("Shutting down while processing query " + currentQuery);
                 ProcessingStateFileWriter.write(stateFile, state);
             }
-
-            running = false;
         }
 
         public Q getCurrentQuery() {
@@ -559,6 +560,17 @@ public class SqlCollector<Q, R> {
 
             LOGGER.warn("Bailing out after {} retries: {}", sqlQuery.getMaxRetries(), query);
             throw new SqlCollectorException("Failed to execute " + query + "!", throwable);
+        }
+
+
+        @Override
+        public String toString() {
+            return "Worker{" +
+                "context=" + context +
+                ", currentQuery=" + currentQuery +
+                ", done=" + done +
+                ", running=" + running +
+                '}';
         }
     }
 
@@ -602,6 +614,15 @@ public class SqlCollector<Q, R> {
 
         public void setStatement(PreparedStatement statement) {
             this.statement = statement;
+        }
+
+        @Override
+        public String toString() {
+            return "QueryExecutionContext{" +
+                "cancelled=" + cancelled +
+                ", startTimestamp=" + startTimestamp +
+                ", statement=" + statement +
+                '}';
         }
     }
 
