@@ -51,9 +51,16 @@ public class SqlMetricsCsvDrain<Q> extends AbstractCsvDrain<SqlCollector.SqlMetr
             case SqlCollector.SqlMetrics.COLUMN_SUCCESS:
                 return String.valueOf(metrics.isSuccess());
             case SqlCollector.SqlMetrics.COLUMN_MESSAGE:
-                return metrics.getMessage();
+                return cleanupMessage(metrics.getMessage());
             default:
                 throw new IllegalArgumentException("Unknown/unsupported column name '" + columnName + "'!");
         }
+    }
+
+    private String cleanupMessage(String message) {
+        if (message == null) {
+            return null;
+        }
+        return message.replaceAll(";", " - ");
     }
 }
