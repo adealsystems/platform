@@ -22,6 +22,7 @@ import org.apache.commons.csv.CSVFormat;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.time.LocalDateTime;
 
 public class SqlMetricsCsvDrain<Q> extends AbstractCsvDrain<SqlCollector.SqlMetrics<Q>> {
 
@@ -37,7 +38,8 @@ public class SqlMetricsCsvDrain<Q> extends AbstractCsvDrain<SqlCollector.SqlMetr
             case SqlCollector.SqlMetrics.COLUMN_RESULT_COUNT:
                 return String.valueOf(metrics.getResultCount());
             case SqlCollector.SqlMetrics.COLUMN_START_TIMESTAMP:
-                return metrics.getStartTimestamp().toString();
+                LocalDateTime startTimestamp = metrics.getStartTimestamp();
+                return startTimestamp == null ? null : startTimestamp.toString();
             case SqlCollector.SqlMetrics.COLUMN_INIT_DURATION:
                 DurationFormatter initDur = DurationFormatter.fromMillis(metrics.getInitDuration());
                 return initDur.format("%2m:%2s");
@@ -45,7 +47,8 @@ public class SqlMetricsCsvDrain<Q> extends AbstractCsvDrain<SqlCollector.SqlMetr
                 DurationFormatter deliveryDur = DurationFormatter.fromMillis(metrics.getDeliveryDuration());
                 return deliveryDur.format("%2m:%2s");
             case SqlCollector.SqlMetrics.COLUMN_END_TIMESTAMP:
-                return metrics.getEndTimestamp().toString();
+                LocalDateTime endTimestamp = metrics.getEndTimestamp();
+                return endTimestamp == null ? null : endTimestamp.toString();
             case SqlCollector.SqlMetrics.COLUMN_QUERY:
                 return metrics.getQuery().toString();
             case SqlCollector.SqlMetrics.COLUMN_SUCCESS:

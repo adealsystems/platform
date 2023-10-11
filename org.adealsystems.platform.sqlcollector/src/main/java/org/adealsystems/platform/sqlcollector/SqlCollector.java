@@ -670,10 +670,10 @@ public class SqlCollector<Q, R> {
         ) {
             this.id = Objects.requireNonNull(id, "id must not be null!");
             this.resultCount = resultCount;
-            this.startTimestamp = Objects.requireNonNull(startTimestamp, "startTimestamp must not be null!");
+            this.startTimestamp = startTimestamp;
             this.initDuration = initDuration;
             this.deliveryDuration = deliveryDuration;
-            this.endTimestamp = Objects.requireNonNull(endTimestamp, "endTimestamp must not be null!");
+            this.endTimestamp = endTimestamp;
             this.query = Objects.requireNonNull(query, "query must not be null!");
             this.success = true;
             this.message = null;
@@ -692,10 +692,10 @@ public class SqlCollector<Q, R> {
         ) {
             this.id = Objects.requireNonNull(id, "id must not be null!");
             this.resultCount = resultCount;
-            this.startTimestamp = Objects.requireNonNull(startTimestamp, "startTimestamp must not be null!");
+            this.startTimestamp = startTimestamp;
             this.initDuration = initDuration;
             this.deliveryDuration = deliveryDuration;
-            this.endTimestamp = Objects.requireNonNull(endTimestamp, "endTimestamp must not be null!");
+            this.endTimestamp = endTimestamp;
             this.query = Objects.requireNonNull(query, "query must not be null!");
             this.success = success;
             this.message = message;
@@ -754,7 +754,17 @@ public class SqlCollector<Q, R> {
 
         @Override
         public int hashCode() {
-            return Objects.hash(id, resultCount, startTimestamp, initDuration, deliveryDuration, endTimestamp, query, success, message);
+            return Objects.hash(
+                id,
+                resultCount,
+                startTimestamp,
+                initDuration,
+                deliveryDuration,
+                endTimestamp,
+                query,
+                success,
+                message
+            );
         }
 
         @Override
