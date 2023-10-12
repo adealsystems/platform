@@ -64,6 +64,10 @@ public class SqlMetricsCsvDrain<Q> extends AbstractCsvDrain<SqlCollector.SqlMetr
         if (message == null) {
             return null;
         }
-        return message.replaceAll(";", " - ");
+        return message
+            .replaceAll(";", " - ")
+            .replaceAll("\n", " --new line-- ")
+            .replaceAll("\r", "")
+            .replaceAll("\t", "  ");
     }
 }
