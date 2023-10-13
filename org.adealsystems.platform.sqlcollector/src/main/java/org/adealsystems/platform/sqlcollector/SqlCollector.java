@@ -47,8 +47,8 @@ public class SqlCollector<Q, R> {
     private static final Logger LOGGER = LoggerFactory.getLogger(SqlCollector.class);
 
     private static final int MILLIS_IN_NANO = 1_000_000;
-    private static final int WORKER_THREAD_COUNT = 4;
-    private static final long SUPERVISOR_CHECK_INTERVAL = 60 * 1_000; // 60 seconds
+    private static final int DEFAULT_WORKER_THREAD_COUNT = 4;
+    private static final long DEFAULT_SUPERVISOR_CHECK_INTERVAL = 60 * 1_000; // 60 seconds
 
     private final ThreadLocal<SqlClientBundle> clientBundleThreadLocal = new ThreadLocal<>();
     private final BlockingQueue<QueryEntity> incomingQueue;
@@ -62,6 +62,9 @@ public class SqlCollector<Q, R> {
     private final ProcessingStateFileFactory<Q> processingStateFileFactory;
     private final DataSource dataSource;
     private final ExecutorService supervisorExecutor;
+
+    private int workerThreadCount;
+    private long supervisorCheckInterval;
 
     public SqlCollector(
         DataSource dataSource,
@@ -84,6 +87,17 @@ public class SqlCollector<Q, R> {
         incomingQueue = new ArrayBlockingQueue<>(queueSize);
         failedQueue = new ArrayBlockingQueue<>(queueSize);
         successQueue = new ArrayBlockingQueue<>(queueSize);
+
+        workerThreadCount = DEFAULT_WORKER_THREAD_COUNT;
+        supervisorCheckInterval = DEFAULT_SUPERVISOR_CHECK_INTERVAL;
+    }
+
+    public void setWorkerThreadCount(int workerThreadCount) {
+        this.workerThreadCount = workerThreadCount;
+    }
+
+    public void setSupervisorCheckInterval(long supervisorCheckInterval) {
+        this.supervisorCheckInterval = supervisorCheckInterval;
     }
 
     public synchronized void reset() {
@@ -103,15 +117,15 @@ public class SqlCollector<Q, R> {
             // clearing queues to enable multiple calls
             reset();
 
-            ExecutorService workerExecutor = Executors.newFixedThreadPool(WORKER_THREAD_COUNT);
+            ExecutorService workerExecutor = Executors.newFixedThreadPool(workerThreadCount);
             supervisor.setWorkerExecutor(workerExecutor);
 
             // start all workers
-            for (int i = 0; i < WORKER_THREAD_COUNT; i++) {
+            for (int i = 0; i < workerThreadCount; i++) {
                 supervisor.addNewWorker();
             }
 
-            LOGGER.debug("Registered {} workers.", WORKER_THREAD_COUNT);
+            LOGGER.debug("Registered {} workers.", workerThreadCount);
 
             for (Q query : queries) {
                 QueryEntity preparedQuery = new QueryEntity(query); // NOPMD
@@ -427,7 +441,7 @@ public class SqlCollector<Q, R> {
                     }
 
                     try {
-                        Thread.sleep(SUPERVISOR_CHECK_INTERVAL);
+                        Thread.sleep(supervisorCheckInterval);
                     } catch (InterruptedException ex) {
                         LOGGER.warn("Closing supervisor after an interrupt!", ex);
                         return;
