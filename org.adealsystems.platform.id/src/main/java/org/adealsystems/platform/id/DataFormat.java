@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 ADEAL Systems GmbH
+ * Copyright 2020-2023 ADEAL Systems GmbH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,10 @@ public enum DataFormat {
     JSON(".json"),
     AVRO(".avro"),
     PARQUET(".parquet"),
-    STATE(".state");
+    STATE(".state"),
+    ATHENA(".<athena>"),
+    JDBC(".<jdbc>");
+
 
     private final String extension;
 

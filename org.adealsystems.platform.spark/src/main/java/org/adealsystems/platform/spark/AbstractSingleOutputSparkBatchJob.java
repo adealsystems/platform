@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 ADEAL Systems GmbH
+ * Copyright 2020-2023 ADEAL Systems GmbH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@ import org.adealsystems.platform.process.exceptions.DuplicateUniqueIdentifierExc
 import org.adealsystems.platform.process.exceptions.UnregisteredDataIdentifierException;
 import org.adealsystems.platform.process.exceptions.UnregisteredDataResolverException;
 import org.adealsystems.platform.process.exceptions.UnsupportedDataFormatException;
+import org.adealsystems.platform.process.jdbc.JdbcConnectionProperties;
+import org.adealsystems.platform.process.jdbc.JdbcConnectionRegistry;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -52,6 +54,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -70,6 +73,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
     private final DataLocation outputLocation;
     private final Set<DataIdentifier> outputIdentifiers;
     private final DataInstanceRegistry dataInstanceRegistry = new DataInstanceRegistry();
+    private final JdbcConnectionRegistry jdbcConnectionRegistry = new JdbcConnectionRegistry();
     private final Map<String, Object> writerOptions = new HashMap<>();
     private final Map<DataIdentifier, String> processingStatus = new HashMap<>();
     private final boolean storeAsSingleFile;
@@ -370,6 +374,47 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         }
     }
 
+    protected void registerJdbcInput(JdbcConnectionProperties props, DataIdentifier inputIdentifier) {
+        Objects.requireNonNull(props, "jdbcConnectionProperties must not be null!");
+        Objects.requireNonNull(inputIdentifier, "inputIdentifier must not be null!");
+
+        switch (inputIdentifier.getDataFormat()) {
+            case ATHENA:
+                assertProperties(props.getConnectionProperties(),
+                    JdbcConnectionProperties.PROP_AWS_CREDENTIALS_PROVIDER,
+                    JdbcConnectionProperties.PROP_URL,
+                    JdbcConnectionProperties.PROP_DRIVER,
+                    JdbcConnectionProperties.PROP_QUERY);
+                break;
+            case JDBC:
+                assertProperties(props.getConnectionProperties(),
+                    JdbcConnectionProperties.PROP_URL,
+                    JdbcConnectionProperties.PROP_DRIVER,
+                    JdbcConnectionProperties.PROP_QUERY);
+                break;
+            default:
+                break;
+        }
+
+        jdbcConnectionRegistry.register(inputIdentifier, props);
+    }
+
+    private void assertProperties(Properties props, String... keys) {
+        Objects.requireNonNull(props, "jdbcConnectionProperties must not be null!");
+        Objects.requireNonNull(keys, "keys must not be null!");
+
+        Set<String> missing = new HashSet<>();
+        for (String key : keys) {
+            if (!props.containsKey(key)) {
+                missing.add(key);
+            }
+        }
+
+        if (!missing.isEmpty()) {
+            throw new IllegalArgumentException("Missing jdbc connection properties " + missing + "!");
+        }
+    }
+
     /**
      * Reads the Dataset registered for the given data identifier.
      * <p>
@@ -386,10 +431,22 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
      * @throws UnregisteredDataIdentifierException if no DataInstance was registered for the given DataIdentifier
      */
     protected Dataset<Row> readInput(DataIdentifier dataIdentifier) {
-        DataInstance dataInstance = dataInstanceRegistry.resolveUnique(dataIdentifier).orElse(null);
-        if (dataInstance != null) {
-            return readInput(dataInstance);
+        switch (dataIdentifier.getDataFormat()) {
+            case JDBC:
+            case ATHENA:
+                Optional<JdbcConnectionProperties> props = jdbcConnectionRegistry.resolve(dataIdentifier);
+                if (props.isPresent()) {
+                    return readJdbcInput(dataIdentifier, props.get());
+                }
+                break;
+            default:
+                DataInstance dataInstance = dataInstanceRegistry.resolveUnique(dataIdentifier).orElse(null);
+                if (dataInstance != null) {
+                    return readInput(dataInstance);
+                }
+                break;
         }
+
         throw new UnregisteredDataIdentifierException(dataIdentifier);
     }
 
@@ -422,7 +479,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
      * Any exception happening during reading of the Dataset is propagated to the caller.
      *
      * @param dataIdentifiers data identifiers used to resolve the data instance
-     * @param cleanser function used to prepare the dataset
+     * @param cleanser        function used to prepare the dataset
      * @return the (unique) Dataset for given DataIdentifiers
      * @throws NullPointerException                if dataIdentifiers is null
      * @throws DuplicateUniqueIdentifierException  if more than one DataInstance was registered for the given DataIdentifier
@@ -574,24 +631,45 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         return result;
     }
 
+    @SuppressWarnings("PMD.CloseResource")
     private Dataset<Row> readInput(DataInstance dataInstance) {
         Objects.requireNonNull(dataInstance, "dataInstance must not be null!");
         String path = dataInstance.getPath();
         DataFormat dataFormat = dataInstance.getDataFormat();
         logger.info("Reading {} from '{}'.", dataInstance, path);
+
+        SparkSession session = getSparkSession();
         switch (dataFormat) {
             case CSV_COMMA:
-                return readCsvAsDataset(getSparkSession(), COMMA, path);
+                return readCsvAsDataset(session, COMMA, path);
             case CSV_SEMICOLON:
-                return readCsvAsDataset(getSparkSession(), SEMICOLON, path);
+                return readCsvAsDataset(session, SEMICOLON, path);
             case CSV_PIPE:
-                return readCsvAsDataset(getSparkSession(), PIPE, path);
+                return readCsvAsDataset(session, PIPE, path);
             case JSON:
-                return readJsonAsDataset(getSparkSession(), path);
+                return readJsonAsDataset(session, path);
             case AVRO:
-                return readAvroAsDataset(getSparkSession(), path);
+                return readAvroAsDataset(session, path);
             case PARQUET:
-                return readParquetAsDataset(getSparkSession(), path);
+                return readParquetAsDataset(session, path);
+            default:
+                throw new UnsupportedDataFormatException(dataFormat);
+        }
+    }
+
+    @SuppressWarnings("PMD.CloseResource")
+    private Dataset<Row> readJdbcInput(DataIdentifier dataId, JdbcConnectionProperties props) {
+        Objects.requireNonNull(dataId, "dataId must not be null!");
+
+        Properties properties = props.getConnectionProperties();
+
+        SparkSession session = getSparkSession();
+        DataFormat dataFormat = dataId.getDataFormat();
+        switch (dataFormat) {
+            case JDBC:
+                return readJdbc(session, properties);
+            case ATHENA:
+                return readAthenaJdbc(session, properties);
             default:
                 throw new UnsupportedDataFormatException(dataFormat);
         }
@@ -717,6 +795,25 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         return sparkSession.read() //
             .format("parquet") //
             .load(fileName);
+    }
+
+    static Dataset<Row> readJdbc(SparkSession sparkSession, Properties connectionProperties) {
+        String jdbcUrl = connectionProperties.getProperty(JdbcConnectionProperties.PROP_URL);
+        String query = connectionProperties.getProperty(JdbcConnectionProperties.PROP_QUERY);
+
+        return sparkSession.read()
+            .jdbc(jdbcUrl, query, connectionProperties);
+    }
+
+    static Dataset<Row> readAthenaJdbc(SparkSession sparkSession, Properties connectionProperties) {
+        connectionProperties.put(JdbcConnectionProperties.PROP_DRIVER, "com.simba.athena.jdbc42.Driver");
+        connectionProperties.put(JdbcConnectionProperties.PROP_AWS_CREDENTIALS_PROVIDER, "de.der.quamon.batch.uc.dummy.AmazonCredentialsProvider");
+
+        String jdbcUrl = connectionProperties.getProperty(JdbcConnectionProperties.PROP_URL);
+        String query = connectionProperties.getProperty(JdbcConnectionProperties.PROP_QUERY);
+
+        return sparkSession.read()
+            .jdbc(jdbcUrl, query, connectionProperties);
     }
 
     static void writeDatasetAsCsv(
