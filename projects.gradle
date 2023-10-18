@@ -273,3 +273,21 @@ project(':org.adealsystems.platform.sqlcollector') {
         testRuntimeOnly libraries.'jcl-over-slf4j'
     }
 }
+
+def orchestratorCore = project(':org.adealsystems.platform.orchestrator.core') {
+    dependencies {
+        implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
+        implementation platformId
+        implementation platformIo
+        implementation platformIoCompression
+        implementation platformIoJson
+        implementation platformProcess
+        implementation platformState
+
+        implementation libraries.'sulky-ulid'
+        implementation libraries.'commons-lang'
+        implementation libraries.'spring-context'
+        implementation libraries.'jackson-datatype-jsr310'
+        implementation libraries.'slf4j-api'
+    }
+}
