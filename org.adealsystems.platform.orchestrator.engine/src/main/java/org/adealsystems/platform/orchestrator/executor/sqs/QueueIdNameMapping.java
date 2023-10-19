@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.orchestrator
+package org.adealsystems.platform.orchestrator.executor.sqs;
 
-import spock.lang.Specification
+import java.util.Map;
 
-class UlidSessionIdGeneratorSpec extends Specification {
-    def 'generate works as expected'() {
-        given:
-        UlidSessionIdGenerator instance = new UlidSessionIdGenerator()
+public class QueueIdNameMapping {
+    private final Map<String, String> queueNameMap;
 
-        when:
-        def id = instance.generate()
-        def otherId = instance.generate()
+    public QueueIdNameMapping(Map<String, String> queueNameMap) {
+        this.queueNameMap = queueNameMap;
+    }
 
-        then:
-        id != otherId
+    public Map<String, String> getQueueNameMap() {
+        return queueNameMap;
     }
 }

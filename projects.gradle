@@ -291,3 +291,45 @@ def orchestratorCore = project(':org.adealsystems.platform.orchestrator.core') {
         implementation libraries.'slf4j-api'
     }
 }
+
+def orchestratorEngine = project(':org.adealsystems.platform.orchestrator.engine') {
+    dependencies {
+        implementation platformId
+        implementation platformIo
+        implementation platformIoCompression
+        implementation platformIoJson
+        implementation platformProcess
+        implementation platformState
+        implementation orchestratorCore
+
+        implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
+
+        implementation libraries.'spring-boot-starter-actuator', {
+            exclude group: 'org.springframework.boot', module: 'spring-boot-starter'
+        }
+        implementation libraries.'spring-boot-starter-web', {
+            exclude group: 'org.springframework.boot', module: 'spring-boot-starter'
+        }
+        implementation libraries.'spring-boot-starter-thymeleaf', {
+            exclude group: 'org.springframework.boot', module: 'spring-boot-starter'
+        }
+//        implementation libraries.'spring-boot-starter-quartz', {
+//            exclude group: 'org.springframework.boot', module: 'spring-boot-starter'
+//            exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+//        }
+
+        implementation libraries.'sulky-ulid'
+        implementation libraries.'aws-sdk-sns'
+        implementation libraries.'aws-sdk-sqs'
+        implementation libraries.'aws-sdk-s3'
+        implementation libraries.'commons-lang'
+        implementation libraries.'spring-context'
+        implementation libraries.'spring-cloud-aws-messaging'
+        implementation libraries.'jackson-datatype-jsr310'
+    }
+}
+
+project(':org.adealsystems.platform.orchestrator.app.example') {
+    dependencies {
+    }
+}

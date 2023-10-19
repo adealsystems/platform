@@ -14,20 +14,12 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.orchestrator
+package org.adealsystems.platform.orchestrator.executor.email;
 
-import spock.lang.Specification
-
-class UlidSessionIdGeneratorSpec extends Specification {
-    def 'generate works as expected'() {
-        given:
-        UlidSessionIdGenerator instance = new UlidSessionIdGenerator()
-
-        when:
-        def id = instance.generate()
-        def otherId = instance.generate()
-
-        then:
-        id != otherId
-    }
+public enum RecipientsCluster {
+    INTERNAL,
+    PROJECT,
+    CUSTOMER,
+    CUSTOMER_REPORT,
+    CUSTOMER_SUPPORT
 }

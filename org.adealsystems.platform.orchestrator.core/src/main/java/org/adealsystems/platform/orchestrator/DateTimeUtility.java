@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.orchestrator
+package org.adealsystems.platform.orchestrator;
 
-import spock.lang.Specification
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
-class UlidSessionIdGeneratorSpec extends Specification {
-    def 'generate works as expected'() {
-        given:
-        UlidSessionIdGenerator instance = new UlidSessionIdGenerator()
+public final class DateTimeUtility {
+    private DateTimeUtility() {}
 
-        when:
-        def id = instance.generate()
-        def otherId = instance.generate()
+    public static LocalDate parseDate(String value, String pattern) {
+        return LocalDate.parse(value, DateTimeFormatter.ofPattern(pattern, Locale.ROOT));
+    }
 
-        then:
-        id != otherId
+    public static LocalDateTime parseDateTime(String value, String pattern) {
+        return LocalDateTime.parse(value, DateTimeFormatter.ofPattern(pattern, Locale.ROOT));
     }
 }
