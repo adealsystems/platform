@@ -17,41 +17,40 @@
 package org.adealsystems.platform.orchestrator.status;
 
 
-import org.adealsystems.platform.orchestrator.DataLakeZone;
 import org.adealsystems.platform.orchestrator.InternalEvent;
 
 import java.util.Objects;
 
 public class FileProcessingStep extends EventProcessingStep {
-    private final DataLakeZone zone;
+    private final String zone;
     private final String metaName;
 
-    public static FileProcessingStep success(InternalEvent event, DataLakeZone zone, String metaName) {
+    public static FileProcessingStep success(InternalEvent event, String zone, String metaName) {
         return new FileProcessingStep(true, event, buildDefaultMessage(metaName, zone), zone, metaName);
     }
 
-    public static FileProcessingStep failed(InternalEvent event, DataLakeZone zone, String metaName) {
+    public static FileProcessingStep failed(InternalEvent event, String zone, String metaName) {
         return new FileProcessingStep(false, event, buildDefaultMessage(metaName, zone), zone, metaName);
     }
 
-    public static FileProcessingStep failed(InternalEvent event, DataLakeZone zone, String metaName, String message) {
+    public static FileProcessingStep failed(InternalEvent event, String zone, String metaName, String message) {
         return new FileProcessingStep(false, event, message, zone, metaName);
     }
 
-    private static String buildDefaultMessage(String metaName, DataLakeZone zone) {
+    private static String buildDefaultMessage(String metaName, String zone) {
         if (metaName == null) {
-            return "File arrived in zone " + zone.name();
+            return "File arrived in zone " + zone;
         }
-        return "File " + metaName + " arrived in zone " + zone.name();
+        return "File " + metaName + " arrived in zone " + zone;
     }
 
-    public FileProcessingStep(boolean success, InternalEvent event, String message, DataLakeZone zone, String metaName) {
+    public FileProcessingStep(boolean success, InternalEvent event, String message, String zone, String metaName) {
         super(success, event, message);
         this.zone = zone;
         this.metaName = metaName;
     }
 
-    public DataLakeZone getZone() {
+    public String getZone() {
         return zone;
     }
 
@@ -65,7 +64,7 @@ public class FileProcessingStep extends EventProcessingStep {
         if (!(o instanceof FileProcessingStep)) return false;
         if (!super.equals(o)) return false;
         FileProcessingStep that = (FileProcessingStep) o;
-        return zone == that.zone && Objects.equals(metaName, that.metaName);
+        return Objects.equals(zone, that.zone) && Objects.equals(metaName, that.metaName);
     }
 
     @Override
@@ -78,6 +77,6 @@ public class FileProcessingStep extends EventProcessingStep {
         return "FileProcessingStep{" +
             "zone=" + zone +
             ", metaName='" + metaName + '\'' +
-            "} " + super.toString();
+            "}";
     }
 }

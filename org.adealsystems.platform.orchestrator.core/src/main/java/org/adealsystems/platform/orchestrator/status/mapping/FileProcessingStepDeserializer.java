@@ -16,11 +16,9 @@
 
 package org.adealsystems.platform.orchestrator.status.mapping;
 
-import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import org.adealsystems.platform.orchestrator.DataLakeZone;
 import org.adealsystems.platform.orchestrator.InternalEvent;
 import org.adealsystems.platform.orchestrator.status.FileProcessingStep;
 
@@ -38,10 +36,9 @@ public class FileProcessingStepDeserializer extends StdDeserializer<FileProcessi
     }
 
     @Override
-    public FileProcessingStep deserialize(JsonParser parser, DeserializationContext ctx) throws IOException, JacksonException {
+    public FileProcessingStep deserialize(JsonParser parser, DeserializationContext ctx) throws IOException {
         Root root = parser.readValueAs(Root.class);
-        DataLakeZone zone = DataLakeZone.valueOf(root.zone);
-        return new FileProcessingStep(root.success, root.event, root.message, zone, root.metaName);
+        return new FileProcessingStep(root.success, root.event, root.message, root.zone, root.metaName);
     }
 
     private static class Root { // NOPMD

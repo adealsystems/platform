@@ -17,25 +17,24 @@
 package org.adealsystems.platform.orchestrator.registry;
 
 import org.adealsystems.platform.id.DataIdentifier;
-import org.adealsystems.platform.orchestrator.DataLakeZone;
 
 import java.util.Objects;
 import java.util.regex.Pattern;
 
 public final class FileEvent implements EventDescriptor {
     private final String id;
-    private final DataLakeZone zone;
+    private final String zone;
     private boolean startEvent;
     private boolean stopEvent;
     private Pattern pattern;
     private String metaName;
     private DataIdentifier dataId;
 
-    public static FileEvent forIdAndZone(String id, DataLakeZone zone) {
+    public static FileEvent forIdAndZone(String id, String zone) {
         return new FileEvent(id, zone);
     }
 
-    private FileEvent(String id, DataLakeZone zone) {
+    private FileEvent(String id, String zone) {
         this.id = Objects.requireNonNull(id, "id must not be null!");
         this.zone = zone;
     }
@@ -90,7 +89,7 @@ public final class FileEvent implements EventDescriptor {
         return stopEvent;
     }
 
-    public DataLakeZone getZone() {
+    public String getZone() {
         return zone;
     }
 

@@ -17,7 +17,6 @@
 package org.adealsystems.platform.orchestrator.registry;
 
 
-import org.adealsystems.platform.orchestrator.DataLakeZone;
 import org.adealsystems.platform.orchestrator.InternalEvent;
 
 import java.util.Collections;
@@ -42,8 +41,8 @@ import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSI
 public class EventRegistry {
     private final Map<String, EventDescriptor> entries = new HashMap<>();
 
-    private final Map<DataLakeZone, Set<FileEvent>> fileEventsByZone = new HashMap<>();
-    private final Map<DataLakeZone, Set<ZoneDescriptor.FileDescriptor>> fileDescriptorsByZone = new HashMap<>();
+    private final Map<String, Set<FileEvent>> fileEventsByZone = new HashMap<>();
+    private final Map<String, Set<ZoneDescriptor.FileDescriptor>> fileDescriptorsByZone = new HashMap<>();
     private final Set<CancelEvent> cancelEvents = new HashSet<>();
     private final Set<TimerEvent> timerEvents = new HashSet<>();
     private final Set<SessionEvent> sessionEvents = new HashSet<>();
@@ -87,7 +86,7 @@ public class EventRegistry {
 
             if (FileEvent.class.isAssignableFrom(entry.getClass())) {
                 FileEvent fileEvent = (FileEvent) entry;
-                DataLakeZone zone = fileEvent.getZone();
+                String zone = fileEvent.getZone();
 
                 Set<FileEvent> zoneEvents = fileEventsByZone.get(zone);
                 if (zoneEvents == null) {
@@ -118,7 +117,7 @@ public class EventRegistry {
         return entries;
     }
 
-    public Set<ZoneDescriptor.FileDescriptor> getFileDescriptors(DataLakeZone zone) {
+    public Set<ZoneDescriptor.FileDescriptor> getFileDescriptors(String zone) {
         return fileDescriptorsByZone.get(zone);
     }
 
@@ -169,9 +168,8 @@ public class EventRegistry {
     public Optional<FileEvent> findFileEvent(InternalEvent event) {
         String eventId = event.getId();
 
-        for (DataLakeZone zone : DataLakeZone.values()) {
-            Set<FileEvent> zoneEvents = fileEventsByZone.get(zone);
-            if (zoneEvents == null) {
+        for (Set<FileEvent> zoneEvents : fileEventsByZone.values()) {
+            if (zoneEvents == null || zoneEvents.isEmpty()) {
                 continue;
             }
 
@@ -185,7 +183,7 @@ public class EventRegistry {
         return Optional.empty();
     }
 
-    public Optional<FileEvent> findFileEvent(InternalEvent event, DataLakeZone zone) {
+    public Optional<FileEvent> findFileEvent(InternalEvent event, String zone) {
         String eventId = event.getId();
 
         Set<FileEvent> zoneEvents = fileEventsByZone.get(zone);

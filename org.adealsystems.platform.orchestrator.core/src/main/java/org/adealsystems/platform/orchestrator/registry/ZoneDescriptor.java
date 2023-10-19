@@ -17,21 +17,20 @@
 package org.adealsystems.platform.orchestrator.registry;
 
 import org.adealsystems.platform.id.DataIdentifier;
-import org.adealsystems.platform.orchestrator.DataLakeZone;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ZoneDescriptor {
-    DataLakeZone zone;
+    String zone;
     Set<FileDescriptor> files = new HashSet<>();
 
-    private ZoneDescriptor(DataLakeZone zone) {
+    private ZoneDescriptor(String zone) {
         this.zone = zone;
     }
 
-    public static ZoneDescriptor forZone(DataLakeZone zone) {
+    public static ZoneDescriptor forZone(String zone) {
         return new ZoneDescriptor(zone);
     }
 
@@ -60,7 +59,7 @@ public class ZoneDescriptor {
         return this;
     }
 
-    public DataLakeZone getZone() {
+    public String getZone() {
         return zone;
     }
 
