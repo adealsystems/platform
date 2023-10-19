@@ -27,19 +27,22 @@ public class EmailSenderFactory {
     private final String jenkinsUserName;
     private final CommandIdGenerator commandIdGenerator;
     private final Map<RecipientsCluster, String> recipientClusterMapping;
+    private final Map<EmailType, String> jenkinsJobMapping;
 
     public EmailSenderFactory(
         String jenkinsUrl,
         String jenkinsUserName,
         String jenkinsToken,
         CommandIdGenerator commandIdGenerator,
-        Map<RecipientsCluster, String> recipientClusterMapping
+        Map<RecipientsCluster, String> recipientClusterMapping,
+        Map<EmailType, String> jenkinsJobMapping
     ) {
         this.jenkinsUrl = jenkinsUrl;
         this.jenkinsToken = jenkinsToken;
         this.jenkinsUserName = jenkinsUserName;
         this.commandIdGenerator = Objects.requireNonNull(commandIdGenerator, "commandIdGenerator must not be null!");
         this.recipientClusterMapping = Objects.requireNonNull(recipientClusterMapping, "recipientClusterMapping must not be null!");
+        this.jenkinsJobMapping = Objects.requireNonNull(jenkinsJobMapping, "jenkinsJobMapping must not be null!");
     }
 
     public EmailSender getSender(RecipientsCluster cluster, EmailType type) {
@@ -51,15 +54,10 @@ public class EmailSenderFactory {
     }
 
     private String determineJobName(EmailType type) {
-        switch (type) {
-            case INFO:
-                return "INFO_EMAIL_SENDER";
-            case ERROR:
-                return "ERROR_EMAIL_SENDER";
-            case EMAIL_WITH_ATTACHMENT:
-                return "EMAIL_WITH_ATTACHMENT_SENDER";
-            default:
-                throw new IllegalArgumentException("Unknown/unsupported email type '" + type + "'!");
+        String result = jenkinsJobMapping.get(type);
+        if (result == null) {
+            throw new IllegalArgumentException("Unknown/unsupported email type '" + type + "'!");
         }
+        return result;
     }
 }
