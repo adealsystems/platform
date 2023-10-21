@@ -19,5 +19,5 @@ package org.adealsystems.platform.orchestrator.executor;
 import org.adealsystems.platform.id.DataIdentifier;
 
 public interface MultipleJobExecutor {
-    void execute(DataIdentifier... dataIds);
+    ExecutorResult<ExecutorExitCode> execute(DataIdentifier... dataIds);
 }
