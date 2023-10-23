@@ -90,7 +90,7 @@ public class OrchestratorRuntime {
         this.instanceRepository = Objects.requireNonNull(instanceRepository, "instanceRepository must not be null!");
         this.timestampFactory = Objects.requireNonNull(timestampFactory, "timestampFactory must not be null!");
         this.eventHistory = Objects.requireNonNull(eventHistory, "eventHistory must not be null!");
-        this.asyncJobReceiverRunnable = Objects.requireNonNull(asyncJobReceiverRunnable, "asyncJobReceiverRunnable must not be null!");
+        this.asyncJobReceiverRunnable = asyncJobReceiverRunnable;
     }
 
     public Thread getAsyncEventHandlerThread() {
@@ -163,10 +163,15 @@ public class OrchestratorRuntime {
                 thread.start();
             }
 
-            asyncEventHandlerThread = new Thread(asyncJobReceiverRunnable, "async-jobs-handler");
-            asyncEventHandlerThread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
-            LOGGER.info("Starting {} thread", asyncEventHandlerThread.getName());
-            asyncEventHandlerThread.start();
+            if (asyncJobReceiverRunnable != null) {
+                asyncEventHandlerThread = new Thread(asyncJobReceiverRunnable, "async-jobs-handler");
+                asyncEventHandlerThread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
+                LOGGER.info("Starting {} thread", asyncEventHandlerThread.getName());
+                asyncEventHandlerThread.start();
+            }
+            else {
+                LOGGER.info("No async job receiver runnable configured. No corresponding thread will be started.");
+            }
 
             starting.set(false);
             running.set(true);
@@ -216,8 +221,10 @@ public class OrchestratorRuntime {
 
             stopping.set(true);
 
-            LOGGER.info("Interrupting {} thread", asyncEventHandlerThread.getName());
-            asyncEventHandlerThread.interrupt();
+            if (asyncJobReceiverRunnable != null) {
+                LOGGER.info("Interrupting {} thread", asyncEventHandlerThread.getName());
+                asyncEventHandlerThread.interrupt();
+            }
 
             for (Thread receiverThread : receiverThreads) {
                 LOGGER.info("Interrupting {} thread", receiverThread.getName());
