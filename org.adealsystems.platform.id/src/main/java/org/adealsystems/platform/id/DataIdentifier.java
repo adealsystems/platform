@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 public final class DataIdentifier implements Comparable<DataIdentifier> {
     public static final String SEPARATOR = ":";
     static final String PATTERN_STRING = "[a-z][0-9a-z]*(_[0-9a-z]+)*";
-    static final String CONFIGURATION_PATTERN_STRING = "[a-zA-Z][0-9a-zA-Z]*([\\_\\-\\.0-9a-zA-Z]+)*";
+    static final String CONFIGURATION_PATTERN_STRING = "[a-zA-Z][0-9a-zA-Z]*([,@\\_\\-\\.0-9a-zA-Z]+)*";
     private static final Pattern PATTERN = Pattern.compile(PATTERN_STRING);
     private static final Pattern CONFIGURATION_PATTERN = Pattern.compile(CONFIGURATION_PATTERN_STRING);
 

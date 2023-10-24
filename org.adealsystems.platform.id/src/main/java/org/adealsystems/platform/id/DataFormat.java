@@ -27,7 +27,8 @@ public enum DataFormat {
     PARQUET(".parquet"),
     STATE(".state"),
     ATHENA(".<athena>"),
-    JDBC(".<jdbc>");
+    JDBC(".<jdbc>"),
+    EMAIL(".<email>");
 
 
     private final String extension;
