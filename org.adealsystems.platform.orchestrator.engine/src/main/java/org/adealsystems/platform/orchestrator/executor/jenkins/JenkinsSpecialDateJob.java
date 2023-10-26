@@ -24,8 +24,8 @@ import java.util.Objects;
 
 public abstract class JenkinsSpecialDateJob extends JenkinsJobBase {
 
-    public JenkinsSpecialDateJob(String url, String token, String username, String jobName) {
-        super(url, token, username, jobName);
+    public JenkinsSpecialDateJob(String url, String username, String token, String jobName) {
+        super(url, username, token, jobName);
     }
 
     protected abstract Map<String, String> prepareAdditionalParameters(LocalDate inputDate, DataIdentifier dataIdentifier);

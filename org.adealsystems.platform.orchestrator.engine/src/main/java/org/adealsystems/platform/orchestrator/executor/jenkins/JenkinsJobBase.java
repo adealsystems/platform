@@ -28,7 +28,7 @@ public class JenkinsJobBase {
 
     private static final String DATA_PREFIX = " --data ";
 
-    public JenkinsJobBase(String url, String token, String username, String jobName) {
+    public JenkinsJobBase(String url, String username, String token, String jobName) {
         this.jenkinsUrl = Objects.requireNonNull(url, "url must not be null!");
         this.jenkinsToken = Objects.requireNonNull(token, "token must not be null!");
         this.jenkinsUsername = Objects.requireNonNull(username, "username must not be null!");

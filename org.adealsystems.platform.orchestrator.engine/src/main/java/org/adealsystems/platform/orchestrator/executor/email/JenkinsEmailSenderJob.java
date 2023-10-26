@@ -34,8 +34,8 @@ public class JenkinsEmailSenderJob extends JenkinsJobBase {
     public static final String FILENAME = "FILENAME";
     public static final String ATTACHMENT_NAME = "ATTACHMENT_NAME";
 
-    public JenkinsEmailSenderJob(String url, String token, String username, String jobName) {
-        super(url, token, username, jobName);
+    public JenkinsEmailSenderJob(String url, String username, String token, String jobName) {
+        super(url, username, token, jobName);
     }
 
     private Map<String, String> prepareAdditionalParameters(String recipients, String subject, String message, String parameter) {
