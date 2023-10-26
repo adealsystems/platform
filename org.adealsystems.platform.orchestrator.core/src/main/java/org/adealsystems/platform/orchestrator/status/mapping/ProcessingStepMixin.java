@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.adealsystems.platform.orchestrator.status.CancelProcessingStep;
 import org.adealsystems.platform.orchestrator.status.EventProcessingStep;
 import org.adealsystems.platform.orchestrator.status.FileProcessingStep;
+import org.adealsystems.platform.orchestrator.status.MessageProcessingStep;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingStep;
 import org.adealsystems.platform.orchestrator.status.TimerProcessingStep;
 
@@ -33,6 +34,7 @@ import org.adealsystems.platform.orchestrator.status.TimerProcessingStep;
     @JsonSubTypes.Type(value = CancelProcessingStep.class, name = "cancel"),
     @JsonSubTypes.Type(value = SessionProcessingStep.class, name = "session"),
     @JsonSubTypes.Type(value = TimerProcessingStep.class, name = "timer"),
+    @JsonSubTypes.Type(value = MessageProcessingStep.class, name = "message"),
 })
 @SuppressWarnings({
     "PMD.AbstractClassWithoutAnyMethod",

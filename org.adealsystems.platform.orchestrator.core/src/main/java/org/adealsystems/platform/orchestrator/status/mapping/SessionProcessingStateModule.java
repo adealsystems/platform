@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.adealsystems.platform.orchestrator.status.CancelProcessingStep;
 import org.adealsystems.platform.orchestrator.status.EventProcessingStep;
 import org.adealsystems.platform.orchestrator.status.FileProcessingStep;
+import org.adealsystems.platform.orchestrator.status.MessageProcessingStep;
 import org.adealsystems.platform.orchestrator.status.ProcessingStep;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 import org.adealsystems.platform.orchestrator.status.TimerProcessingStep;
@@ -37,5 +38,6 @@ public class SessionProcessingStateModule extends SimpleModule {
         addDeserializer(FileProcessingStep.class, new FileProcessingStepDeserializer());
         addDeserializer(CancelProcessingStep.class, new CancelProcessingStepDeserializer());
         addDeserializer(TimerProcessingStep.class, new TimerProcessingStepDeserializer());
+        addDeserializer(MessageProcessingStep.class, new MessageProcessingStepDeserializer());
     }
 }
