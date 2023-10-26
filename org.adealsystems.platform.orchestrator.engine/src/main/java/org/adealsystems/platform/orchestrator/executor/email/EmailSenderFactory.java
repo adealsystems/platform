@@ -47,7 +47,7 @@ public class EmailSenderFactory {
 
     public EmailSender getSender(RecipientsCluster cluster, EmailType type) {
         String jobName = determineJobName(type);
-        JenkinsEmailSenderJob job = new JenkinsEmailSenderJob(jenkinsUrl, jenkinsToken, jenkinsUserName, jobName);
+        JenkinsEmailSenderJob job = new JenkinsEmailSenderJob(jenkinsUrl, jenkinsUserName, jenkinsToken, jobName);
 
         String recipients = recipientClusterMapping.get(cluster);
         return new JenkinsEmailSenderExecutor(recipients, job, commandIdGenerator);
