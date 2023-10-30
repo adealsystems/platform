@@ -77,9 +77,15 @@ public class StatusController {
         boolean containingDeadThreads = !current;
         result.internalEventHandlerAlive = current;
 
-        current = runtime.getAsyncEventHandlerThread().isAlive();
-        containingDeadThreads = containingDeadThreads || !current;
-        result.processorEventHandlerAlive = current;
+        Thread asyncEventHandlerThread = runtime.getAsyncEventHandlerThread();
+        if (asyncEventHandlerThread != null) {
+            current = asyncEventHandlerThread.isAlive();
+            containingDeadThreads = containingDeadThreads || !current;
+            result.asyncEventHandlerThread = current;
+        }
+        else {
+            result.asyncEventHandlerThread = false;
+        }
 
         result.instanceEventHandlers = new HashMap<>();
         Map<InstanceId, Thread> instanceEventHandlers = runtime.getInstanceEventHandlerThreads();
@@ -283,7 +289,7 @@ public class StatusController {
     static class ThreadsInfo {
         private LocalDateTime requestTimestamp;
         private boolean internalEventHandlerAlive;
-        private boolean processorEventHandlerAlive;
+        private boolean asyncEventHandlerThread;
         private Map<String, Boolean> instanceEventHandlers;
         private Map<String, Boolean> receiverThreads;
 
@@ -305,12 +311,12 @@ public class StatusController {
             this.internalEventHandlerAlive = internalEventHandlerAlive;
         }
 
-        public boolean isProcessorEventHandlerAlive() {
-            return processorEventHandlerAlive;
+        public boolean isAsyncEventHandlerThread() {
+            return asyncEventHandlerThread;
         }
 
-        public void setProcessorEventHandlerAlive(boolean processorEventHandlerAlive) {
-            this.processorEventHandlerAlive = processorEventHandlerAlive;
+        public void setAsyncEventHandlerThread(boolean asyncEventHandlerThread) {
+            this.asyncEventHandlerThread = asyncEventHandlerThread;
         }
 
         public Map<String, Boolean> getInstanceEventHandlers() {
@@ -344,7 +350,7 @@ public class StatusController {
             ThreadsInfo that = (ThreadsInfo) o;
             return Objects.equals(requestTimestamp, that.requestTimestamp)
                 && internalEventHandlerAlive == that.internalEventHandlerAlive
-                && processorEventHandlerAlive == that.processorEventHandlerAlive
+                && asyncEventHandlerThread == that.asyncEventHandlerThread
                 && Objects.equals(instanceEventHandlers, that.instanceEventHandlers)
                 && Objects.equals(receiverThreads, that.receiverThreads);
         }
@@ -354,7 +360,7 @@ public class StatusController {
             return Objects.hash(
                 requestTimestamp,
                 internalEventHandlerAlive,
-                processorEventHandlerAlive,
+                asyncEventHandlerThread,
                 instanceEventHandlers,
                 receiverThreads
             );
@@ -366,7 +372,7 @@ public class StatusController {
                 "requestTimestamp=" + requestTimestamp +
                 ", containingDeadThreads=" + containingDeadThreads +
                 ", internalEventHandlerAlive=" + internalEventHandlerAlive +
-                ", processorEventHandlerAlive=" + processorEventHandlerAlive +
+                ", processorEventHandlerAlive=" + asyncEventHandlerThread +
                 ", instanceEventHandlers=" + instanceEventHandlers +
                 ", receiverThreads=" + receiverThreads +
                 '}';
