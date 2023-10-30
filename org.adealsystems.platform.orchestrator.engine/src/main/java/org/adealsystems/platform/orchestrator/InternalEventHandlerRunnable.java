@@ -710,7 +710,7 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         Optional<SessionId> oSessionId = activeSessionIdRepository.retrieveActiveSessionId(dynamicId);
         if (!oSessionId.isPresent()) {
-            LOGGER.error("Error stopping session! Missing active session for instance '{}'!", dynamicId);
+            LOGGER.info("Unable to stop session! Missing active session for instance '{}'!", dynamicId);
             return Optional.empty();
         }
 
@@ -720,7 +720,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
         Optional<Session> oSession = sessionRepository.retrieveSession(sessionId);
         if (!oSession.isPresent()) {
-            LOGGER.error("Missing active session {} for instance {}!", sessionId, instanceId);
+            LOGGER.info("Missing session {} for instance {}!", sessionId, instanceId);
             return Optional.empty();
         }
 
@@ -790,7 +790,7 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         Optional<InternalEvent> oStopSessionEvent = stopSession(sessionEvent);
         if (!oStopSessionEvent.isPresent()) {
-            LOGGER.warn("Failed to stop session, event {}", event);
+            LOGGER.info("Failed to stop session, event {}", event);
             return;
         }
 
