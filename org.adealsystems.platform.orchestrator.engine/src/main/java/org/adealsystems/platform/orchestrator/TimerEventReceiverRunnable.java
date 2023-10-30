@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 import java.util.Objects;
@@ -34,6 +35,7 @@ public class TimerEventReceiverRunnable implements Runnable {
 
     private static final Duration TIMER_STEP = Duration.of(1, ChronoUnit.MINUTES);
     private static final DateTimeFormatter TIMER_FORMATTER = DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT);
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ROOT);
 
     private LocalDateTime lastTimestamp = null;
 
@@ -58,17 +60,26 @@ public class TimerEventReceiverRunnable implements Runnable {
                 LOGGER.debug("Comparing timestamp {} with {} ...", lastTimestamp, timestamp);
                 if (duration.compareTo(TIMER_STEP) >= 0) {
                     String eventId = TIMER_FORMATTER.format(timestamp);
+                    String date = DATE_FORMATTER.format(timestamp);
+                    String dayOfMonth = String.valueOf(timestamp.get(ChronoField.DAY_OF_MONTH));
+                    String dayOfWeek = String.valueOf(timestamp.get(ChronoField.DAY_OF_WEEK));
 
                     // send the next event
                     InternalEvent timerEvent = new InternalEvent(); // NOPMD
                     timerEvent.setId(eventId);
                     timerEvent.setType(InternalEventType.TIMER);
                     timerEvent.setTimestamp(timestamp);
+                    timerEvent.setAttributeValue("date", date);
+                    timerEvent.setAttributeValue("day-of-week", dayOfWeek);
+                    timerEvent.setAttributeValue("day-of-month", dayOfMonth);
 
                     InternalEvent cancelEvent = new InternalEvent(); // NOPMD
                     cancelEvent.setId(eventId);
                     cancelEvent.setType(InternalEventType.CANCEL);
                     cancelEvent.setTimestamp(timestamp);
+                    cancelEvent.setAttributeValue("date", date);
+                    cancelEvent.setAttributeValue("day-of-week", dayOfWeek);
+                    cancelEvent.setAttributeValue("day-of-month", dayOfMonth);
 
                     LOGGER.debug("Sending a new timer/cancel events {}, {}", timerEvent, cancelEvent);
                     try {
