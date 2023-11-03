@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -380,6 +381,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
         switch (inputIdentifier.getDataFormat()) {
             case ATHENA:
+                LOGGER.debug("Registering athena input {} with properties {}", inputIdentifier, props);
                 assertProperties(props.getConnectionProperties(),
                     JdbcConnectionProperties.PROP_AWS_CREDENTIALS_PROVIDER,
                     JdbcConnectionProperties.PROP_URL,
@@ -387,6 +389,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
                     JdbcConnectionProperties.PROP_QUERY);
                 break;
             case JDBC:
+                LOGGER.debug("Registering jdbc input {} with properties {}", inputIdentifier, props);
                 assertProperties(props.getConnectionProperties(),
                     JdbcConnectionProperties.PROP_URL,
                     JdbcConnectionProperties.PROP_DRIVER,
@@ -801,19 +804,42 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         String jdbcUrl = connectionProperties.getProperty(JdbcConnectionProperties.PROP_URL);
         String query = connectionProperties.getProperty(JdbcConnectionProperties.PROP_QUERY);
 
+        Properties props = cloneProperties(connectionProperties);
+
+        props.remove(JdbcConnectionProperties.PROP_URL);
+        props.remove(JdbcConnectionProperties.PROP_QUERY);
+
         return sparkSession.read()
-            .jdbc(jdbcUrl, query, connectionProperties);
+            .jdbc(jdbcUrl, query, props);
     }
 
     static Dataset<Row> readAthenaJdbc(SparkSession sparkSession, Properties connectionProperties) {
-        connectionProperties.put(JdbcConnectionProperties.PROP_DRIVER, "com.simba.athena.jdbc42.Driver");
-        connectionProperties.put(JdbcConnectionProperties.PROP_AWS_CREDENTIALS_PROVIDER, "de.der.quamon.batch.uc.dummy.AmazonCredentialsProvider");
-
         String jdbcUrl = connectionProperties.getProperty(JdbcConnectionProperties.PROP_URL);
         String query = connectionProperties.getProperty(JdbcConnectionProperties.PROP_QUERY);
 
+        Properties props = cloneProperties(connectionProperties);
+
+        props.remove(JdbcConnectionProperties.PROP_URL);
+        props.remove(JdbcConnectionProperties.PROP_QUERY);
+
         return sparkSession.read()
-            .jdbc(jdbcUrl, query, connectionProperties);
+            .jdbc(jdbcUrl, query, props);
+    }
+
+    private static Properties cloneProperties(Properties props) {
+        if (props == null) {
+            return null; // NOPMD
+        }
+
+        Properties result = new Properties();
+        Enumeration<?> names = props.propertyNames();
+        while(names.hasMoreElements()) {
+            String name = String.valueOf(names.nextElement());
+            String value = props.getProperty(name);
+            result.setProperty(name, value);
+        }
+
+        return result;
     }
 
     static void writeDatasetAsCsv(
