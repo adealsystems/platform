@@ -15,8 +15,8 @@ project.ext.versions = [
         'scala'         : '2.12',
         'spark'         : '3.1.2',
         'spock'         : '2.0-groovy-3.0',
-        'spring'        : '5.3.15',
-        'springboot'    : '2.5.9',
+        'spring'        : '5.3.30',
+        'springboot'    : '2.7.17',
         'springcloudAWS': '2.2.6.RELEASE',
         'sulky'         : '8.3.0',
 ]

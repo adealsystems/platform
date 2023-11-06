@@ -49,7 +49,7 @@ public class OrchestratorRuntime {
     private final Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
 
     private final ActiveSessionIdRepository activeSessionIdRepository;
-    private final Map<String, Runnable> receiverRunnables;
+    private final Map<String, Runnable> receiverRunnable;
     private final InternalEventHandlerRunnable internalEventHandlerRunnable;
     private final InstanceRepository instanceRepository;
     private final TimestampFactory timestampFactory;
@@ -71,7 +71,7 @@ public class OrchestratorRuntime {
         InternalEventSender rawEventSender,
         Thread.UncaughtExceptionHandler uncaughtExceptionHandler,
         ActiveSessionIdRepository activeSessionIdRepository,
-        Map<String, Runnable> receiverRunnables,
+        Map<String, Runnable> receiverRunnable,
         InternalEventHandlerRunnable internalEventHandlerRunnable,
         JobReceiverRunnable asyncJobReceiverRunnable,
         InstanceRepository instanceRepository,
@@ -85,7 +85,7 @@ public class OrchestratorRuntime {
         this.rawEventSender = Objects.requireNonNull(rawEventSender, "rawEventSender must not be null!");
         this.uncaughtExceptionHandler = Objects.requireNonNull(uncaughtExceptionHandler, "uncaughtExceptionHandler must not be null!");
         this.activeSessionIdRepository = Objects.requireNonNull(activeSessionIdRepository, "activeSessionIdRepository must not be null!");
-        this.receiverRunnables = Objects.requireNonNull(receiverRunnables, "receiverRunnables must not be null!");
+        this.receiverRunnable = Objects.requireNonNull(receiverRunnable, "receiverRunnable must not be null!");
         this.internalEventHandlerRunnable = Objects.requireNonNull(internalEventHandlerRunnable, "internalEventHandlerRunnable must not be null!");
         this.instanceRepository = Objects.requireNonNull(instanceRepository, "instanceRepository must not be null!");
         this.timestampFactory = Objects.requireNonNull(timestampFactory, "timestampFactory must not be null!");
@@ -154,7 +154,7 @@ public class OrchestratorRuntime {
             LOGGER.info("Starting {} thread", internalEventHandlerThread.getName());
             internalEventHandlerThread.start();
 
-            for (Map.Entry<String, Runnable> entry : receiverRunnables.entrySet()) {
+            for (Map.Entry<String, Runnable> entry : receiverRunnable.entrySet()) {
                 Thread thread = new Thread(entry.getValue(), "event-receiver-" + entry.getKey()); // NOPMD AvoidInstantiatingObjectsInLoops
                 thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
                 thread.setDaemon(true);
