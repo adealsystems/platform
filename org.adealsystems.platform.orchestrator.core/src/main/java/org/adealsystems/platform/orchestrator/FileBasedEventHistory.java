@@ -43,6 +43,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static java.nio.file.StandardOpenOption.APPEND;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static org.adealsystems.platform.orchestrator.InternalEvent.ATTR_RUN_ID;
+import static org.adealsystems.platform.orchestrator.InternalEvent.normalizeDynamicContent;
 
 public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedEventHistory.class);
@@ -316,7 +317,7 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
         InstanceId instanceId = event.getInstanceId();
         Optional<String> oDynamicContent = InternalEvent.getDynamicContentAttribute(event);
         InstanceId dynamicId = oDynamicContent
-            .map(dynamicContent -> new InstanceId(instanceId.getId() + "-" + dynamicContent.toLowerCase(Locale.ROOT)))
+            .map(dynamicContent -> new InstanceId(instanceId.getId() + "-" + normalizeDynamicContent(dynamicContent.toLowerCase(Locale.ROOT))))
             .orElse(instanceId);
         return new EventAffiliation(dynamicId, event.getSessionId(), event.isProcessed());
     }

@@ -24,11 +24,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -49,17 +47,20 @@ public class OrchestratorRuntime {
     private final Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
 
     private final ActiveSessionIdRepository activeSessionIdRepository;
-    private final Map<String, Runnable> receiverRunnable;
-    private final InternalEventHandlerRunnable internalEventHandlerRunnable;
     private final InstanceRepository instanceRepository;
     private final TimestampFactory timestampFactory;
     private final EventHistory eventHistory;
 
+    private final InternalEventHandlerRunnable internalEventHandlerRunnable;
+    private Thread internalEventHandlerThread;
+
     private final JobReceiverRunnable asyncJobReceiverRunnable;
     private Thread asyncEventHandlerThread;
 
-    private final Set<Thread> receiverThreads = new HashSet<>();
-    private Thread internalEventHandlerThread;
+    private final Map<String, Runnable> receiverRunnable;
+    private final Map<String, Thread> receiverThreads = new HashMap<>();
+
+    private final Map<InstanceId, InstanceEventHandlerRunnable> instanceEventHandlerRunnable = new HashMap<>();
     private final Map<InstanceId, Thread> instanceEventHandlerThreads = new HashMap<>();
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
@@ -93,16 +94,52 @@ public class OrchestratorRuntime {
         this.asyncJobReceiverRunnable = asyncJobReceiverRunnable;
     }
 
+    protected String getBasePath() {
+        return orchestratorBasePath;
+    }
+
+    protected AtomicBoolean getStarting() {
+        return starting;
+    }
+
+    protected AtomicBoolean getRunning() {
+        return running;
+    }
+
+    protected AtomicBoolean getStopping() {
+        return stopping;
+    }
+
+    protected InternalEventSender getRawEventSender() {
+        return rawEventSender;
+    }
+
+    protected JobReceiverRunnable getAsyncJobReceiverRunnable() {
+        return asyncJobReceiverRunnable;
+    }
+
+    protected Map<String, Runnable> getReceiverRunnable() {
+        return receiverRunnable;
+    }
+
+    protected InternalEventHandlerRunnable getInternalEventHandlerRunnable() {
+        return internalEventHandlerRunnable;
+    }
+
     public Thread getAsyncEventHandlerThread() {
         return asyncEventHandlerThread;
     }
 
-    public Set<Thread> getReceiverThreads() {
+    public Map<String, Thread> getReceiverThreads() {
         return receiverThreads;
     }
 
     public Thread getInternalEventHandlerThread() {
         return internalEventHandlerThread;
+    }
+
+    protected Map<InstanceId, InstanceEventHandlerRunnable> getInstanceEventHandlerRunnable() {
+        return instanceEventHandlerRunnable;
     }
 
     public Map<InstanceId, Thread> getInstanceEventHandlerThreads() {
@@ -155,10 +192,11 @@ public class OrchestratorRuntime {
             internalEventHandlerThread.start();
 
             for (Map.Entry<String, Runnable> entry : receiverRunnable.entrySet()) {
-                Thread thread = new Thread(entry.getValue(), "event-receiver-" + entry.getKey()); // NOPMD AvoidInstantiatingObjectsInLoops
+                String instanceKey = entry.getKey();
+                Thread thread = new Thread(entry.getValue(), "event-receiver-" + instanceKey); // NOPMD AvoidInstantiatingObjectsInLoops
                 thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
                 thread.setDaemon(true);
-                receiverThreads.add(thread);
+                receiverThreads.put(instanceKey, thread);
                 LOGGER.info("Starting {} thread", thread.getName());
                 thread.start();
             }
@@ -226,7 +264,7 @@ public class OrchestratorRuntime {
                 asyncEventHandlerThread.interrupt();
             }
 
-            for (Thread receiverThread : receiverThreads) {
+            for (Thread receiverThread : receiverThreads.values()) {
                 LOGGER.info("Interrupting {} thread", receiverThread.getName());
                 receiverThread.interrupt();
             }
@@ -274,6 +312,7 @@ public class OrchestratorRuntime {
         thread.setDaemon(true);
         thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
         instanceEventHandlerThreads.put(instanceId, thread);
+        instanceEventHandlerRunnable.put(instanceId, runnable);
         LOGGER.info("Starting {} thread", thread.getName());
         thread.start();
     }

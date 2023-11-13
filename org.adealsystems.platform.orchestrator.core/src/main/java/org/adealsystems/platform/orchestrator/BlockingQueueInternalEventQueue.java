@@ -16,11 +16,15 @@
 
 package org.adealsystems.platform.orchestrator;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 
 public class BlockingQueueInternalEventQueue implements InternalEventSender, InternalEventReceiver {
+    private static final Logger LOGGER = LoggerFactory.getLogger(BlockingQueueInternalEventQueue.class);
 
     private final BlockingQueue<InternalEvent> queue;
 
@@ -43,6 +47,7 @@ public class BlockingQueueInternalEventQueue implements InternalEventSender, Int
         Objects.requireNonNull(event, "event must not be null!");
 
         try {
+            LOGGER.debug("Put a new event {}", event);
             queue.put(event);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
@@ -53,6 +58,7 @@ public class BlockingQueueInternalEventQueue implements InternalEventSender, Int
     @Override
     public Optional<InternalEvent> receiveEvent() {
         try {
+            LOGGER.debug("Take a first available event");
             return Optional.of(queue.take());
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();

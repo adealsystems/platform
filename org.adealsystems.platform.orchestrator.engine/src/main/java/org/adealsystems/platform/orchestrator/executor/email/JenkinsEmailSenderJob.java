@@ -27,12 +27,12 @@ import java.util.Map;
 import java.util.Objects;
 
 public class JenkinsEmailSenderJob extends JenkinsJobBase {
-    public static final String RECIPIENTS = "RECIPIENTS";
-    public static final String SUBJECT = "SUBJECT";
-    public static final String MESSAGE = "MESSAGE";
-    public static final String PARAMETER = "PARAMETER";
-    public static final String FILENAME = "FILENAME";
-    public static final String ATTACHMENT_NAME = "ATTACHMENT_NAME";
+    public static final String RECIPIENTS = "recipients";
+    public static final String SUBJECT = "subject";
+    public static final String MESSAGE = "message";
+    public static final String PARAMETER = "argument";
+    public static final String FILENAME = "filename";
+    public static final String ATTACHMENT_NAME = "attachment_name";
 
     public JenkinsEmailSenderJob(String url, String username, String token, String jobName) {
         super(url, username, token, jobName);

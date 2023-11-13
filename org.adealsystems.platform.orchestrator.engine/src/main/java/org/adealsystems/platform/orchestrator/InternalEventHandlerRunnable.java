@@ -47,6 +47,7 @@ import static org.adealsystems.platform.orchestrator.InternalEvent.ATTR_RUN_ID;
 import static org.adealsystems.platform.orchestrator.InternalEvent.getDynamicContentAttribute;
 import static org.adealsystems.platform.orchestrator.InternalEvent.getSessionStateAttribute;
 import static org.adealsystems.platform.orchestrator.InternalEvent.getSourceEventAttribute;
+import static org.adealsystems.platform.orchestrator.InternalEvent.normalizeDynamicContent;
 import static org.adealsystems.platform.orchestrator.InternalEvent.setDynamicContentAttribute;
 import static org.adealsystems.platform.orchestrator.InternalEvent.setMinimizedSourceEventAttribute;
 import static org.adealsystems.platform.orchestrator.InternalEvent.setSessionStateAttribute;
@@ -84,7 +85,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         State.ABORTED
     ));
 
-    private static final Pattern DYNAMIC_CONTENT_PATTERN = Pattern.compile("[a-z0-9_]*");
+    private static final Pattern DYNAMIC_CONTENT_PATTERN = Pattern.compile("[0-9a-zA-Z]*([,@\\_\\-\\.0-9a-zA-Z]+)*");
 
     private final InstanceRepository instanceRepository;
 
@@ -137,6 +138,10 @@ public class InternalEventHandlerRunnable implements Runnable {
         this.sessionInitializerMappingResolver = Objects.requireNonNull(sessionInitializerMappingResolver, "sessionInitializerMappingResolver must not be null!");
         this.runRepository = Objects.requireNonNull(runRepository, "runRepository must not be null!");
         this.emailSenderFactory = Objects.requireNonNull(emailSenderFactory, "emailSenderFactory must not be null!");
+    }
+
+    protected InternalEventReceiver getRawEventReceiver() {
+        return rawEventReceiver;
     }
 
     @Override
@@ -281,30 +286,16 @@ public class InternalEventHandlerRunnable implements Runnable {
                 continue;
             }
 
-            // dynamic special handling
-            InstanceId instanceRef = null;
-            String id = instanceId.getId();
-            for (InstanceId staticId : allStaticIds) {
-                if (staticId.getId().equals(id)) {
-                    // static
-                    instanceRef = instanceId;
-                    break;
-                }
-            }
-            if (instanceRef == null) {
-                // dynamic
-                int pos = id.lastIndexOf('-');
-                instanceRef = new InstanceId(id.substring(0, pos)); // NOPMD
-            }
+            // special handling for dynamic instances
+            InstanceId instanceRef = resolveInstanceId(instanceId, allStaticIds);
+            SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceRef);
 
             SessionId sessionId = oSessionId.get();
-            SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceRef);
             Optional<Session> oSession = sessionRepository.retrieveSession(sessionId);
             if (!oSession.isPresent()) {
                 LOGGER.info("No session found for {}", sessionId);
                 continue;
             }
-            Session session = oSession.get();
 
             InternalEventClassifier classifier = classifierMapping.get(instanceRef);
             if (classifier == null) {
@@ -319,6 +310,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             }
 
             RunSpecification runSpec = oRun.get();
+            Session session = oSession.get();
             if (!verifier.apply(runSpec, session)) {
                 LOGGER.info("Instance {} categorized as is not applicable for {} and {}", instanceId, runSpec, session);
                 continue;
@@ -329,6 +321,25 @@ public class InternalEventHandlerRunnable implements Runnable {
         }
 
         return activeSessionsInfo;
+    }
+
+    private static InstanceId resolveInstanceId(InstanceId instanceId, Collection<InstanceId> allStaticIds) {
+        InstanceId instanceRef = null;
+        String id = instanceId.getId();
+        for (InstanceId staticId : allStaticIds) {
+            if (staticId.getId().equals(id)) {
+                // static
+                instanceRef = instanceId;
+                break;
+            }
+        }
+        if (instanceRef == null) {
+            // dynamic
+            int pos = id.lastIndexOf('-');
+            instanceRef = new InstanceId(id.substring(0, pos)); // NOPMD
+        }
+
+        return instanceRef;
     }
 
     private boolean hasFlagForTerminateSession(InternalEvent event) {
@@ -433,7 +444,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             }
 
             InstanceId dynamicId = resolveDynamicInstanceId(clonedEvent);
-            LOGGER.debug("resolved dynamic InstanceId {}", dynamicId);
+            LOGGER.debug("Resolved dynamic InstanceId {}", dynamicId);
 
             // Special handling for CANCEL events
             // check if session is active, then put the event to the instance queue, otherwise ignore it
@@ -602,7 +613,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         InstanceId instanceId = event.getInstanceId();
         Optional<String> oDynamicContent = getDynamicContentAttribute(event);
         return oDynamicContent
-            .map(dynamicContent -> new InstanceId(instanceId.getId() + "-" + dynamicContent.toLowerCase(Locale.ROOT)))
+            .map(dynamicContent -> new InstanceId(instanceId.getId() + "-" + normalizeDynamicContent(dynamicContent.toLowerCase(Locale.ROOT))))
             .orElse(instanceId);
     }
 
@@ -616,7 +627,6 @@ public class InternalEventHandlerRunnable implements Runnable {
         }
 
         Instance instance = oInstance.get();
-        Map<String, String> instanceConfiguration = instance.getConfiguration();
         InstanceId dynamicId = resolveDynamicInstanceId(triggerEvent);
         Optional<SessionId> oSessionId = activeSessionIdRepository.createActiveSessionId(dynamicId);
         boolean fresh = oSessionId.isPresent();
@@ -631,6 +641,7 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
         Session session = sessionRepository.retrieveOrCreateSession(sessionId);
+        Map<String, String> instanceConfiguration = instance.getConfiguration();
         if (instanceConfiguration != null && !instanceConfiguration.isEmpty()) {
             session = new Session(session.getInstanceId(), session.getId(), session.getCreationTimestamp(), instanceConfiguration);
             sessionRepository.updateSession(session);

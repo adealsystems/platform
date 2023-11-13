@@ -26,6 +26,7 @@ import org.adealsystems.platform.orchestrator.status.mapping.SessionProcessingSt
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -307,6 +308,19 @@ public final class InternalEvent implements Cloneable {
     public static Optional<String> getDynamicContentAttribute(InternalEvent event) {
         Objects.requireNonNull(event, "event must not be null!");
         return event.getAttributeValue(DYNAMIC_CONTENT_ATTRIBUTE_NAME);
+    }
+
+    public static String normalizeDynamicContent(String dynamicContent) {
+        if (dynamicContent == null) {
+            return null;
+        }
+
+        // ([,@\_\-\.0-9a-zA-Z]+)* -> ([-_][0-9a-z]+)*
+        return dynamicContent
+            .toLowerCase(Locale.ROOT)
+            .replaceAll(",", "-c-")
+            .replaceAll("@", "-a-")
+            .replaceAll("\\.", "-d-");
     }
 
     public static InternalEvent deriveProcessedInstance(InternalEvent event) {

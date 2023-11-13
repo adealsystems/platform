@@ -68,9 +68,14 @@ public class InstanceEventHandlerRunnable implements Runnable {
         this.eventHistory = Objects.requireNonNull(eventHistory, "eventHistory must not be null!");
     }
 
+    protected InternalEventReceiver getEventReceiver() {
+        return eventReceiver;
+    }
+
     @Override
     public void run() {
         while (true) {
+            LOGGER.debug("Waiting for the next available event for {}", instanceId);
             Optional<InternalEvent> oEvent = eventReceiver.receiveEvent();
             if (!oEvent.isPresent()) {
                 LOGGER.info("Shutting down.");
@@ -95,6 +100,7 @@ public class InstanceEventHandlerRunnable implements Runnable {
                 continue;
             }
 
+            LOGGER.debug("Processing the event {} for {}", event, instanceId);
             Session session = oSession.get();
             Session previousSession = session.clone();
 
@@ -107,6 +113,7 @@ public class InstanceEventHandlerRunnable implements Runnable {
             });
 
             try {
+                LOGGER.debug("Handling event {} with {} (session: {})", event, instanceId, sessionId);
                 InternalEvent returnedEvent = instanceEventHandler.handle(event, session);
                 InternalEvent processedEvent = InternalEvent.deriveProcessedInstance(returnedEvent);
                 eventHistory.add(processedEvent);
@@ -138,6 +145,7 @@ public class InstanceEventHandlerRunnable implements Runnable {
             sessionRepository.updateSession(session);
 
             InternalEvent changeSessionEvent = createSessionStateEvent(session);
+            LOGGER.debug("Sending change session event {} to handler for {}", event, instanceId);
             rawEventSender.sendEvent(changeSessionEvent);
         }
     }

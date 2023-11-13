@@ -27,6 +27,9 @@ import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -156,9 +159,16 @@ public class S3EventReceiverRunnable implements Runnable {
             return null;
         }
 
+        String eventId;
+        try {
+            eventId = URLDecoder.decode(object.getKey(), StandardCharsets.ISO_8859_1.toString());
+        } catch (UnsupportedEncodingException ex) {
+            eventId = object.getKey();
+            LOGGER.warn("Unable to decode eventId {}", eventId, ex);
+        }
         InternalEvent event = new InternalEvent();
         event.setType(InternalEventType.FILE);
-        event.setId(object.getKey());
+        event.setId(eventId);
         event.setTimestamp(LocalDateTime.now(ZoneId.systemDefault()));
         event.setAttributeValue(S3Constants.BUCKET_NAME, bucket.getName());
         event.setAttributeValue(S3Constants.FILE_OPERATION, record.getEventName());
