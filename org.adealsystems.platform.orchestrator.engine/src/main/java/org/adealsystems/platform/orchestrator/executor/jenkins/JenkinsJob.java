@@ -23,8 +23,8 @@ import java.util.Objects;
 
 public abstract class JenkinsJob extends JenkinsJobBase {
 
-    public JenkinsJob(String url, String username, String token, String jobName) {
-        super(url, username, token, jobName);
+    public JenkinsJob(String url, String username, String token) {
+        super(url, username, token);
     }
 
     protected abstract Map<String, String> prepareAdditionalParameters(DataIdentifier dataIdentifier);

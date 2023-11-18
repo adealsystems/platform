@@ -19,21 +19,21 @@ package org.adealsystems.platform.orchestrator.executor.jenkins;
 import java.util.Map;
 import java.util.Objects;
 
-public class JenkinsJobBase {
+public abstract class JenkinsJobBase {
 
     private final String jenkinsUrl;
     private final String jenkinsToken;
     private final String jenkinsUsername;
-    private final String jenkinsJobName;
 
     private static final String DATA_PREFIX = " --data ";
 
-    public JenkinsJobBase(String url, String username, String token, String jobName) {
+    public JenkinsJobBase(String url, String username, String token) {
         this.jenkinsUrl = Objects.requireNonNull(url, "url must not be null!");
         this.jenkinsToken = Objects.requireNonNull(token, "token must not be null!");
         this.jenkinsUsername = Objects.requireNonNull(username, "username must not be null!");
-        this.jenkinsJobName = Objects.requireNonNull(jobName, "jobName must not be null!");
     }
+
+    protected abstract String getJenkinsJobName(Map<String, String> additionalParameters);
 
     protected String createCommand(String commandId, Map<String, String> additionalParameters) {
         StringBuilder parameters = new StringBuilder();
@@ -50,7 +50,7 @@ public class JenkinsJobBase {
 
         String command = "curl -X POST"
             + " --user " + jenkinsUsername + ':' + jenkinsToken
-            + ' ' + jenkinsUrl + "/job/" + jenkinsJobName;
+            + ' ' + jenkinsUrl + "/job/" + getJenkinsJobName(additionalParameters);
 
         if (parameters.length() > 0) {
             command = command + "/buildWithParameters" + parameters;

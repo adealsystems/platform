@@ -34,8 +34,17 @@ public class JenkinsEmailSenderJob extends JenkinsJobBase {
     public static final String FILENAME = "filename";
     public static final String ATTACHMENT_NAME = "attachment_name";
 
+    private final String jenkinsJobName;
+
     public JenkinsEmailSenderJob(String url, String username, String token, String jobName) {
-        super(url, username, token, jobName);
+        super(url, username, token);
+
+        this.jenkinsJobName = Objects.requireNonNull(jobName, "jobName must not be null!");
+    }
+
+    @Override
+    protected String getJenkinsJobName(Map<String, String> additionalParameters) {
+        return jenkinsJobName;
     }
 
     private Map<String, String> prepareAdditionalParameters(String recipients, String subject, String message, String parameter) {
