@@ -19,7 +19,11 @@ package org.adealsystems.platform.orchestrator.status;
 
 import org.adealsystems.platform.orchestrator.InternalEvent;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentMap;
 
 public class MessageProcessingStep extends EventProcessingStep {
     private final String instanceRef;
@@ -37,8 +41,27 @@ public class MessageProcessingStep extends EventProcessingStep {
     }
 
     private static String buildDefaultMessage(InternalEvent event) {
-        // TODO: implement me!
-        return event.toString();
+        StringBuilder builder = new StringBuilder();
+        builder.append(event.getId());
+        ConcurrentMap<String, String> attributes = event.getAttributes();
+        if (attributes != null) {
+            boolean first = true;
+            builder.append(" (");
+            List<String> keys = new ArrayList<>(attributes.keySet());
+            Collections.sort(keys);
+            for (String key : keys) {
+                if (!first) {
+                    builder.append(", ");
+                }
+                String value = attributes.get(key);
+                if (value != null && !value.isEmpty()) {
+                    builder.append(key).append("='").append(value).append('\'');
+                }
+                first = false;
+            }
+            builder.append(')');
+        }
+        return builder.toString();
     }
 
     public MessageProcessingStep(boolean success, InternalEvent event, String instanceRef, String message) {
