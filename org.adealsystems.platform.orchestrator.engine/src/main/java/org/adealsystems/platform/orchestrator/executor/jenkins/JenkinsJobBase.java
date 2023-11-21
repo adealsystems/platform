@@ -25,12 +25,19 @@ public abstract class JenkinsJobBase {
     private final String jenkinsToken;
     private final String jenkinsUsername;
 
+    private String commandIdParamName = DEFAULT_COMMAND_ID_PARAM_NAME;
+
     private static final String DATA_PREFIX = " --data ";
+    public static final String DEFAULT_COMMAND_ID_PARAM_NAME = "commandId";
 
     public JenkinsJobBase(String url, String username, String token) {
         this.jenkinsUrl = Objects.requireNonNull(url, "url must not be null!");
         this.jenkinsToken = Objects.requireNonNull(token, "token must not be null!");
         this.jenkinsUsername = Objects.requireNonNull(username, "username must not be null!");
+    }
+
+    public void setCommandIdParamName(String commandIdParamName) {
+        this.commandIdParamName = Objects.requireNonNull(commandIdParamName, "commandIdParamName must not be null!");
     }
 
     protected abstract String getJenkinsJobName(Map<String, String> additionalParameters);
@@ -45,7 +52,7 @@ public abstract class JenkinsJobBase {
             }
         }
         if (commandId != null) {
-            parameters.append(DATA_PREFIX).append("commandId=").append(commandId);
+            parameters.append(DATA_PREFIX).append(commandIdParamName).append('=').append(commandId);
         }
 
         String command = "curl -X POST"
