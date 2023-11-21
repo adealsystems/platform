@@ -160,6 +160,8 @@ public class FileBasedSessionRepository implements SessionRepository {
             throw new IllegalArgumentException("InstanceId does not match '" + instanceId + "'!");
         }
 
+        LOGGER.debug("Updating session {}", session);
+
         SessionId id = session.getId();
         File sessionFile = getSessionFile(id);
 
@@ -205,6 +207,7 @@ public class FileBasedSessionRepository implements SessionRepository {
             LOGGER.warn("Correcting InstanceId of {} to {}", session, instanceId);
             Session newSession = new Session(instanceId, session.getId(), session.getCreationTimestamp(), session.getInstanceConfiguration());
             newSession.setState(session.getState());
+            newSession.setProcessingState(session.getProcessingState());
             return newSession;
         } catch (IOException ex) {
             throw new IllegalStateException("Unable to read session file '" + sessionFile.getAbsolutePath() + "'!", ex);

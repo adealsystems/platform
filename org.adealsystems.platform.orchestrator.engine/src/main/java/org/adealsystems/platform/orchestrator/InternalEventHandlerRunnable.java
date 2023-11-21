@@ -397,7 +397,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             }
 
             if (clonedEvent.getTimestamp() == null) {
-                LOGGER.info("Extending event with current timestamp: {}", clonedEvent);
+                LOGGER.debug("Extending event with current timestamp: {}", clonedEvent);
                 clonedEvent.setTimestamp(timestampFactory.createTimestamp());
             }
 
@@ -643,7 +643,11 @@ public class InternalEventHandlerRunnable implements Runnable {
         Session session = sessionRepository.retrieveOrCreateSession(sessionId);
         Map<String, String> instanceConfiguration = instance.getConfiguration();
         if (instanceConfiguration != null && !instanceConfiguration.isEmpty()) {
+            Map<String, String> state = session.getState();
+            SessionProcessingState processingState = session.getProcessingState();
             session = new Session(session.getInstanceId(), session.getId(), session.getCreationTimestamp(), instanceConfiguration);
+            session.setState(state);
+            session.setProcessingState(processingState);
             sessionRepository.updateSession(session);
         }
 
@@ -784,12 +788,13 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         Session session = sessionRepository.retrieveSession(sessionId)
             .orElseThrow(() -> new IllegalArgumentException("Invalid session reference, no session for id '" + sessionId + "' found!"));
+
         if (session.getStateFlag(TERMINATING_FLAG)) {
-            LOGGER.info("Session is in a terminating state, ignoring an additional termination call");
+            LOGGER.info("Session {} is in a terminating state, ignoring an additional termination call", sessionId);
             return;
         }
 
-        LOGGER.info("Session will be closed due to one of termination flags, base event: {}", sessionEvent);
+        LOGGER.info("Session {} will be closed due to one of termination flags, base event: {}", sessionId, sessionEvent);
         session.setStateFlag(TERMINATING_FLAG, true);
         sessionRepository.updateSession(session);
 
@@ -801,11 +806,11 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         Optional<InternalEvent> oStopSessionEvent = stopSession(sessionEvent);
         if (!oStopSessionEvent.isPresent()) {
-            LOGGER.info("Failed to stop session, event {}", event);
+            LOGGER.info("Failed to stop session {}, event {}", sessionId, event);
             return;
         }
 
-        LOGGER.info("Stop session with event {}", sessionEvent);
+        LOGGER.info("Stop session {} with event {}", sessionId, sessionEvent);
         InternalEvent stopSessionEvent = oStopSessionEvent.get();
         Optional<InternalEvent> stopEvent = deriveSessionStateEvent(stopSessionEvent);
         stopEvent.ifPresent(currentEvents::add);
