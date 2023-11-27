@@ -50,14 +50,14 @@ public class MessageProcessingStep extends EventProcessingStep {
             List<String> keys = new ArrayList<>(attributes.keySet());
             Collections.sort(keys);
             for (String key : keys) {
-                if (!first) {
-                    builder.append(", ");
-                }
                 String value = attributes.get(key);
                 if (value != null && !value.isEmpty()) {
+                    if (!first) {
+                        builder.append(", ");
+                    }
                     builder.append(key).append("='").append(value).append('\'');
+                    first = false;
                 }
-                first = false;
             }
             builder.append(')');
         }
