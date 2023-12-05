@@ -50,13 +50,13 @@ class DataIdentifierSpec extends Specification {
         ex.getValue() == errorValue
 
         where:
-        source    | useCase    | configuration | dataFormat | expectedExceptionType           | expectedMessage                                                                                        | errorValue
-        null      | "use_case" | "config"      | CSV_COMMA  | DataIdentifierCreationException | "source must not be null!"                                                                             | null
-        "source"  | null       | "config"      | CSV_COMMA  | DataIdentifierCreationException | "useCase must not be null!"                                                                            | null
-        "source"  | "use_case" | "config"      | null       | DataIdentifierCreationException | "dataFormat must not be null!"                                                                         | null
-        "_broken" | "use_case" | "config"      | CSV_COMMA  | DataIdentifierCreationException | "source value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!"                      | "_broken"
-        "source"  | "_broken"  | "config"      | CSV_COMMA  | DataIdentifierCreationException | "useCase value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!"                     | "_broken"
-        "source"  | "use_case" | "_broken"     | CSV_COMMA  | DataIdentifierCreationException | "configuration value doesn't match the pattern '" + DataIdentifier.CONFIGURATION_PATTERN_STRING + "'!" | "_broken"
+        source    | useCase    | configuration | dataFormat | expectedExceptionType           | expectedMessage                                                                                                   | errorValue
+        null      | "use_case" | "config"      | CSV_COMMA  | DataIdentifierCreationException | "source must not be null!"                                                                                        | null
+        "source"  | null       | "config"      | CSV_COMMA  | DataIdentifierCreationException | "useCase must not be null!"                                                                                       | null
+        "source"  | "use_case" | "config"      | null       | DataIdentifierCreationException | "dataFormat must not be null!"                                                                                    | null
+        "_broken" | "use_case" | "config"      | CSV_COMMA  | DataIdentifierCreationException | "source value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "': '_broken'!"                      | "_broken"
+        "source"  | "_broken"  | "config"      | CSV_COMMA  | DataIdentifierCreationException | "useCase value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "': '_broken'!"                     | "_broken"
+        "source"  | "use_case" | "_broken"     | CSV_COMMA  | DataIdentifierCreationException | "configuration value doesn't match the pattern '" + DataIdentifier.CONFIGURATION_PATTERN_STRING + "': '_broken'!" | "_broken"
     }
 
     def '#original withConfiguration(#configuration) returns #expectedResult.'() {
@@ -110,13 +110,13 @@ class DataIdentifierSpec extends Specification {
         ex.value == errorValue
 
         where:
-        name  | value    | optional | expectedExceptionType           | expectedMessage                                                                | errorValue
-        null  | null     | false    | DataIdentifierCreationException | "name must not be null!"                                                       | null
-        "foo" | null     | false    | DataIdentifierCreationException | "foo must not be null!"                                                        | null
-        "foo" | "_abc"   | false    | DataIdentifierCreationException | "foo value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!" | "_abc"
-        "foo" | "a__abc" | false    | DataIdentifierCreationException | "foo value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!" | "a__abc"
-        "foo" | "a_abc_" | false    | DataIdentifierCreationException | "foo value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!" | "a_abc_"
-        "foo" | "0_abc"  | false    | DataIdentifierCreationException | "foo value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "'!" | "0_abc"
+        name  | value    | optional | expectedExceptionType           | expectedMessage                                                                          | errorValue
+        null  | null     | false    | DataIdentifierCreationException | "name must not be null!"                                                                 | null
+        "foo" | null     | false    | DataIdentifierCreationException | "foo must not be null!"                                                                  | null
+        "foo" | "_abc"   | false    | DataIdentifierCreationException | "foo value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "': '_abc'!"   | "_abc"
+        "foo" | "a__abc" | false    | DataIdentifierCreationException | "foo value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "': 'a__abc'!" | "a__abc"
+        "foo" | "a_abc_" | false    | DataIdentifierCreationException | "foo value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "': 'a_abc_'!" | "a_abc_"
+        "foo" | "0_abc"  | false    | DataIdentifierCreationException | "foo value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "': '0_abc'!"  | "0_abc"
     }
 
     def 'DataIdentifier.fromString(#input) produces expected result #expectedResult'() {
