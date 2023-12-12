@@ -45,11 +45,18 @@ public class EmailSenderFactory {
         this.jenkinsJobMapping = Objects.requireNonNull(jenkinsJobMapping, "jenkinsJobMapping must not be null!");
     }
 
-    public EmailSender getSender(RecipientsCluster cluster, EmailType type) {
+    public EmailSender getSender(String env, RecipientsCluster cluster, EmailType type) {
         String jobName = determineJobName(type);
-        JenkinsEmailSenderJob job = new JenkinsEmailSenderJob(jenkinsUrl, jenkinsUserName, jenkinsToken, jobName);
+        JenkinsEmailSenderJob job = new JenkinsEmailSenderJob(env, jenkinsUrl, jenkinsUserName, jenkinsToken, jobName);
 
         String recipients = recipientClusterMapping.get(cluster);
+        return new JenkinsEmailSenderExecutor(recipients, job, commandIdGenerator);
+    }
+
+    public EmailSender getSender(String env, String recipients, EmailType type) {
+        String jobName = determineJobName(type);
+        JenkinsEmailSenderJob job = new JenkinsEmailSenderJob(env, jenkinsUrl, jenkinsUserName, jenkinsToken, jobName);
+
         return new JenkinsEmailSenderExecutor(recipients, job, commandIdGenerator);
     }
 

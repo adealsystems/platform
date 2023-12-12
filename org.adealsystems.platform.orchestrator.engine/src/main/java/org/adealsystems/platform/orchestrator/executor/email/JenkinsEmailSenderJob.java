@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public class JenkinsEmailSenderJob extends JenkinsJobBase {
+    public static final String ENV = "env";
     public static final String RECIPIENTS = "recipients";
     public static final String SUBJECT = "subject";
     public static final String MESSAGE = "message";
@@ -34,11 +35,13 @@ public class JenkinsEmailSenderJob extends JenkinsJobBase {
     public static final String FILENAME = "filename";
     public static final String ATTACHMENT_NAME = "attachment_name";
 
+    private final String env;
     private final String jenkinsJobName;
 
-    public JenkinsEmailSenderJob(String url, String username, String token, String jobName) {
+    public JenkinsEmailSenderJob(String env, String url, String username, String token, String jobName) {
         super(url, username, token);
 
+        this.env = Objects.requireNonNull(env, "env must not be null!");
         this.jenkinsJobName = Objects.requireNonNull(jobName, "jobName must not be null!");
     }
 
@@ -55,6 +58,7 @@ public class JenkinsEmailSenderJob extends JenkinsJobBase {
         recipients = recipients.toLowerCase(Locale.ROOT).trim().replaceAll(" ", "");
 
         Map<String, String> additionalParameter = new HashMap<>();
+        additionalParameter.put(ENV, env);
         additionalParameter.put(RECIPIENTS, recipients);
         try {
             additionalParameter.put(SUBJECT, URLEncoder.encode(subject, StandardCharsets.UTF_8.name()));
@@ -76,6 +80,7 @@ public class JenkinsEmailSenderJob extends JenkinsJobBase {
         recipients = recipients.toLowerCase(Locale.ROOT).trim().replaceAll(" ", "");
 
         Map<String, String> additionalParameter = new HashMap<>();
+        additionalParameter.put(ENV, env);
         additionalParameter.put(RECIPIENTS, recipients);
         try {
             additionalParameter.put(SUBJECT, URLEncoder.encode(subject, StandardCharsets.UTF_8.name()));
@@ -101,6 +106,7 @@ public class JenkinsEmailSenderJob extends JenkinsJobBase {
         recipients = recipients.toLowerCase(Locale.ROOT).trim().replaceAll(" ", "");
 
         Map<String, String> additionalParameter = new HashMap<>();
+        additionalParameter.put(ENV, env);
         additionalParameter.put(RECIPIENTS, recipients);
         try {
             additionalParameter.put(SUBJECT, URLEncoder.encode(subject, StandardCharsets.UTF_8.name()));

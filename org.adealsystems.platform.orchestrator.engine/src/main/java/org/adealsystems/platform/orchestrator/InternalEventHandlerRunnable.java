@@ -111,6 +111,8 @@ public class InternalEventHandlerRunnable implements Runnable {
 
     private final EmailSenderFactory emailSenderFactory;
 
+    private final String environment;
+
     @SuppressWarnings("PMD.ExcessiveParameterList")
     public InternalEventHandlerRunnable(
         InstanceRepository instanceRepository,
@@ -124,7 +126,8 @@ public class InternalEventHandlerRunnable implements Runnable {
         InternalEventClassifierMappingResolver eventClassifierMappingResolver,
         SessionInitializerMappingResolver sessionInitializerMappingResolver,
         EmailSenderFactory emailSenderFactory,
-        RunRepository runRepository
+        RunRepository runRepository,
+        String environment
     ) {
         this.instanceRepository = Objects.requireNonNull(instanceRepository, "instanceRepository must not be null!");
         this.sessionRepositoryFactory = Objects.requireNonNull(sessionRepositoryFactory, "sessionRepositoryFactory must not be null!");
@@ -138,6 +141,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         this.sessionInitializerMappingResolver = Objects.requireNonNull(sessionInitializerMappingResolver, "sessionInitializerMappingResolver must not be null!");
         this.runRepository = Objects.requireNonNull(runRepository, "runRepository must not be null!");
         this.emailSenderFactory = Objects.requireNonNull(emailSenderFactory, "emailSenderFactory must not be null!");
+        this.environment = Objects.requireNonNull(environment, "environment must not be null!");
     }
 
     protected InternalEventReceiver getRawEventReceiver() {
@@ -220,7 +224,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             } catch (Throwable throwable) {
                 LOGGER.error("Error in the main loop of InternalEventHandler!", throwable);
                 try {
-                    EmailSender emailSender = emailSenderFactory.getSender(RecipientsCluster.INTERNAL, EmailType.ERROR);
+                    EmailSender emailSender = emailSenderFactory.getSender(environment, RecipientsCluster.INTERNAL, EmailType.ERROR);
                     emailSender.sendEmail("Error in the main loop of InternalEventHandler!", String.valueOf(throwable));
                 }
                 catch (Throwable th) {
@@ -238,7 +242,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             LOGGER.info("No active running sessions available on start-run-event for '{}'", runId);
         } else {
             LOGGER.warn("Following sessions were active and closed on start-run-event for '{}': {}", runId, activeSessionsInfo);
-            EmailSender emailSender = emailSenderFactory.getSender(RecipientsCluster.INTERNAL, EmailType.ERROR);
+            EmailSender emailSender = emailSenderFactory.getSender(environment, RecipientsCluster.INTERNAL, EmailType.ERROR);
             emailSender.sendEmail(
                 "Creating new RUN",
                 "Following instances were active and closed on start-run-event for '" + runId + "'",
@@ -260,7 +264,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             LOGGER.info("No active sessions available on complete-run-event for '{}'", runId);
         } else {
             LOGGER.warn("Following sessions were active and closed on complete-run-event for '{}': {}", runId, activeSessionsInfo);
-            EmailSender emailSender = emailSenderFactory.getSender(RecipientsCluster.INTERNAL, EmailType.ERROR);
+            EmailSender emailSender = emailSenderFactory.getSender(environment, RecipientsCluster.INTERNAL, EmailType.ERROR);
             emailSender.sendEmail(
                 "Completing new RUN",
                 "Following instances were active and closed on complete-run-event for '" + runId + "'",
@@ -381,6 +385,11 @@ public class InternalEventHandlerRunnable implements Runnable {
 
             InternalEvent clonedEvent = event.clone();
 
+            if (clonedEvent.getTimestamp() == null) {
+                LOGGER.debug("Extending event with current timestamp: {}", clonedEvent);
+                clonedEvent.setTimestamp(timestampFactory.createTimestamp());
+            }
+
             // Special handling for ABORT events
             // TODO: determine referenced sessions, check if they are active and set a finished/cancelled/failed or whatever flag
             //  also verify, if session needs an event to close itself!
@@ -394,11 +403,6 @@ public class InternalEventHandlerRunnable implements Runnable {
 
             if (!relevant) {
                 continue;
-            }
-
-            if (clonedEvent.getTimestamp() == null) {
-                LOGGER.debug("Extending event with current timestamp: {}", clonedEvent);
-                clonedEvent.setTimestamp(timestampFactory.createTimestamp());
             }
 
             // Outdated events check (run specific)
@@ -657,6 +661,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             processingState = new SessionProcessingState(eventClassifier.getCurrentRun().orElse(null));
             processingState.setState(State.READY_TO_RUN);
             processingState.setStarted(LocalDateTime.now(ZoneId.systemDefault()));
+            processingState.setConfiguration(instanceConfiguration);
             session.setProcessingState(processingState);
         }
 

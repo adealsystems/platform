@@ -166,6 +166,7 @@ public class S3EventReceiverRunnable implements Runnable {
             eventId = object.getKey();
             LOGGER.warn("Unable to decode eventId {}", eventId, ex);
         }
+
         InternalEvent event = new InternalEvent();
         event.setType(InternalEventType.FILE);
         event.setId(eventId);
