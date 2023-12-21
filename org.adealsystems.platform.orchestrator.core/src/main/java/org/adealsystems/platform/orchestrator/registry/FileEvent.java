@@ -104,4 +104,36 @@ public final class FileEvent implements EventDescriptor {
     public DataIdentifier getDataId() {
         return dataId;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FileEvent fileEvent = (FileEvent) o;
+        return startEvent == fileEvent.startEvent
+            && stopEvent == fileEvent.stopEvent
+            && Objects.equals(id, fileEvent.id)
+            && Objects.equals(zone, fileEvent.zone)
+            && Objects.equals(pattern, fileEvent.pattern)
+            && Objects.equals(metaName, fileEvent.metaName)
+            && Objects.equals(dataId, fileEvent.dataId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, zone, startEvent, stopEvent, pattern, metaName, dataId);
+    }
+
+    @Override
+    public String toString() {
+        return "FileEvent{" +
+            "id='" + id + '\'' +
+            ", zone='" + zone + '\'' +
+            ", startEvent=" + startEvent +
+            ", stopEvent=" + stopEvent +
+            ", pattern=" + pattern +
+            ", metaName='" + metaName + '\'' +
+            ", dataId=" + dataId +
+            '}';
+    }
 }

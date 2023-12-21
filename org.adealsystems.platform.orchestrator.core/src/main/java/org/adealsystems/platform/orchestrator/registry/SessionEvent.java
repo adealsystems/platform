@@ -19,6 +19,15 @@ package org.adealsystems.platform.orchestrator.registry;
 import java.util.Objects;
 
 public final class SessionEvent implements EventDescriptor {
+
+    public enum LifecycleType {
+        ANY,
+        START,
+        STOP,
+        RESUME,
+        CHANGE
+    }
+
     private final String id;
     private final String instanceRef;
     private boolean startEvent;
@@ -77,11 +86,31 @@ public final class SessionEvent implements EventDescriptor {
         return instanceRef;
     }
 
-    public enum LifecycleType {
-        ANY,
-        START,
-        STOP,
-        RESUME,
-        CHANGE
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SessionEvent that = (SessionEvent) o;
+        return startEvent == that.startEvent
+            && stopEvent == that.stopEvent
+            && Objects.equals(id, that.id)
+            && Objects.equals(instanceRef, that.instanceRef)
+            && type == that.type;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, instanceRef, startEvent, stopEvent, type);
+    }
+
+    @Override
+    public String toString() {
+        return "SessionEvent{" +
+            "id='" + id + '\'' +
+            ", instanceRef='" + instanceRef + '\'' +
+            ", startEvent=" + startEvent +
+            ", stopEvent=" + stopEvent +
+            ", type=" + type +
+            '}';
     }
 }

@@ -58,4 +58,25 @@ public final class CancelEvent implements EventDescriptor {
     public String getName() {
         return name;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CancelEvent that = (CancelEvent) o;
+        return Objects.equals(id, that.id) && Objects.equals(name, that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name);
+    }
+
+    @Override
+    public String toString() {
+        return "CancelEvent{" +
+            "id='" + id + '\'' +
+            ", name='" + name + '\'' +
+            '}';
+    }
 }

@@ -88,4 +88,32 @@ public final class MessageEvent implements EventDescriptor {
     public Pattern getPattern() {
         return pattern;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MessageEvent that = (MessageEvent) o;
+        return startEvent == that.startEvent
+            && stopEvent == that.stopEvent
+            && Objects.equals(id, that.id)
+            && Objects.equals(name, that.name)
+            && Objects.equals(pattern, that.pattern);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, startEvent, stopEvent, name, pattern);
+    }
+
+    @Override
+    public String toString() {
+        return "MessageEvent{" +
+            "id='" + id + '\'' +
+            ", startEvent=" + startEvent +
+            ", stopEvent=" + stopEvent +
+            ", name='" + name + '\'' +
+            ", pattern=" + pattern +
+            '}';
+    }
 }
