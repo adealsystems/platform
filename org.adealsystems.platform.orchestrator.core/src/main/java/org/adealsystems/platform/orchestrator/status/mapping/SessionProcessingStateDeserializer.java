@@ -45,6 +45,7 @@ public class SessionProcessingStateDeserializer extends StdDeserializer<SessionP
         Root root = parser.readValueAs(Root.class);
         return new SessionProcessingState(
             root.runSpec,
+            root.configuration,
             root.state,
             root.message,
             root.started,
@@ -54,16 +55,19 @@ public class SessionProcessingStateDeserializer extends StdDeserializer<SessionP
             root.progressCurrentStep,
             root.progressFailedSteps,
             root.flags,
-            root.steps
+            root.steps,
+            root.stateAttributes
         );
     }
 
     private static class Root { // NOPMD
         public RunSpecification runSpec;
+        public Map<String, String> configuration;
         public State state;
         public String message;
         public List<ProcessingStep> steps;
         public Map<String, Boolean> flags;
+        public Map<String, String> stateAttributes;
         public LocalDateTime started;
         public LocalDateTime terminated;
         public LocalDateTime lastUpdated;

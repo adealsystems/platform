@@ -44,6 +44,7 @@ public class SessionProcessingState implements Cloneable {
     private final RunSpecification runSpec;
     private State state;
     private String message;
+    private Map<String, String> configuration;
     private final List<ProcessingStep> steps;
     private LocalDateTime started;
     private LocalDateTime terminated;
@@ -52,6 +53,7 @@ public class SessionProcessingState implements Cloneable {
     private int progressCurrentStep;
     private int progressFailedSteps;
     private Map<String, Boolean> flags;
+    private Map<String, String> stateAttributes;
 
     public static void update(Session session, Consumer<SessionProcessingState> consumer) {
         SessionProcessingState processingState = session.getProcessingState();
@@ -155,21 +157,25 @@ public class SessionProcessingState implements Cloneable {
         processingState.flags.put(FLAG_ERROR_OCCURRED, session.hasFailedFlag());
         processingState.flags.put(FLAG_SESSION_CANCELLED, session.hasCancelledFlag());
         processingState.flags.put(FLAG_SESSION_FINISHED, session.hasFinishedFlag());
+        processingState.stateAttributes = session.getState();
     }
 
     public SessionProcessingState(RunSpecification runSpec) {
         this.state = State.READY_TO_RUN;
         this.runSpec = runSpec;
         this.steps = new ArrayList<>();
+        this.configuration = null;
         this.progressMaxValue = 1;
         this.progressCurrentStep = 0;
         this.progressFailedSteps = 0;
         this.flags = new HashMap<>();
+        this.stateAttributes = new HashMap<>();
     }
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
     public SessionProcessingState(
         RunSpecification runSpec,
+        Map<String, String> config,
         State state,
         String message,
         LocalDateTime started,
@@ -179,9 +185,11 @@ public class SessionProcessingState implements Cloneable {
         int progressCurrentStep,
         int progressFailedSteps,
         Map<String, Boolean> flags,
-        List<ProcessingStep> steps
+        List<ProcessingStep> steps,
+        Map<String, String> attributes
     ) {
         this.runSpec = runSpec;
+        this.configuration = config == null ? null : new HashMap<>(config);
         this.state = state;
         this.message = message;
         this.steps = steps;
@@ -192,6 +200,7 @@ public class SessionProcessingState implements Cloneable {
         this.progressCurrentStep = progressCurrentStep;
         this.progressFailedSteps = progressFailedSteps;
         this.flags = flags == null ? new HashMap<>() : flags;
+        this.stateAttributes = attributes == null ? new HashMap<>() : new HashMap<>(attributes);
     }
 
     public void addStep(EventProcessingStep step) {
@@ -280,6 +289,22 @@ public class SessionProcessingState implements Cloneable {
         this.flags = flags;
     }
 
+    public Map<String, String> getConfiguration() {
+        return configuration;
+    }
+
+    public void setConfiguration(Map<String, String> configuration) {
+        this.configuration = configuration;
+    }
+
+    public Map<String, String> getStateAttributes() {
+        return stateAttributes;
+    }
+
+    public void setStateAttributes(Map<String, String> stateAttributes) {
+        this.stateAttributes = stateAttributes;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -287,6 +312,7 @@ public class SessionProcessingState implements Cloneable {
         SessionProcessingState that = (SessionProcessingState) o;
         return Objects.equals(runSpec, that.runSpec)
             && state == that.state
+            && Objects.equals(configuration, that.configuration)
             && Objects.equals(message, that.message)
             && Objects.equals(steps, that.steps)
             && Objects.equals(started, that.started)
@@ -295,6 +321,7 @@ public class SessionProcessingState implements Cloneable {
             && Objects.equals(progressMaxValue, that.progressMaxValue)
             && Objects.equals(progressCurrentStep, that.progressCurrentStep)
             && Objects.equals(progressFailedSteps, that.progressFailedSteps)
+            && Objects.equals(stateAttributes, that.stateAttributes)
             && Objects.equals(flags, that.flags);
     }
 
@@ -302,6 +329,7 @@ public class SessionProcessingState implements Cloneable {
     public int hashCode() {
         return Objects.hash(
             runSpec,
+            configuration,
             state,
             message,
             steps,
@@ -311,7 +339,8 @@ public class SessionProcessingState implements Cloneable {
             progressMaxValue,
             progressCurrentStep,
             progressFailedSteps,
-            flags
+            flags,
+            stateAttributes
         );
     }
 
@@ -319,6 +348,7 @@ public class SessionProcessingState implements Cloneable {
     public String toString() {
         return "SessionProcessingState{" +
             "runSpec=" + runSpec +
+            ", configuration=" + configuration +
             ", state=" + state +
             ", message=" + message +
             ", steps=" + steps +
@@ -329,6 +359,7 @@ public class SessionProcessingState implements Cloneable {
             ", progressCurrentStep=" + progressCurrentStep +
             ", progressFailedSteps=" + progressFailedSteps +
             ", flags=" + flags +
+            ", stateAttributes=" + stateAttributes +
             '}';
     }
 
@@ -337,8 +368,10 @@ public class SessionProcessingState implements Cloneable {
     public SessionProcessingState clone() {
         List<ProcessingStep> cloneSteps = new ArrayList<>(steps);
         Map<String, Boolean> cloneFlags = new HashMap<>(flags);
+        Map<String, String> cloneAttributes = new HashMap<>(stateAttributes);
         return new SessionProcessingState(
             runSpec,
+            configuration,
             state,
             message,
             started,
@@ -348,7 +381,8 @@ public class SessionProcessingState implements Cloneable {
             progressCurrentStep,
             progressFailedSteps,
             cloneFlags,
-            cloneSteps
+            cloneSteps,
+            cloneAttributes
         );
     }
 }
