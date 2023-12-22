@@ -18,6 +18,9 @@ package org.adealsystems.platform.orchestrator.registry;
 
 
 import org.adealsystems.platform.orchestrator.InternalEvent;
+import org.adealsystems.platform.orchestrator.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,6 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -36,9 +40,12 @@ import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSI
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSION_START;
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSION_STATE;
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSION_STOP;
+import static org.adealsystems.platform.orchestrator.registry.CommandExecutionCompletedMessageEvent.COMMAND_EXECUTION_COMPLETED_MESSAGE_PATTERN;
 
 
 public class EventRegistry {
+    private static final Logger LOGGER = LoggerFactory.getLogger(EventRegistry.class);
+
     private final Map<String, EventDescriptor> entries = new HashMap<>();
 
     private final Map<String, Set<FileEvent>> fileEventsByZone = new HashMap<>();
@@ -47,6 +54,7 @@ public class EventRegistry {
     private final Set<TimerEvent> timerEvents = new HashSet<>();
     private final Set<SessionEvent> sessionEvents = new HashSet<>();
     private final Set<MessageEvent> messageEvents = new HashSet<>();
+    private final Set<CommandExecutionCompletedMessageEvent> commandExecutionCompletedMessageEvents = new HashSet<>();
 
     public void clear() {
         entries.clear();
@@ -63,6 +71,7 @@ public class EventRegistry {
     }
 
     public void init() {
+        LOGGER.debug("Initializing from {}", entries);
         for (EventDescriptor entry : entries.values()) {
             if (CancelEvent.class.isAssignableFrom(entry.getClass())) {
                 cancelEvents.add((CancelEvent) entry);
@@ -81,6 +90,11 @@ public class EventRegistry {
 
             if (MessageEvent.class.isAssignableFrom(entry.getClass())) {
                 messageEvents.add((MessageEvent) entry);
+                continue;
+            }
+
+            if (CommandExecutionCompletedMessageEvent.class.isAssignableFrom(entry.getClass())) {
+                commandExecutionCompletedMessageEvents.add((CommandExecutionCompletedMessageEvent) entry);
                 continue;
             }
 
@@ -110,6 +124,22 @@ public class EventRegistry {
             }
 
             throw new IllegalStateException("Unknown/unexpected event descriptor " + entry);
+        }
+
+        if (LOGGER.isDebugEnabled()) {
+            StringBuilder builder = new StringBuilder() // NOPMD
+                .append("\n\tcancel: ").append(cancelEvents.size())
+                .append("\n\ttimer: ").append(timerEvents.size())
+                .append("\n\tsession: ").append(sessionEvents.size())
+                .append("\n\tmessage: ").append(messageEvents.size())
+                .append("\n\tcommand-execution-completed-message: ").append(commandExecutionCompletedMessageEvents.size())
+                .append("\n\tfile:");
+
+            for (Map.Entry<String, Set<ZoneDescriptor.FileDescriptor>> entry : fileDescriptorsByZone.entrySet()) {
+                builder.append("\n\t\t").append(entry.getKey()).append(": ").append(entry.getValue().size());
+            }
+
+            LOGGER.debug("Initialized descriptors:{}", builder);
         }
     }
 
@@ -250,6 +280,39 @@ public class EventRegistry {
         }
 
         // not found
+        return Optional.empty();
+    }
+
+    public Optional<CommandExecutionCompletedMessageEvent> findCommandExecutionCompletedMessageEvent(InternalEvent event, Session session) {
+        LOGGER.debug("Searching for command-execution-completed message descriptor of '{}'", event);
+        String eventId = event.getId();
+
+        Matcher matcher = COMMAND_EXECUTION_COMPLETED_MESSAGE_PATTERN.matcher(eventId);
+        if (!matcher.matches()) {
+            LOGGER.debug("Event-ID '{}' does not match expected pattern {}", eventId, COMMAND_EXECUTION_COMPLETED_MESSAGE_PATTERN.pattern());
+            return Optional.empty();
+        }
+
+        String commandId = matcher.group(CommandExecutionCompletedMessageEvent.COMMAND_ID_GROUP_NAME);
+        if (commandId == null || commandId.isEmpty()) {
+            LOGGER.debug("Command-ID isn't a part of event-ID '{}'", eventId);
+            return Optional.empty();
+        }
+
+        LOGGER.debug("Searching for session registry with command-id '{}'", commandId);
+        for (CommandExecutionCompletedMessageEvent messageEvent : commandExecutionCompletedMessageEvents) {
+            String sessionRegistryName = messageEvent.getSessionRegistryName();
+            LOGGER.debug("Verifying session registry '{}'", sessionRegistryName);
+            Set<String> registry = session.getStateRegistry(sessionRegistryName);
+            if (registry.contains(commandId)) {
+                LOGGER.info("Found a session registry '{}' containing command-id '{}'", sessionRegistryName, commandId);
+                return Optional.of(messageEvent);
+            }
+
+            // try the next configured command-execution-finished message
+        }
+
+        LOGGER.debug("No session registry containing command-id '{}' found", commandId);
         return Optional.empty();
     }
 
