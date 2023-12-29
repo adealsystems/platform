@@ -107,7 +107,8 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
     public boolean isSessionStartEvent(InternalEvent event) {
         DynamicContentAwareHandler handler = resolveDynamicHandler(event);
         if (handler == null) {
-            throw new MissingDynamicHandlerException(event);
+            LOGGER.debug("No dynamic handler found for {}", event);
+            return false;
         }
 
         return handler.isSessionStartEvent(event);
@@ -155,7 +156,7 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
         InstanceEventHandler handler = resolveDynamicHandler(event);
 
         if (handler == null) {
-            LOGGER.warn("No dynamic content handler found for event {}", event);
+            LOGGER.debug("No dynamic content handler found for event {}", event);
             return event;
         }
 
