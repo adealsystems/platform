@@ -315,9 +315,13 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
 
     private static EventAffiliation deriveEventAffiliation(InternalEvent event) {
         InstanceId instanceId = event.getInstanceId();
+        if (instanceId == null) {
+            return new EventAffiliation(null, null, event.isProcessed());
+        }
+
         Optional<String> oDynamicContent = InternalEvent.getDynamicContentAttribute(event);
         InstanceId dynamicId = oDynamicContent
-            .map(dynamicContent -> new InstanceId(instanceId.getId() + "-" + normalizeDynamicContent(dynamicContent.toLowerCase(Locale.ROOT))))
+            .map(dynamicContent -> new InstanceId(instanceId.getId() + '-' + normalizeDynamicContent(dynamicContent.toLowerCase(Locale.ROOT))))
             .orElse(instanceId);
         return new EventAffiliation(dynamicId, event.getSessionId(), event.isProcessed());
     }
