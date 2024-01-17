@@ -31,6 +31,7 @@ public interface SessionEventConstants {
     String SOURCE_EVENT_ATTRIBUTE_NAME = "__source_event";
     String DYNAMIC_CONTENT_ATTRIBUTE_NAME = "__dynamic_content";
     String HANDLED_EVENTS_ATTRIBUTE_NAME = "__handled_events";
+    String SESSION_NAME = "__session_name";
 
     String TERMINATING_FLAG = "__terminating";
 
