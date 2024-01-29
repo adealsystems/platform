@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -195,7 +196,7 @@ public class EventRegistry {
             .collect(Collectors.toSet());
     }
 
-    public Optional<FileEvent> findFileEvent(InternalEvent event) {
+    public Optional<FileEvent> findFileEvent(Session session, InternalEvent event) {
         String eventId = event.getId();
 
         for (Set<FileEvent> zoneEvents : fileEventsByZone.values()) {
@@ -205,6 +206,10 @@ public class EventRegistry {
 
             for (FileEvent fileEvent : zoneEvents) {
                 if (fileEvent.getPattern().matcher(eventId).matches()) {
+                    BiFunction<Session, InternalEvent, Boolean> postValidator = fileEvent.getPostValidator();
+                    if (postValidator != null && !postValidator.apply(session, event)) {
+                        return Optional.empty();
+                    }
                     return Optional.of(fileEvent);
                 }
             }
@@ -350,12 +355,12 @@ public class EventRegistry {
         return Optional.empty();
     }
 
-    public Optional<? extends EventDescriptor> findEventDescriptor(InternalEvent event) {
+    public Optional<? extends EventDescriptor> findEventDescriptor(Session session, InternalEvent event) {
         switch (event.getType()) {
             case TIMER:
                 return findTimerEvent(event);
             case FILE:
-                return findFileEvent(event);
+                return findFileEvent(session, event);
             case SESSION:
                 return findSessionEvent(event);
             case CANCEL:

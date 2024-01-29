@@ -17,8 +17,11 @@
 package org.adealsystems.platform.orchestrator.registry;
 
 import org.adealsystems.platform.id.DataIdentifier;
+import org.adealsystems.platform.orchestrator.InternalEvent;
+import org.adealsystems.platform.orchestrator.Session;
 
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 
 public final class FileEvent implements EventDescriptor {
@@ -27,6 +30,7 @@ public final class FileEvent implements EventDescriptor {
     private boolean startEvent;
     private boolean stopEvent;
     private Pattern pattern;
+    private BiFunction<Session, InternalEvent, Boolean> postValidator;
     private String metaName;
     private DataIdentifier dataId;
 
@@ -74,6 +78,11 @@ public final class FileEvent implements EventDescriptor {
         return this;
     }
 
+    public FileEvent withPostValidator(BiFunction<Session, InternalEvent, Boolean> validator) {
+        this.postValidator = Objects.requireNonNull(validator, "validator must not be null!");
+        return this;
+    }
+
     @Override
     public String getId() {
         return id;
@@ -97,6 +106,10 @@ public final class FileEvent implements EventDescriptor {
         return pattern;
     }
 
+    public BiFunction<Session, InternalEvent, Boolean> getPostValidator() {
+        return postValidator;
+    }
+
     public String getMetaName() {
         return metaName;
     }
@@ -115,13 +128,23 @@ public final class FileEvent implements EventDescriptor {
             && Objects.equals(id, fileEvent.id)
             && Objects.equals(zone, fileEvent.zone)
             && Objects.equals(pattern, fileEvent.pattern)
+            && Objects.equals(postValidator, fileEvent.postValidator)
             && Objects.equals(metaName, fileEvent.metaName)
             && Objects.equals(dataId, fileEvent.dataId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, zone, startEvent, stopEvent, pattern, metaName, dataId);
+        return Objects.hash(
+            id,
+            zone,
+            startEvent,
+            stopEvent,
+            pattern,
+            postValidator,
+            metaName,
+            dataId
+        );
     }
 
     @Override
@@ -132,6 +155,7 @@ public final class FileEvent implements EventDescriptor {
             ", startEvent=" + startEvent +
             ", stopEvent=" + stopEvent +
             ", pattern=" + pattern +
+            ", postValidator=" + postValidator +
             ", metaName='" + metaName + '\'' +
             ", dataId=" + dataId +
             '}';

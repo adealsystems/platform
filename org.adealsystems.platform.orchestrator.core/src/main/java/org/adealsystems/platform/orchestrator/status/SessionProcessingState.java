@@ -366,9 +366,21 @@ public class SessionProcessingState implements Cloneable {
     @Override
     @SuppressWarnings({"PMD.ProperCloneImplementation", "MethodDoesntCallSuperMethod"})
     public SessionProcessingState clone() {
-        List<ProcessingStep> cloneSteps = new ArrayList<>(steps);
-        Map<String, Boolean> cloneFlags = new HashMap<>(flags);
-        Map<String, String> cloneAttributes = new HashMap<>(stateAttributes);
+        List<ProcessingStep> cloneSteps = new ArrayList<>();
+        if (steps != null) {
+            cloneSteps.addAll(steps);
+        }
+
+        Map<String, Boolean> cloneFlags = new HashMap<>();
+        if (flags != null) {
+            cloneFlags.putAll(flags);
+        }
+
+        Map<String, String> cloneAttributes = new HashMap<>();
+        if (stateAttributes != null) {
+            cloneAttributes.putAll(stateAttributes);
+        }
+
         return new SessionProcessingState(
             runSpec,
             configuration,

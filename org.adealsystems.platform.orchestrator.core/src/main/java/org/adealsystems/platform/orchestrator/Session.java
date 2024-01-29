@@ -42,11 +42,15 @@ public final class Session implements Cloneable {
     private static final Logger LOGGER = LoggerFactory.getLogger(Session.class);
 
     public static final String FLAG_ERROR_OCCURRED = "ERROR_OCCURRED";
-
     public static final String FLAG_SESSION_FINISHED = "SESSION_FINISHED";
-
     public static final String FLAG_SESSION_CANCELLED = "SESSION_CANCELLED";
+
     public static final String REGISTRY_PREFIX_EXPECTED_VALUES_OF = "expected-values-of--";
+
+    public static final String COMMANDS_IN_PROGRESS = "commands-in-progress";
+    public static final String PROCESSED_COMMANDS = "processed-commands";
+    public static final String FAILED_COMMANDS = "failed-commands";
+    public static final String COMMAND_IN_PROGRESS_PREFIX = "command:";
 
     private final InstanceId instanceId;
     private final SessionId id;
@@ -258,6 +262,65 @@ public final class Session implements Cloneable {
         }
 
         return registry;
+    }
+
+    public void setCommandExecutionId(String commandId) {
+        setStateRegistry(COMMANDS_IN_PROGRESS, new HashSet<>(Collections.singleton(commandId)));
+    }
+
+    public void setCommandExecutionId(String commandId, String messageRegistry) {
+        setStateRegistry(COMMANDS_IN_PROGRESS, new HashSet<>(Collections.singleton(commandId)));
+
+        extendStateRegistry(messageRegistry, commandId);
+    }
+
+    public void addCommandExecutionId(String commandId) {
+        extendStateRegistry(COMMANDS_IN_PROGRESS, commandId);
+    }
+
+    public void addCommandExecutionId(String commandId, String messageRegistry) {
+        extendStateRegistry(COMMANDS_IN_PROGRESS, commandId);
+
+        extendStateRegistry(messageRegistry, commandId);
+    }
+
+    public void addLabeledCommandExecutionId(String commandId, String label) {
+        extendStateRegistry(COMMANDS_IN_PROGRESS, commandId);
+
+        setStateValue(COMMAND_IN_PROGRESS_PREFIX + commandId, label);
+    }
+
+    public String findLabeledCommandExecutionId(InternalEvent event, String label) {
+        LOGGER.debug("Searching for session attribute with command label '{}' in event {}", label, event);
+
+        for (Map.Entry<String, String> entry : state.entrySet()) {
+            String value = entry.getValue();
+            if (label.equals(value)) {
+                String key = entry.getKey();
+                return key.substring(COMMAND_IN_PROGRESS_PREFIX.length());
+            }
+        }
+
+        return null;
+    }
+
+    public void completeCommandExecution(String commandId) {
+        if (!getStateRegistry(COMMANDS_IN_PROGRESS).contains(commandId)) {
+            LOGGER.debug("Not a relevant command-id '{}'", commandId);
+            return;
+        }
+
+        reduceStateRegistry(COMMANDS_IN_PROGRESS, commandId);
+    }
+
+    public void completeLabeledCommandExecution(InternalEvent event, String label) {
+        String commandId = findLabeledCommandExecutionId(event, label);
+        if (!getStateRegistry(COMMANDS_IN_PROGRESS).contains(commandId)) {
+            LOGGER.debug("Not a relevant command-id '{}'", commandId);
+            return;
+        }
+
+        reduceStateRegistry(COMMANDS_IN_PROGRESS, commandId);
     }
 
     public boolean getStateFlag(String key) {
