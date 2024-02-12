@@ -46,6 +46,7 @@ allprojects {
     apply plugin: 'eclipse'
     apply plugin: 'idea'
     apply plugin: 'jacoco'
+    apply plugin: 'maven-publish'
     //apply plugin: 'org.ec4j.editorconfig'
 
     group = 'org.adealsystems'
@@ -190,12 +191,17 @@ configure(subprojects
     publishing {
         repositories {
             maven {
-                def releaseRepo = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-                def snapshotRepo = "https://oss.sonatype.org/content/repositories/snapshots/"
+//                def releaseRepo = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+//                def snapshotRepo = "https://oss.sonatype.org/content/repositories/snapshots/"
+                def releaseRepo = "http://nexus.adeal-systems.com:8081/repository/maven-releases"
+                def snapshotRepo = "http://nexus.adeal-systems.com:8081/repository/maven-mixed"
                 url = isReleaseVersion ? releaseRepo : snapshotRepo
+                allowInsecureProtocol = true
                 credentials {
-                    username = findProperty('sonatypeUsername')
-                    password = findProperty('sonatypePassword')
+//                    username = findProperty('sonatypeUsername')
+//                    password = findProperty('sonatypePassword')
+                    username = findProperty('nexusUsername')
+                    password = findProperty('nexusPassword')
                 }
             }
         }
@@ -221,11 +227,6 @@ configure(subprojects
                             url = 'https://github.com/adealsystems/platform/'
                         }
                         developers {
-                            developer {
-                                id = 'robFifth'
-                                name = 'Robert Virga'
-                                email = 'robert.virga@adeal-systems.com'
-                            }
                             developer {
                                 id = 'huxi'
                                 name = 'Joern Huxhorn'
