@@ -33,6 +33,7 @@ public final class FileEvent implements EventDescriptor {
     private BiFunction<Session, InternalEvent, Boolean> postValidator;
     private String metaName;
     private DataIdentifier dataId;
+    private boolean repeatable = false;
 
     public static FileEvent forIdAndZone(String id, String zone) {
         return new FileEvent(id, zone);
@@ -53,9 +54,9 @@ public final class FileEvent implements EventDescriptor {
         return this;
     }
 
-    @Override
-    public boolean isValid() {
-        return pattern != null;
+    public FileEvent asRepeatable() {
+        this.repeatable = true;
+        return this;
     }
 
     public FileEvent withPattern(String pattern) {
@@ -84,6 +85,11 @@ public final class FileEvent implements EventDescriptor {
     }
 
     @Override
+    public boolean isValid() {
+        return pattern != null;
+    }
+
+    @Override
     public String getId() {
         return id;
     }
@@ -96,6 +102,11 @@ public final class FileEvent implements EventDescriptor {
     @Override
     public boolean isStopEvent() {
         return stopEvent;
+    }
+
+    @Override
+    public boolean isRepeatable() {
+        return this.repeatable;
     }
 
     public String getZone() {

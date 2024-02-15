@@ -28,6 +28,7 @@ public final class CommandExecutionCompletedMessageEvent implements EventDescrip
     private final String id;
     private boolean stopEvent;
     private String sessionRegistryName;
+    private boolean repeatable = false;
 
     public static CommandExecutionCompletedMessageEvent forId(String id){
         return new CommandExecutionCompletedMessageEvent(id);
@@ -42,15 +43,20 @@ public final class CommandExecutionCompletedMessageEvent implements EventDescrip
         return this;
     }
 
+    public CommandExecutionCompletedMessageEvent forSessionRegistry(String sessionRegistryName) {
+        this.sessionRegistryName = Objects.requireNonNull(sessionRegistryName, "sessionRegistryName must not be null!");
+        return this;
+    }
+
+    public CommandExecutionCompletedMessageEvent asRepeatable() {
+        this.repeatable = true;
+        return this;
+    }
+
     @Override
     public boolean isValid() {
         boolean nameEmpty = sessionRegistryName == null || sessionRegistryName.isEmpty();
         return !(nameEmpty);
-    }
-
-    public CommandExecutionCompletedMessageEvent forSessionRegistry(String sessionRegistryName) {
-        this.sessionRegistryName = Objects.requireNonNull(sessionRegistryName, "sessionRegistryName must not be null!");
-        return this;
     }
 
     @Override
@@ -67,6 +73,11 @@ public final class CommandExecutionCompletedMessageEvent implements EventDescrip
     @Override
     public boolean isStopEvent() {
         return stopEvent;
+    }
+
+    @Override
+    public boolean isRepeatable() {
+        return this.repeatable;
     }
 
     public String getSessionRegistryName() {

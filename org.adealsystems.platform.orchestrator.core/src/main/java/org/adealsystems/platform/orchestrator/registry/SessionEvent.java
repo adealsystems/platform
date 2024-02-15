@@ -33,6 +33,7 @@ public final class SessionEvent implements EventDescriptor {
     private boolean startEvent;
     private boolean stopEvent;
     private LifecycleType type = LifecycleType.STOP;
+    private boolean repeatable = false;
 
     public static SessionEvent forIdAndInstance(String id, String instanceRef){
         return new SessionEvent(id, instanceRef);
@@ -53,14 +54,19 @@ public final class SessionEvent implements EventDescriptor {
         return this;
     }
 
-    @Override
-    public boolean isValid() {
-        return true;
-    }
-
     public SessionEvent forType(LifecycleType type) {
         this.type = type;
         return this;
+    }
+
+    public SessionEvent asRepeatable() {
+        this.repeatable = true;
+        return this;
+    }
+
+    @Override
+    public boolean isValid() {
+        return true;
     }
 
     @Override
@@ -76,6 +82,11 @@ public final class SessionEvent implements EventDescriptor {
     @Override
     public boolean isStopEvent() {
         return stopEvent;
+    }
+
+    @Override
+    public boolean isRepeatable() {
+        return this.repeatable;
     }
 
     public LifecycleType getType() {

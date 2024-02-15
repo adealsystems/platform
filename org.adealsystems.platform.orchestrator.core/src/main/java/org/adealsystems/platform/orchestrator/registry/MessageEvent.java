@@ -25,6 +25,7 @@ public final class MessageEvent implements EventDescriptor {
     private boolean stopEvent;
     private String name;
     private Pattern pattern;
+    private boolean repeatable = false;
 
     public static MessageEvent forId(String id){
         return new MessageEvent(id);
@@ -44,11 +45,9 @@ public final class MessageEvent implements EventDescriptor {
         return this;
     }
 
-    @Override
-    public boolean isValid() {
-        boolean nameEmpty = name == null || name.isEmpty();
-        boolean patternEmpty = pattern == null;
-        return !(nameEmpty && patternEmpty);
+    public MessageEvent asRepeatable() {
+        this.repeatable = true;
+        return this;
     }
 
     public MessageEvent withName(String name) {
@@ -67,6 +66,13 @@ public final class MessageEvent implements EventDescriptor {
     }
 
     @Override
+    public boolean isValid() {
+        boolean nameEmpty = name == null || name.isEmpty();
+        boolean patternEmpty = pattern == null;
+        return !(nameEmpty && patternEmpty);
+    }
+
+    @Override
     public String getId() {
         return id;
     }
@@ -79,6 +85,11 @@ public final class MessageEvent implements EventDescriptor {
     @Override
     public boolean isStopEvent() {
         return stopEvent;
+    }
+
+    @Override
+    public boolean isRepeatable() {
+        return this.repeatable;
     }
 
     public String getName() {

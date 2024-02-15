@@ -51,6 +51,7 @@ public final class Session implements Cloneable {
     public static final String PROCESSED_COMMANDS = "processed-commands";
     public static final String FAILED_COMMANDS = "failed-commands";
     public static final String COMMAND_IN_PROGRESS_PREFIX = "command:";
+    public static final String LOCKED_EVENTS = "locked-events";
 
     private final InstanceId instanceId;
     private final SessionId id;
@@ -321,6 +322,16 @@ public final class Session implements Cloneable {
         }
 
         reduceStateRegistry(COMMANDS_IN_PROGRESS, commandId);
+    }
+
+    public void lockEvent(String eventId) {
+        Objects.requireNonNull(eventId, "eventId must not be null!");
+        extendStateRegistry(LOCKED_EVENTS, eventId);
+    }
+
+    public boolean isEventLocked(String eventId) {
+        Objects.requireNonNull(eventId, "eventId must not be null!");
+        return getStateRegistry(LOCKED_EVENTS).contains(eventId);
     }
 
     public boolean getStateFlag(String key) {

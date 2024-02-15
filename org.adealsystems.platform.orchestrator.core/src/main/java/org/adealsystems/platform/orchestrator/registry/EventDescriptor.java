@@ -21,4 +21,8 @@ public interface EventDescriptor {
     boolean isStartEvent();
     boolean isStopEvent();
     boolean isValid();
+
+    default boolean isRepeatable() {
+        return false;
+    }
 }
