@@ -28,7 +28,9 @@ import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class JobReceiverRunnable implements Runnable {
@@ -36,85 +38,91 @@ public class JobReceiverRunnable implements Runnable {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private final String queueName;
-
     private final SqsClient sqsClient;
 
-    private final MultipleJobExecutor asyncJobExecutor;
+    private final Map<String, MultipleJobExecutor> asyncJobExecutors;
 
     public JobReceiverRunnable(
-        String queueName,
         SqsClient sqsClient,
-        MultipleJobExecutor asyncJobExecutor
+        Map<String, MultipleJobExecutor> asyncJobExecutors
     ) {
-        this.queueName = Objects.requireNonNull(queueName, "queueName must not be null!");
         this.sqsClient = Objects.requireNonNull(sqsClient, "sqsClient must not be null!");
-        this.asyncJobExecutor = Objects.requireNonNull(asyncJobExecutor, "asyncJobExecutor must not be null!");
+        this.asyncJobExecutors = Objects.requireNonNull(asyncJobExecutors, "asyncJobExecutors must not be null!");
     }
 
     @Override
     public void run() {
-        LOGGER.info("Starting processor job event receiver thread on queue '{}'", queueName);
-        ReceiveMessageRequest receiveMessageRequest = ReceiveMessageRequest.builder()
-            .queueUrl(queueName)
-            .build();
+        LOGGER.info("Starting async job event receiver thread");
 
         // should be started as daemon thread
-        List<JobMessage> jobs = new ArrayList<>();
+        Map<String, List<JobMessage>> allJobs = new HashMap<>();
 
         while (true) {
-            List<Message> messages;
-            try {
-                messages = sqsClient.receiveMessage(receiveMessageRequest).messages();
-            } catch (Exception ex) {
-                LOGGER.error("Failed to receive messages!", ex);
-                continue;
-            }
-
-            if ((messages.isEmpty() && !jobs.isEmpty()) || jobs.size() >= 20) {
-                LOGGER.info("Executing {} collected jobs", jobs.size());
-                executeJobs(jobs);
-                jobs.clear();
-            }
-
-            if (messages.isEmpty()) {
-                try {
-                    sleep(60_000);
-                } catch (InterruptedException ex) {
-                    break;
+            for (Map.Entry<String, MultipleJobExecutor> entry : asyncJobExecutors.entrySet()) {
+                String queueName = entry.getKey();
+                MultipleJobExecutor jobExecutor = entry.getValue();
+                List<JobMessage> jobs = allJobs.get(queueName);
+                if (jobs == null) {
+                    jobs = new ArrayList<>(); // NOPMD
+                    allJobs.put(queueName, jobs);
                 }
 
-                continue;
-            }
+                ReceiveMessageRequest receiveMessageRequest = ReceiveMessageRequest
+                    .builder()
+                    .queueUrl(queueName)
+                    .build();
 
-            // Read all available requests
-            for (Message message : messages) {
-                LOGGER.debug("Processing message {}", message);
-
-                String messageBody = message.body();
-                JobMessage job;
+                List<Message> messages;
                 try {
-                    job = OBJECT_MAPPER.readValue(messageBody, JobMessage.class);
-                } catch (JsonProcessingException ex) {
-                    LOGGER.error("Error reading message body {}!", messageBody, ex);
-                    deleteMessage(message);
+                    messages = sqsClient.receiveMessage(receiveMessageRequest).messages();
+                }
+                catch (Exception ex) {
+                    LOGGER.error("Failed to receive messages from queue " + queueName + "!", ex);
                     continue;
                 }
 
-                jobs.add(job);
+                if ((messages.isEmpty() && !jobs.isEmpty()) || jobs.size() >= 20) {
+                    // No new messages, but collected job requests
+                    // OR more than 20 collected job requests
+                    LOGGER.info("Executing {} collected jobs from {}", jobs.size(), queueName);
+                    executeJobs(jobs, jobExecutor);
+                    jobs.clear();
+                }
 
-                deleteMessage(message);
+                // Read all available requests
+                if (!messages.isEmpty()) {
+                    for (Message message : messages) {
+                        LOGGER.debug("Processing message {}", message);
+
+                        String messageBody = message.body();
+                        JobMessage job;
+                        try {
+                            job = OBJECT_MAPPER.readValue(messageBody, JobMessage.class);
+                        }
+                        catch (JsonProcessingException ex) {
+                            LOGGER.error("Error reading message body {}!", messageBody, ex);
+                            continue;
+                        }
+                        finally {
+                            deleteMessage(message, queueName);
+                        }
+
+                        jobs.add(job);
+                    }
+                }
             }
 
+            // delay before next check
             try {
-                sleep(10);
-            } catch (InterruptedException ex) {
+                sleep(10_000);
+            }
+            catch (InterruptedException ex) {
                 break;
             }
         }
     }
 
-    private void executeJobs(List<JobMessage> jobs) {
+    private void executeJobs(List<JobMessage> jobs, MultipleJobExecutor jobExecutor) {
         LOGGER.debug("Executing job bundle: {}", jobs);
         DataIdentifier[] dataIds = new DataIdentifier[jobs.size()];
         for (int i = 0; i < jobs.size(); i++) {
@@ -122,22 +130,24 @@ public class JobReceiverRunnable implements Runnable {
             dataIds[i] = DataIdentifier.fromString(dataId);
         }
 
-        asyncJobExecutor.execute(dataIds);
+        jobExecutor.execute(dataIds);
     }
 
     private void sleep(long value) throws InterruptedException {
         Thread.sleep(value);
     }
 
-    private void deleteMessage(Message message) {
-        DeleteMessageRequest request = DeleteMessageRequest.builder()
+    private void deleteMessage(Message message, String queueName) {
+        DeleteMessageRequest request = DeleteMessageRequest
+            .builder()
             .queueUrl(queueName)
             .receiptHandle(message.receiptHandle())
             .build();
 
         try {
             sqsClient.deleteMessage(request);
-        } catch (Exception ex) {
+        }
+        catch (Exception ex) {
             LOGGER.error("Failed to delete message {}", message, ex);
         }
     }

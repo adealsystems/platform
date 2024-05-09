@@ -50,7 +50,7 @@ allprojects {
     //apply plugin: 'org.ec4j.editorconfig'
 
     group = 'org.adealsystems'
-    version = '0.47.1'
+    version = '0.47.3'
     def prereleaseIdentifier = System.properties.'prerelease'
     if (prereleaseIdentifier) {
         version = version + '-' + prereleaseIdentifier
@@ -164,12 +164,14 @@ subprojects {
 
     // this gives all subprojects a default set of test dependencies
     dependencies {
+        implementation libraries.'slf4j-api'
+
         testImplementation libraries.'byte-buddy'
         testImplementation libraries.'groovy'
         testImplementation libraries.'groovy-nio'
-        testImplementation libraries.'slf4j-api'
         testImplementation libraries.'spock-core'
         testImplementation libraries.'junit-jupiter-api'
+
         testRuntimeOnly libraries.'junit-jupiter-engine'
         testRuntimeOnly libraries.'jcl-over-slf4j'
         testRuntimeOnly libraries.'logback-classic'

@@ -9,21 +9,18 @@
 def platformTime = project(':org.adealsystems.platform.time') {
     description = "Time-related code"
     dependencies {
-        implementation libraries.'slf4j-api'
         implementation libraries.'commons-text'
     }
 }
 
 def platformId = project(':org.adealsystems.platform.id') {
     dependencies {
-        implementation libraries.'slf4j-api'
         implementation platformTime
     }
 }
 
 project(':org.adealsystems.platform.id.hadoop') {
     dependencies {
-        implementation libraries.'slf4j-api'
         implementation platformId
         implementation libraries.'hadoop-common'
         testImplementation libraries.'jcl-over-slf4j'
@@ -33,19 +30,16 @@ project(':org.adealsystems.platform.id.hadoop') {
 def platformProcess = project(':org.adealsystems.platform.process') {
     dependencies {
         implementation platformId
-        implementation libraries.'slf4j-api'
     }
 }
 
 def platformIo = project(':org.adealsystems.platform.io') {
     dependencies {
-        implementation libraries.'slf4j-api'
     }
 }
 
 def platformIoTransform = project(':org.adealsystems.platform.io.transform') {
     dependencies {
-        implementation libraries.'slf4j-api'
         implementation platformIo
     }
 }
@@ -57,7 +51,6 @@ def platformIoTest = project(':org.adealsystems.platform.io.test') {
 
 def platformIoCompression = project(':org.adealsystems.platform.io.compression') {
     dependencies {
-        implementation libraries.'slf4j-api'
         implementation libraries.'commons-compress'
         implementation libraries.'snappy'
     }
@@ -65,7 +58,6 @@ def platformIoCompression = project(':org.adealsystems.platform.io.compression')
 
 def platformIoLine = project(':org.adealsystems.platform.io.line') {
     dependencies {
-        implementation libraries.'slf4j-api'
         implementation platformIo
         implementation platformIoCompression
     }
@@ -118,9 +110,16 @@ def platformIoParquet = project(':org.adealsystems.platform.io.parquet') {
 
 def platformState = project(':org.adealsystems.platform.state') {
     dependencies {
-        implementation libraries.'slf4j-api'
         implementation platformId
         implementation libraries.'jackson-databind'
+    }
+}
+
+def platformQueue = project(':org.adealsystems.platform.queue') {
+    description = "Queue-related code"
+    dependencies {
+        implementation libraries.'aws-sdk-sqs'
+        implementation libraries.'commons-text'
     }
 }
 
@@ -128,7 +127,6 @@ def platformSparkTest = project(':org.adealsystems.platform.spark.test') {
     dependencies {
         implementation platformId
         implementation platformProcess
-        implementation libraries.'slf4j-api'
         implementation libraries.'spark-core'
         implementation libraries.'spark-sql' // for SparkSession m(
         implementation libraries.'junit-jupiter-api'
@@ -140,7 +138,6 @@ def platformSpark = project(':org.adealsystems.platform.spark') {
     dependencies {
         implementation platformId
         implementation platformProcess
-        implementation libraries.'slf4j-api'
         compileOnly libraries.'spark-core'
         compileOnly libraries.'spark-sql' // for SparkSession m(
         testImplementation libraries.'spark-sql' // for SparkSession m(
@@ -174,7 +171,6 @@ def platformSparkExample = project(':org.adealsystems.platform.spark.example') {
         implementation platformProcess
         implementation platformSpark
         implementation platformSparkUdf
-        implementation libraries.'slf4j-api'
         compileOnly libraries.'spark-core'
         compileOnly libraries.'spark-sql' // for SparkSession m(
         testImplementation platformSparkTest
@@ -249,7 +245,6 @@ project(':org.adealsystems.platform.spark.app.example') {
 project(':org.adealsystems.platform.webcollector') {
     dependencies {
         implementation platformIo
-        implementation libraries.'slf4j-api'
         implementation libraries.'httpclient'
         runtimeOnly libraries.'httpcore'
         testImplementation libraries.'jackson-databind'
@@ -268,7 +263,6 @@ project(':org.adealsystems.platform.sqlcollector') {
         implementation platformState
 
         implementation libraries.'commons-csv'
-        implementation libraries.'slf4j-api'
         testRuntimeOnly libraries.'logback-classic'
         testRuntimeOnly libraries.'jcl-over-slf4j'
     }
@@ -288,7 +282,6 @@ def orchestratorCore = project(':org.adealsystems.platform.orchestrator.core') {
         implementation libraries.'commons-lang'
         implementation libraries.'spring-context'
         implementation libraries.'jackson-datatype-jsr310'
-        implementation libraries.'slf4j-api'
     }
 }
 
