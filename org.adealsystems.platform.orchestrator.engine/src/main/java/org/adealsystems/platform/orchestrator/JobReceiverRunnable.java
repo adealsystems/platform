@@ -38,9 +38,15 @@ public class JobReceiverRunnable implements Runnable {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    private static final int DEFAULT_WAITING_INTERVAL = 10_000;
+    private static final int DEFAULT_JOB_BUNDLE_SIZE = 20;
+
     private final SqsClient sqsClient;
 
     private final Map<String, MultipleJobExecutor> asyncJobExecutors;
+
+    private int waitingInterval = DEFAULT_WAITING_INTERVAL;
+    private int jobBundleSize = DEFAULT_JOB_BUNDLE_SIZE;
 
     public JobReceiverRunnable(
         SqsClient sqsClient,
@@ -48,6 +54,14 @@ public class JobReceiverRunnable implements Runnable {
     ) {
         this.sqsClient = Objects.requireNonNull(sqsClient, "sqsClient must not be null!");
         this.asyncJobExecutors = Objects.requireNonNull(asyncJobExecutors, "asyncJobExecutors must not be null!");
+    }
+
+    public void setWaitingInterval(int waitingInterval) {
+        this.waitingInterval = waitingInterval;
+    }
+
+    public void setJobBundleSize(int jobBundleSize) {
+        this.jobBundleSize = jobBundleSize;
     }
 
     @Override
@@ -81,9 +95,9 @@ public class JobReceiverRunnable implements Runnable {
                     continue;
                 }
 
-                if ((messages.isEmpty() && !jobs.isEmpty()) || jobs.size() >= 20) {
+                if ((messages.isEmpty() && !jobs.isEmpty()) || jobs.size() >= jobBundleSize) {
                     // No new messages, but collected job requests
-                    // OR more than 20 collected job requests
+                    // OR more than <jobBundleSize> collected job requests
                     LOGGER.info("Executing {} collected jobs from {}", jobs.size(), queueName);
                     executeJobs(jobs, jobExecutor);
                     jobs.clear();
@@ -114,7 +128,7 @@ public class JobReceiverRunnable implements Runnable {
 
             // delay before next check
             try {
-                sleep(10_000);
+                sleep(waitingInterval);
             }
             catch (InterruptedException ex) {
                 break;
