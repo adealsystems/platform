@@ -774,30 +774,30 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         // TODO: double-check option names
         // https://spark.apache.org/docs/3.0.1/api/java/org/apache/spark/sql/DataFrameWriter.html#csv-java.lang.String-
         return sparkSession.read()
-            .option("header", "true")
-            //            .option("inferSchema", "true")
-            .option("quote", "\"")
-            .option("escape", "\"")
-            .option("sep", delimiter)
-            .option("emptyValue", "")
-            .csv(fileName);
+                           .option("header", "true")
+                           //            .option("inferSchema", "true")
+                           .option("quote", "\"")
+                           .option("escape", "\"")
+                           .option("sep", delimiter)
+                           .option("emptyValue", "")
+                           .csv(fileName);
     }
 
     static Dataset<Row> readJsonAsDataset(SparkSession sparkSession, String fileName) {
         return sparkSession.read() //
-            .json(fileName);
+                           .json(fileName);
     }
 
     static Dataset<Row> readAvroAsDataset(SparkSession sparkSession, String fileName) {
         return sparkSession.read() //
-            .format("avro") //
-            .load(fileName);
+                           .format("avro") //
+                           .load(fileName);
     }
 
     static Dataset<Row> readParquetAsDataset(SparkSession sparkSession, String fileName) {
         return sparkSession.read() //
-            .format("parquet") //
-            .load(fileName);
+                           .format("parquet") //
+                           .load(fileName);
     }
 
     static Dataset<Row> readJdbc(SparkSession sparkSession, Properties connectionProperties) {
@@ -810,7 +810,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         props.remove(JdbcConnectionProperties.PROP_QUERY);
 
         return sparkSession.read()
-            .jdbc(jdbcUrl, query, props);
+                           .jdbc(jdbcUrl, query, props);
     }
 
     static Dataset<Row> readAthenaJdbc(SparkSession sparkSession, Properties connectionProperties) {
@@ -823,7 +823,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         props.remove(JdbcConnectionProperties.PROP_QUERY);
 
         return sparkSession.read()
-            .jdbc(jdbcUrl, query, props);
+                           .jdbc(jdbcUrl, query, props);
     }
 
     private static Properties cloneProperties(Properties props) {
@@ -833,7 +833,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
         Properties result = new Properties();
         Enumeration<?> names = props.propertyNames();
-        while(names.hasMoreElements()) {
+        while (names.hasMoreElements()) {
             String name = String.valueOf(names.nextElement());
             String value = props.getProperty(name);
             result.setProperty(name, value);
@@ -956,8 +956,6 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     // this is broken code... but now it's in a single place
     static void moveFile(JavaSparkContext sparkContext, String source, String target) {
-        Logger logger = LoggerFactory.getLogger(AbstractSingleOutputSparkBatchJob.class);
-
         org.apache.hadoop.conf.Configuration hadoopConfig = sparkContext.hadoopConfiguration();
         hadoopConfig.set("fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
         hadoopConfig.setBoolean("fs.hdfs.impl.disable.cache", true);
@@ -967,22 +965,28 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         Path sourceFSPath = new Path(source);
         try (FileSystem fs = sourceFSPath.getFileSystem(hadoopConfig)) {
             String successFilename = source + "/" + SUCCESS_INDICATOR;
-            logger.debug("successFilename: {}", successFilename);
+            LOGGER.debug("successFilename: {}", successFilename);
             Path successPath = new Path(successFilename);
-            logger.debug("successPath: {}", successPath);
+            LOGGER.debug("successPath: {}", successPath);
 
+            int loopCount = 0;
             while (!fs.exists(successPath)) {
                 try {
-                    logger.info("Waiting for appearance of {}...", successFilename);
-                    Thread.sleep(1000);
-                    // this is an endless loop
-                    // and there isn't something like a _FAILURE indicator, afaik
-                    // not ideal
-                } catch (InterruptedException e) {
+                    if (loopCount >= 600) { // 10 minutes
+                        throw new IllegalStateException("No result file found: '" + successFilename + "'");
+                    }
+                    loopCount++;
+
+                    LOGGER.info("Waiting for appearance of {}...", successFilename);
+                    Thread.sleep(1_000);
+                }
+                catch (InterruptedException e) {
                     throw new IllegalStateException("Exception while waiting for success file!", e);
                 }
             }
-            logger.debug("Found successPath");
+
+            LOGGER.debug("Found successPath");
+
             FileStatus[] globs = fs.globStatus(new Path(source + "/part-*"));
             if (globs == null) {
                 // from Globber.doGlob():
@@ -997,31 +1001,43 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
                  */
                 throw new IllegalStateException("globStatus() returned null! This should not happen...");
             }
-            logger.debug("Globs: {}", (Object) globs);
+
+            LOGGER.debug("Globs: {}", (Object) globs);
             if (globs.length != 1) {
-                logger.error("Expected one part but found {}! {}", globs.length, globs);
+                LOGGER.error("Expected one part but found {}! {}", globs.length, globs);
                 throw new IllegalStateException("Expected one part but found " + globs.length);
             }
+
             Path sourcePath = globs[0].getPath();
             Path targetPath = new Path(target);
-            logger.debug("About to rename sourcePath: {} to targetPath: {}", sourcePath, targetPath);
-            if (fs.rename(sourcePath, targetPath)) {
-                if (!fs.delete(new Path(source), true)) {
-                    logger.warn("Failed to delete source: {}", source);
-                }
-            } else {
-                logger.warn("Failed to rename sourcePath: {} to targetPath: {}", sourcePath, targetPath);
-                logger.debug("About to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
-                if (!FileUtil.copy(fs, sourcePath, fs, targetPath, true, hadoopConfig)) {
-                    logger.warn("Failed to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
-                } else {
-                    if (!fs.delete(new Path(source), true)) {
-                        logger.warn("Failed to delete source: {}", source);
-                    }
+
+            if (fs.exists(targetPath)) {
+                LOGGER.debug("Deleting existing path '{}'", targetPath);
+                if (!fs.delete(targetPath, false)) {
+                    LOGGER.error("Unable to delete already existing target '{}'! Trying to overwrite it ...", targetPath);
                 }
             }
 
-        } catch (IOException ex) {
+            LOGGER.debug("About to rename sourcePath: {} to targetPath: {}", sourcePath, targetPath);
+            if (fs.rename(sourcePath, targetPath)) {
+                if (!fs.delete(new Path(source), true)) {
+                    LOGGER.warn("Failed to delete source: {}", source);
+                }
+                return;
+            }
+
+            LOGGER.warn("Failed to rename sourcePath: {} to targetPath: {}", sourcePath, targetPath);
+            LOGGER.debug("About to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
+            if (!FileUtil.copy(fs, sourcePath, fs, targetPath, true, hadoopConfig)) {
+                LOGGER.warn("Failed to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
+            }
+            else {
+                if (!fs.delete(new Path(source), true)) {
+                    LOGGER.warn("Failed to delete source: {}", source);
+                }
+            }
+        }
+        catch (IOException ex) {
             throw new IllegalStateException("Unable to rename result file!", ex);
         }
     }
