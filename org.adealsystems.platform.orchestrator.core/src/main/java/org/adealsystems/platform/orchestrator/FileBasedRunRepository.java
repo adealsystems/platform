@@ -211,7 +211,7 @@ public class FileBasedRunRepository implements RunRepository {
         try {
             return OBJECT_MAPPER.readValue(runFile, CurrentRunState.class);
         } catch (IOException ex) {
-            throw new IllegalStateException("Unable to read current run state file '" + runFile.getAbsolutePath() + "'!", ex);
+            throw new IllegalStateException("Unable to read current run state file '" + runFile + "'!", ex);
         }
     }
 
@@ -219,7 +219,7 @@ public class FileBasedRunRepository implements RunRepository {
         try {
             OBJECT_MAPPER.writeValue(runFile, state);
         } catch (IOException ex) {
-            throw new IllegalStateException("Unable to write current run state file '" + runFile.getAbsolutePath() + "'!", ex);
+            throw new IllegalStateException("Unable to write current run state file '" + runFile + "'!", ex);
         }
     }
 

@@ -1013,7 +1013,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
             if (fs.exists(targetPath)) {
                 LOGGER.debug("Deleting existing path '{}'", targetPath);
-                if (!fs.delete(targetPath, false)) {
+                if (!fs.delete(targetPath, true)) {
                     LOGGER.error("Unable to delete already existing target '{}'! Trying to overwrite it ...", targetPath);
                 }
             }

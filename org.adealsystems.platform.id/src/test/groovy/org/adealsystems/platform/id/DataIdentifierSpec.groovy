@@ -129,9 +129,11 @@ class DataIdentifierSpec extends Specification {
         value.toString() == expectedResult.toString()
 
         where:
-        input                                  | expectedResult
-        "source:use_case:config:CSV_SEMICOLON" | new DataIdentifier("source", "use_case", "config", CSV_SEMICOLON)
-        "source:use_case:CSV_SEMICOLON"        | new DataIdentifier("source", "use_case", CSV_SEMICOLON)
+        input                                                                                   | expectedResult
+        "source:use_case:config:CSV_SEMICOLON"                                                  | new DataIdentifier("source", "use_case", "config", CSV_SEMICOLON)
+        "source:use_case:CSV_SEMICOLON"                                                         | new DataIdentifier("source", "use_case", CSV_SEMICOLON)
+        "atcom_yield_supplement:agp_s24:iata-agp,lie/types-h,o,d/c-1/i-0/m-1/d-1:CSV_SEMICOLON" | new DataIdentifier("atcom_yield_supplement", "agp_s24", "iata-agp,lie/types-h,o,d/c-1/i-0/m-1/d-1", CSV_SEMICOLON)
+        "atcom_yield_supplement:agp_s24:iata-agp_lie/types-h_o_d/c-1/i-0/m-1/d-1:CSV_SEMICOLON" | new DataIdentifier("atcom_yield_supplement", "agp_s24", "iata-agp_lie/types-h_o_d/c-1/i-0/m-1/d-1", CSV_SEMICOLON)
     }
 
     def 'DataIdentifier.fromString(#input) produces expected exception of #expectedException'() {
