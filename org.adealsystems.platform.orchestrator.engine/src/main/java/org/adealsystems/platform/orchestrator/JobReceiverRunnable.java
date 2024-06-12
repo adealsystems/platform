@@ -72,6 +72,8 @@ public class JobReceiverRunnable implements Runnable {
         Map<String, List<JobMessage>> allJobs = new HashMap<>();
 
         while (true) {
+            boolean waitingMode = true;
+
             for (Map.Entry<String, MultipleJobExecutor> entry : asyncJobExecutors.entrySet()) {
                 String queueName = entry.getKey();
                 MultipleJobExecutor jobExecutor = entry.getValue();
@@ -105,6 +107,7 @@ public class JobReceiverRunnable implements Runnable {
 
                 // Read all available requests
                 if (!messages.isEmpty()) {
+                    waitingMode = false;
                     for (Message message : messages) {
                         LOGGER.debug("Processing message {}", message);
 
@@ -128,7 +131,13 @@ public class JobReceiverRunnable implements Runnable {
 
             // delay before next check
             try {
-                sleep(waitingInterval);
+                if (waitingMode) {
+                    sleep(waitingInterval);
+                }
+                else {
+                    // sleep short
+                    sleep(100);
+                }
             }
             catch (InterruptedException ex) {
                 break;

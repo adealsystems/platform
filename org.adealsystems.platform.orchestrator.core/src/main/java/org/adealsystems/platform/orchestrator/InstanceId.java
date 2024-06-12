@@ -23,7 +23,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 public final class InstanceId implements Comparable<InstanceId> {
-    public static final String PATTERN_STRING = "[0-9]{4}([-_][0-9a-z]+)*";
+    public static final String PATTERN_STRING = "[0-9]{4}([-_][0-9a-z/]+)*";
     private static final Pattern PATTERN = Pattern.compile(PATTERN_STRING);
 
     private final String id;
