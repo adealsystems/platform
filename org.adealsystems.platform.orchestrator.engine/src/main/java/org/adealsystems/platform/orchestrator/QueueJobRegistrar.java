@@ -49,7 +49,7 @@ public class QueueJobRegistrar implements JobRegistrar {
 
         try {
             String serialized = OBJECT_MAPPER.writeValueAsString(procMessage);
-            LOGGER.info("Sending processor request message for {}", serialized);
+            LOGGER.info("Sending queue request message for {}", serialized);
             SendMessageRequest message = SendMessageRequest.builder()
                 .queueUrl(queueName)
                 .messageBody(serialized)

@@ -440,21 +440,25 @@ public class InternalEventHandlerRunnable implements Runnable {
             if (oDynamicContent.isPresent()) {
                 String content = oDynamicContent.get();
                 if (!DYNAMIC_CONTENT_PATTERN.matcher(content).matches()) {
-                    LOGGER.error("Dynamic content '{}' does not match pattern {}", content, DYNAMIC_CONTENT_PATTERN.pattern());
+                    LOGGER.error(
+                        "Dynamic content '{}' does not match pattern {}",
+                        content,
+                        DYNAMIC_CONTENT_PATTERN.pattern()
+                    );
                     continue;
                 }
                 LOGGER.info("Initializing event with dynamic content {}: '{}'", clonedEvent, content);
                 setDynamicContentAttribute(clonedEvent, content);
             }
 
-            InstanceId dynamicId = resolveDynamicInstanceId(clonedEvent);
-            LOGGER.debug("Resolved dynamic InstanceId {}", dynamicId);
+            InstanceId finalInstanceId = resolveDynamicInstanceId(clonedEvent);
+            LOGGER.debug("Resolved final InstanceId {}", finalInstanceId);
 
             // Special handling for CANCEL events
             // check if session is active, then put the event to the instance queue, otherwise ignore it
-            Optional<SessionId> oSessionId = activeSessionIdRepository.retrieveActiveSessionId(dynamicId);
+            Optional<SessionId> oSessionId = activeSessionIdRepository.retrieveActiveSessionId(finalInstanceId);
             if (clonedEvent.getType() == InternalEventType.CANCEL && !oSessionId.isPresent()) {
-                LOGGER.debug("Ignoring CANCEL event {} for a not active instance {} to avoid it in the orphan queue.", clonedEvent, dynamicId);
+                LOGGER.debug("Ignoring CANCEL event {} for a not active instance {} to avoid it in the orphan queue.", clonedEvent, finalInstanceId);
                 continue;
             }
 
@@ -487,7 +491,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             boolean isStopEvent;
             try {
                 // reload the current session state (just to be sure...)
-                oSessionId = activeSessionIdRepository.retrieveActiveSessionId(dynamicId);
+                oSessionId = activeSessionIdRepository.retrieveActiveSessionId(finalInstanceId);
                 if (!oSessionId.isPresent()) {
                     isStopEvent = false;
                     LOGGER.debug("Skipping check for stop-session event, because no session is active now: {}", clonedEvent);
@@ -528,7 +532,7 @@ public class InternalEventHandlerRunnable implements Runnable {
                 LOGGER.debug("Set session id {} for event {}", sessionId, clonedEvent);
                 clonedEvent.setSessionId(sessionId);
             } else {
-                LOGGER.debug("Received event without active session for instance {}: {}", dynamicId, clonedEvent);
+                LOGGER.debug("Received event without active session for instance {}: {}", finalInstanceId, clonedEvent);
                 if (clonedEvent.getSessionId() != null) {
                     clonedEvent.setSessionId(null);
                     LOGGER.warn("Corrected session id of event: {}", clonedEvent);

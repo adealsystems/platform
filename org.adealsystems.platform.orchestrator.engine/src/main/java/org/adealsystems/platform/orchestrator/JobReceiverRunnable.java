@@ -94,14 +94,14 @@ public class JobReceiverRunnable implements Runnable {
                         messages = sqsClient.receiveMessage(receiveMessageRequest).messages();
                     }
                     catch (Exception ex) {
-                        LOGGER.error("Failed to receive messages from queue " + queueName + "!", ex);
+                        LOGGER.error("Failed to receive messages from queue {}!", queueName, ex);
                         continue;
                     }
 
                     if ((messages.isEmpty() && !jobs.isEmpty()) || jobs.size() >= jobBundleSize) {
                         // No new messages, but collected job requests
                         // OR more than <jobBundleSize> collected job requests
-                        LOGGER.info("Executing {} collected jobs from {}", jobs.size(), queueName);
+                        LOGGER.info("Executing {} bundled job(s) from {}", jobs.size(), queueName);
                         executeJobs(jobs, jobExecutor);
                         jobs.clear();
                     }
