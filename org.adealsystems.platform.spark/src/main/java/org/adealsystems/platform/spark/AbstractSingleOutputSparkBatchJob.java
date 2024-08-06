@@ -97,9 +97,18 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
     private final Logger logger;
     private final DatasetLogger datasetLogger;
 
-    public AbstractSingleOutputSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, DataIdentifier outputIdentifier, LocalDate invocationDate, boolean storeAsSingleFile) {
+    public AbstractSingleOutputSparkBatchJob(
+        DataResolverRegistry dataResolverRegistry,
+        DataLocation outputLocation,
+        DataIdentifier outputIdentifier,
+        LocalDate invocationDate,
+        boolean storeAsSingleFile
+    ) {
         this.invocationDate = Objects.requireNonNull(invocationDate, "invocationDate must not be null!");
-        this.dataResolverRegistry = Objects.requireNonNull(dataResolverRegistry, "dataResolverRegistry must not be null!");
+        this.dataResolverRegistry = Objects.requireNonNull(
+            dataResolverRegistry,
+            "dataResolverRegistry must not be null!"
+        );
         this.outputLocation = Objects.requireNonNull(outputLocation, "outputLocation must not be null!");
 
         Set<DataIdentifier> outputIds = new HashSet<>(1);
@@ -115,7 +124,12 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         this.datasetLogger = new DatasetLogger(dlc);
     }
 
-    public AbstractSingleOutputSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, DataIdentifier outputIdentifier, LocalDate invocationDate) {
+    public AbstractSingleOutputSparkBatchJob(
+        DataResolverRegistry dataResolverRegistry,
+        DataLocation outputLocation,
+        DataIdentifier outputIdentifier,
+        LocalDate invocationDate
+    ) {
         this(dataResolverRegistry, outputLocation, outputIdentifier, invocationDate, false);
     }
 
@@ -260,7 +274,8 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             }
 
             writeOutput(processData());
-        } catch (Throwable th) {
+        }
+        catch (Throwable th) {
             for (DataIdentifier dataId : getOutputIdentifiers()) {
                 registerProcessingStatus(dataId, STATE_PROCESSING_ERROR);
             }
@@ -363,13 +378,16 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
      * @throws UnregisteredDataResolverException      if no DataResolver has been registered for the given DataLocation
      * @throws DuplicateInstanceRegistrationException if the data instance was already registered
      */
-    protected void registerInputs(DataLocation dataLocation, Collection<DataIdentifier> inputIdentifiers, LocalDate date) {
+    protected void registerInputs(
+        DataLocation dataLocation,
+        Collection<DataIdentifier> inputIdentifiers,
+        LocalDate date
+    ) {
         Objects.requireNonNull(dataLocation, "dataLocation must not be null!");
         Objects.requireNonNull(inputIdentifiers, "inputIdentifiers must not be null!");
         Objects.requireNonNull(date, "date must not be null!");
 
         DataResolver inputDataResolver = dataResolverRegistry.getResolverFor(dataLocation);
-
         for (DataIdentifier inputIdentifier : inputIdentifiers) {
             dataInstanceRegistry.register(inputDataResolver.createDateInstance(inputIdentifier, date));
         }
@@ -382,19 +400,25 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         switch (inputIdentifier.getDataFormat()) {
             case ATHENA:
                 LOGGER.debug("Registering athena input {} with properties {}", inputIdentifier, props);
-                assertProperties(props.getConnectionProperties(),
+                assertProperties(
+                    props.getConnectionProperties(),
                     JdbcConnectionProperties.PROP_AWS_CREDENTIALS_PROVIDER,
                     JdbcConnectionProperties.PROP_URL,
                     JdbcConnectionProperties.PROP_DRIVER,
-                    JdbcConnectionProperties.PROP_QUERY);
+                    JdbcConnectionProperties.PROP_QUERY
+                );
                 break;
+
             case JDBC:
                 LOGGER.debug("Registering jdbc input {} with properties {}", inputIdentifier, props);
-                assertProperties(props.getConnectionProperties(),
+                assertProperties(
+                    props.getConnectionProperties(),
                     JdbcConnectionProperties.PROP_URL,
                     JdbcConnectionProperties.PROP_DRIVER,
-                    JdbcConnectionProperties.PROP_QUERY);
+                    JdbcConnectionProperties.PROP_QUERY
+                );
                 break;
+
             default:
                 break;
         }
@@ -442,6 +466,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
                     return readJdbcInput(dataIdentifier, props.get());
                 }
                 break;
+
             default:
                 DataInstance dataInstance = dataInstanceRegistry.resolveUnique(dataIdentifier).orElse(null);
                 if (dataInstance != null) {
@@ -488,7 +513,10 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
      * @throws DuplicateUniqueIdentifierException  if more than one DataInstance was registered for the given DataIdentifier
      * @throws UnregisteredDataIdentifierException if no DataInstance was registered for the given DataIdentifier
      */
-    protected Dataset<Row> readInputs(Collection<DataIdentifier> dataIdentifiers, Function<Dataset<Row>, Dataset<Row>> cleanser) {
+    protected Dataset<Row> readInputs(
+        Collection<DataIdentifier> dataIdentifiers,
+        Function<Dataset<Row>, Dataset<Row>> cleanser
+    ) {
         Dataset<Row> dataset = null;
 
         for (DataIdentifier dataIdentifier : dataIdentifiers) {
@@ -500,7 +528,8 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
             if (dataset == null) {
                 dataset = currentDataset;
-            } else {
+            }
+            else {
                 dataset = dataset.union(currentDataset);
             }
         }
@@ -528,15 +557,16 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         Objects.requireNonNull(dataIdentifier, "dataIdentifier must not be null!");
 
         DataInstance dataInstance = dataInstanceRegistry.resolveUnique(dataIdentifier).orElse(null);
-
         if (dataInstance != null) {
             try {
                 return Optional.of(readInput(dataIdentifier));
-            } catch (Throwable t) {
+            }
+            catch (Throwable t) {
                 logger.debug("Reading {} failed. Returning Optional.empty().", dataIdentifier, t);
                 return Optional.empty();
             }
         }
+
         throw new UnregisteredDataIdentifierException(dataIdentifier);
     }
 
@@ -567,7 +597,8 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
             if (dataset == null) {
                 dataset = oCurrentDataset.get();
-            } else {
+            }
+            else {
                 dataset = dataset.union(oCurrentDataset.get());
             }
         }
@@ -591,7 +622,6 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
      */
     protected Map<DataInstance, Dataset<Row>> readAll(DataIdentifier dataIdentifier) {
         Set<DataInstance> instances = dataInstanceRegistry.resolveAll(dataIdentifier);
-
         if (instances.isEmpty()) {
             throw new UnregisteredDataIdentifierException(dataIdentifier);
         }
@@ -617,7 +647,6 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
      */
     protected Map<DataInstance, Dataset<Row>> readAllAvailable(DataIdentifier dataIdentifier) {
         Set<DataInstance> instances = dataInstanceRegistry.resolveAll(dataIdentifier);
-
         if (instances.isEmpty()) {
             throw new UnregisteredDataIdentifierException(dataIdentifier);
         }
@@ -626,7 +655,8 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         for (DataInstance current : instances) {
             try {
                 result.put(current, readInput(current));
-            } catch (Throwable t) {
+            }
+            catch (Throwable t) {
                 logger.debug("Reading {} failed.", current, t);
             }
         }
@@ -645,16 +675,22 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         switch (dataFormat) {
             case CSV_COMMA:
                 return readCsvAsDataset(session, COMMA, path);
+
             case CSV_SEMICOLON:
                 return readCsvAsDataset(session, SEMICOLON, path);
+
             case CSV_PIPE:
                 return readCsvAsDataset(session, PIPE, path);
+
             case JSON:
                 return readJsonAsDataset(session, path);
+
             case AVRO:
                 return readAvroAsDataset(session, path);
+
             case PARQUET:
                 return readParquetAsDataset(session, path);
+
             default:
                 throw new UnsupportedDataFormatException(dataFormat);
         }
@@ -665,14 +701,15 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         Objects.requireNonNull(dataId, "dataId must not be null!");
 
         Properties properties = props.getConnectionProperties();
-
         SparkSession session = getSparkSession();
         DataFormat dataFormat = dataId.getDataFormat();
         switch (dataFormat) {
             case JDBC:
                 return readJdbc(session, properties);
+
             case ATHENA:
                 return readAthenaJdbc(session, properties);
+
             default:
                 throw new UnsupportedDataFormatException(dataFormat);
         }
@@ -685,10 +722,11 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     private void writeOutput(Dataset<Row> outputDataset) {
         Objects.requireNonNull(outputDataset, "outputDataset must not be null!");
-
         if (outputIdentifiers.size() != 1) {
-            throw new IllegalArgumentException("More than one output identifier configured! Please write your output with specifying a corresponding identifier!");
+            throw new IllegalArgumentException(
+                "More than one output identifier configured! Please write your output with specifying a corresponding identifier!");
         }
+
         // use the only one configured output identifier
         DataIdentifier outputIdentifier = outputIdentifiers.iterator().next();
 
@@ -707,7 +745,8 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
             if (resultWriterInterceptor == null) {
                 logger.info("NOT registering result of {} because resultWriterInterceptor is null!", dateInstance);
-            } else {
+            }
+            else {
                 logger.info("Registering result of {} with resultWriterInterceptor.", dateInstance);
                 dateInstance = resultWriterInterceptor.registerResult(outputLocation, dateInstance, outputDataset);
             }
@@ -736,21 +775,27 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             case CSV_COMMA:
                 writeDatasetAsCsv(COMMA, result, path, storeAsSingleFile, sparkContext, writerOptions);
                 return;
+
             case CSV_SEMICOLON:
                 writeDatasetAsCsv(SEMICOLON, result, path, storeAsSingleFile, sparkContext, writerOptions);
                 return;
+
             case CSV_PIPE:
                 writeDatasetAsCsv(PIPE, result, path, storeAsSingleFile, sparkContext, writerOptions);
                 return;
+
             case JSON:
                 writeDatasetAsJson(result, path, storeAsSingleFile, sparkContext, writerOptions);
                 return;
+
             case AVRO:
                 writeDatasetAsAvro(result, path, storeAsSingleFile, sparkContext, writerOptions);
                 return;
+
             case PARQUET:
                 writeDatasetAsParquet(result, path, storeAsSingleFile, sparkContext, writerOptions);
                 return;
+
             default:
                 throw new UnsupportedDataFormatException(dataFormat);
         }
@@ -760,6 +805,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         if (sparkSession == null) {
             throw new IllegalStateException("sparkSession has not been initialized!");
         }
+
         return sparkSession;
     }
 
@@ -767,6 +813,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         if (sparkContext == null) {
             throw new IllegalStateException("sparkContext has not been initialized!");
         }
+
         return sparkContext;
     }
 
@@ -774,30 +821,30 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         // TODO: double-check option names
         // https://spark.apache.org/docs/3.0.1/api/java/org/apache/spark/sql/DataFrameWriter.html#csv-java.lang.String-
         return sparkSession.read()
-                           .option("header", "true")
-                           //            .option("inferSchema", "true")
-                           .option("quote", "\"")
-                           .option("escape", "\"")
-                           .option("sep", delimiter)
-                           .option("emptyValue", "")
-                           .csv(fileName);
+            .option("header", "true")
+            //            .option("inferSchema", "true")
+            .option("quote", "\"")
+            .option("escape", "\"")
+            .option("sep", delimiter)
+            .option("emptyValue", "")
+            .csv(fileName);
     }
 
     static Dataset<Row> readJsonAsDataset(SparkSession sparkSession, String fileName) {
-        return sparkSession.read() //
-                           .json(fileName);
+        return sparkSession.read()
+            .json(fileName);
     }
 
     static Dataset<Row> readAvroAsDataset(SparkSession sparkSession, String fileName) {
-        return sparkSession.read() //
-                           .format("avro") //
-                           .load(fileName);
+        return sparkSession.read()
+            .format("avro")
+            .load(fileName);
     }
 
     static Dataset<Row> readParquetAsDataset(SparkSession sparkSession, String fileName) {
-        return sparkSession.read() //
-                           .format("parquet") //
-                           .load(fileName);
+        return sparkSession.read()
+            .format("parquet")
+            .load(fileName);
     }
 
     static Dataset<Row> readJdbc(SparkSession sparkSession, Properties connectionProperties) {
@@ -810,7 +857,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         props.remove(JdbcConnectionProperties.PROP_QUERY);
 
         return sparkSession.read()
-                           .jdbc(jdbcUrl, query, props);
+            .jdbc(jdbcUrl, query, props);
     }
 
     static Dataset<Row> readAthenaJdbc(SparkSession sparkSession, Properties connectionProperties) {
@@ -823,7 +870,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         props.remove(JdbcConnectionProperties.PROP_QUERY);
 
         return sparkSession.read()
-                           .jdbc(jdbcUrl, query, props);
+            .jdbc(jdbcUrl, query, props);
     }
 
     private static Properties cloneProperties(Properties props) {
@@ -873,7 +920,13 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         }
     }
 
-    static void writeDatasetAsJson(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
+    static void writeDatasetAsJson(
+        Dataset<Row> dataset,
+        String fileName,
+        boolean storeAsSingleFile,
+        JavaSparkContext sparkContext,
+        Map<String, Object> writerOptions
+    ) {
         String targetPath = fileName;
         if (storeAsSingleFile) {
             targetPath = fileName + "__temp";
@@ -891,7 +944,13 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         }
     }
 
-    static void writeDatasetAsAvro(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
+    static void writeDatasetAsAvro(
+        Dataset<Row> dataset,
+        String fileName,
+        boolean storeAsSingleFile,
+        JavaSparkContext sparkContext,
+        Map<String, Object> writerOptions
+    ) {
         String targetPath = fileName;
         if (storeAsSingleFile) {
             targetPath = fileName + "__temp";
@@ -910,7 +969,13 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         }
     }
 
-    static void writeDatasetAsParquet(Dataset<Row> dataset, String fileName, boolean storeAsSingleFile, JavaSparkContext sparkContext, Map<String, Object> writerOptions) {
+    static void writeDatasetAsParquet(
+        Dataset<Row> dataset,
+        String fileName,
+        boolean storeAsSingleFile,
+        JavaSparkContext sparkContext,
+        Map<String, Object> writerOptions
+    ) {
         String targetPath = fileName;
         if (storeAsSingleFile) {
             targetPath = fileName + "__temp";
@@ -940,13 +1005,17 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             Class<?> valueClass = value.getClass();
             if (Long.class.isAssignableFrom(valueClass)) {
                 writer.option(key, (long) value);
-            } else if (Double.class.isAssignableFrom(valueClass)) {
+            }
+            else if (Double.class.isAssignableFrom(valueClass)) {
                 writer.option(key, (double) value);
-            } else if (Boolean.class.isAssignableFrom(valueClass)) {
+            }
+            else if (Boolean.class.isAssignableFrom(valueClass)) {
                 writer.option(key, (boolean) value);
-            } else if (String.class.isAssignableFrom(valueClass)) {
+            }
+            else if (String.class.isAssignableFrom(valueClass)) {
                 writer.option(key, (String) value);
-            } else {
+            }
+            else {
                 String valueClassName = valueClass.getName();
                 LOGGER.error("Ignoring unsupported value class {} for writer-option '{}'!", valueClassName, key);
                 //writer.option(key, value.toString()); // null was already handled
@@ -954,17 +1023,21 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         }
     }
 
-    // this is broken code... but now it's in a single place
-    static void moveFile(JavaSparkContext sparkContext, String source, String target) {
+    public static FileSystem getFileSystem(JavaSparkContext sparkContext, String path) throws IOException {
         org.apache.hadoop.conf.Configuration hadoopConfig = sparkContext.hadoopConfiguration();
         hadoopConfig.set("fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
         hadoopConfig.setBoolean("fs.hdfs.impl.disable.cache", true);
         hadoopConfig.setBoolean("fs.s3a.impl.disable.cache", true);
         hadoopConfig.setBoolean("fs.s3n.impl.disable.cache", true);
         hadoopConfig.setBoolean("fs.s3.impl.disable.cache", true);
-        Path sourceFSPath = new Path(source);
-        try (FileSystem fs = sourceFSPath.getFileSystem(hadoopConfig)) {
-            String successFilename = source + "/" + SUCCESS_INDICATOR;
+        Path sourcePath = new Path(path);
+        return sourcePath.getFileSystem(hadoopConfig);
+    }
+
+    // this is broken code... but now it's in a single place
+    static void moveFile(JavaSparkContext sparkContext, String source, String target) {
+        try (FileSystem fs = getFileSystem(sparkContext, source)) {
+            String successFilename = source + '/' + SUCCESS_INDICATOR;
             LOGGER.debug("successFilename: {}", successFilename);
             Path successPath = new Path(successFilename);
             LOGGER.debug("successPath: {}", successPath);
@@ -1014,7 +1087,10 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             if (fs.exists(targetPath)) {
                 LOGGER.debug("Deleting existing path '{}'", targetPath);
                 if (!fs.delete(targetPath, true)) {
-                    LOGGER.error("Unable to delete already existing target '{}'! Trying to overwrite it ...", targetPath);
+                    LOGGER.error(
+                        "Unable to delete already existing target '{}'! Trying to overwrite it ...",
+                        targetPath
+                    );
                 }
             }
 
@@ -1028,7 +1104,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
             LOGGER.warn("Failed to rename sourcePath: {} to targetPath: {}", sourcePath, targetPath);
             LOGGER.debug("About to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
-            if (!FileUtil.copy(fs, sourcePath, fs, targetPath, true, hadoopConfig)) {
+            if (!FileUtil.copy(fs, sourcePath, fs, targetPath, true, sparkContext.hadoopConfiguration())) {
                 LOGGER.warn("Failed to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
             }
             else {
