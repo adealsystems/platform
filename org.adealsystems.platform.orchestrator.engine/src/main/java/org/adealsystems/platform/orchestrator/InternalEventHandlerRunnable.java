@@ -85,7 +85,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         State.ABORTED
     ));
 
-    private static final Pattern DYNAMIC_CONTENT_PATTERN = Pattern.compile("[0-9a-zA-Z]*([,@\\_\\-\\.0-9a-zA-Z/]+)*");
+    private static final Pattern DYNAMIC_CONTENT_PATTERN = Pattern.compile("[0-9a-zA-Z]*([,@%\\_\\-\\.0-9a-zA-Z/]+)*");
 
     private final InstanceRepository instanceRepository;
 

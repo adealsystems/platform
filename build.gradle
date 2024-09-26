@@ -28,7 +28,8 @@ buildscript {
         classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
         classpath "de.thetaphi:forbiddenapis:3.2"
         classpath "gradle.plugin.com.github.johnrengelman:shadow:7.1.2"
-        classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:2.2.2"
+        classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:2.2.4"
+        classpath "org.ajoberstar.grgit:grgit-core:5.2.2"
         classpath "gradle.plugin.org.cadixdev.gradle:licenser:0.6.1"
         //classpath "gradle.plugin.org.ec4j.gradle:editorconfig-gradle-plugin:0.0.3"
     }
@@ -50,7 +51,7 @@ allprojects {
     //apply plugin: 'org.ec4j.editorconfig'
 
     group = 'org.adealsystems'
-    version = '0.47.9'
+    version = '0.47.10'
     def prereleaseIdentifier = System.properties.'prerelease'
     if (prereleaseIdentifier) {
         version = version + '-' + prereleaseIdentifier
