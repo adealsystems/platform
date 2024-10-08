@@ -320,6 +320,7 @@ public final class InternalEvent implements Cloneable {
             .toLowerCase(Locale.ROOT)
             .replaceAll(",", "-c-")
             .replaceAll("@", "-a-")
+            .replaceAll("%", "-p-")
             .replaceAll("\\.", "-d-");
     }
 
