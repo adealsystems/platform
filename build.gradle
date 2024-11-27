@@ -191,6 +191,7 @@ configure(subprojects
     ext.isReleaseVersion = !version.endsWith("-SNAPSHOT")
     project.description = project.name
 
+
     publishing {
         repositories {
             maven {
