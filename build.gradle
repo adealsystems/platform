@@ -184,7 +184,6 @@ configure(subprojects
         -project(':org.adealsystems.platform.spark.config.example')
         -project(':org.adealsystems.platform.spark.app.example')
 ) {
-
     apply plugin: 'maven-publish'
     apply plugin: 'signing'
 
