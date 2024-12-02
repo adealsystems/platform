@@ -92,6 +92,7 @@ allprojects {
 
 // the block below configures all subprojects, i.e. the rootProject
 // is excluded
+
 subprojects {
     apply plugin: 'java-library'
     apply plugin: 'groovy'
@@ -104,6 +105,11 @@ subprojects {
         header = rootProject.file('license_header.txt')
         include '**/*.java', '**/*.groovy'
     }
+
+//    plugins {
+//        id "maven-publish"
+//        id "signing"
+//    }
 
     java {
         withJavadocJar()
@@ -197,53 +203,69 @@ configure(subprojects
             maven {
 //                def releaseRepo = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
 //                def snapshotRepo = "https://oss.sonatype.org/content/repositories/snapshots/"
-                def releaseRepo = "http://nexus.adeal-systems.com:8081/repository/maven-releases"
-                def snapshotRepo = "http://nexus.adeal-systems.com:8081/repository/maven-mixed"
+//                def releaseRepo = "http://nexus.adeal-systems.com:8081/repository/maven-releases"
+//                def snapshotRepo = "http://nexus.adeal-systems.com:8081/repository/maven-mixed"
+                def releaseRepo = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+                def snapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+
+                name = "OSSRH"
                 url = isReleaseVersion ? releaseRepo : snapshotRepo
-                allowInsecureProtocol = true
+//                allowInsecureProtocol = true
                 credentials {
 //                    username = findProperty('sonatypeUsername')
 //                    password = findProperty('sonatypePassword')
-                    username = findProperty('nexusUsername')
-                    password = findProperty('nexusPassword')
+//                    username = findProperty('nexusUsername')
+//                    password = findProperty('nexusPassword')
+                    username = findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
+                    password = findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
+
                 }
             }
         }
 
         publications {
             mavenJava(MavenPublication) {
-                afterEvaluate {
-                    pom {
-                        groupId = 'org.adealsystems'
-                        name = project.name
-                        description = project.description
+                from components.java
+//                afterEvaluate {
+
+                pom {
+                    groupId = 'org.adealsystems'
+//                    name = project.name
+                    name = 'platform'
+//                    description = project.description
+                    description = 'Project description'
+                    url = 'https://github.com/adealsystems/platform/'
+                    packaging = 'jar'
+//                    from components.java
+                    licenses {
+                        license {
+                            name = 'The Apache License, Version 2.0'
+                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+
+                    scm {
                         url = 'https://github.com/adealsystems/platform/'
-                        from components.java
-                        licenses {
-                            license {
-                                name = 'The Apache License, Version 2.0'
-                                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                            }
+//                        connection = 'scm:git:git@github.com:adealsystems/platform.git'
+                        connection = 'scm:git:@github.com:adealsystems/platform.git'
+                        developerConnection = 'scm:git:@github.com:adealsystems/platform.git'
+
+                    }
+
+                    developers {
+                        developer {
+                            id = 'huxi'
+                            name = 'Joern Huxhorn'
+                            email = 'joern.huxhorn@adeal-systems.com'
                         }
-                        scm {
-                            connection = 'scm:git:git@github.com:adealsystems/platform.git'
-                            developerConnection = 'scm:git:git@github.com:adealsystems/platform.git'
-                            url = 'https://github.com/adealsystems/platform/'
-                        }
-                        developers {
-                            developer {
-                                id = 'huxi'
-                                name = 'Joern Huxhorn'
-                                email = 'joern.huxhorn@adeal-systems.com'
-                            }
-                            developer {
-                                id = 'vlad'
-                                name = 'Vlad Satanovski'
-                                email = 'vlad.satanovski@adeal-systems.com'
-                            }
+                        developer {
+                            id = 'vlad'
+                            name = 'Vlad Satanovski'
+                            email = 'vlad.satanovski@adeal-systems.com'
                         }
                     }
                 }
+//                }
             }
         }
     }
@@ -256,7 +278,6 @@ configure(subprojects
     tasks.withType(Sign) {
         onlyIf { isReleaseVersion }
     }
-
 }
 
 
