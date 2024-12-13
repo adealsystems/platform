@@ -799,7 +799,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             .orElseThrow(() -> new IllegalArgumentException("Invalid session reference, no session for id '" + sessionId + "' found!"));
 
         if (session.getStateFlag(TERMINATING_FLAG)) {
-            LOGGER.info("Session {} is in a terminating state, ignoring an additional termination call", sessionId);
+            LOGGER.debug("Session {} is in a terminating state, ignoring an additional termination call", sessionId);
             return;
         }
 

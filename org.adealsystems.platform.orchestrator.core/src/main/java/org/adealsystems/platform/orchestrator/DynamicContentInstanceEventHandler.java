@@ -179,7 +179,7 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
         LOGGER.debug("resolving dynamic handler for class {} and {}", handlerClass, event);
         Optional<String> oDynamicContent = InternalEvent.getDynamicContentAttribute(event);
         if (!oDynamicContent.isPresent()) {
-            LOGGER.warn("No dynamic content found in (dynamic) {}", event);
+            LOGGER.debug("No dynamic content found in (dynamic) {}", event);
             return null;
         }
 
@@ -197,7 +197,7 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
     private void cleanupDynamicContentHandler(InternalEvent event, DynamicContentAwareHandler handler) {
         Optional<String> oDynamicContent = InternalEvent.getDynamicContentAttribute(event);
         if (!oDynamicContent.isPresent()) {
-            LOGGER.warn("No dynamic content found in (dynamic) event {}", event);
+            LOGGER.debug("No dynamic content found in (dynamic) event {}", event);
             return;
         }
 
