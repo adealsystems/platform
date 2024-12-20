@@ -22,12 +22,16 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.adealsystems.platform.orchestrator.InternalEvent.setDynamicContentAttribute;
 import static org.adealsystems.platform.orchestrator.InternalEvent.setSessionStateAttribute;
@@ -49,7 +53,7 @@ public class SessionsSupervisorRunnable implements Runnable {
     private final TimestampFactory timestampFactory;
     private final EventHistory eventHistory;
 
-    private final Map<String, LocalDateTime> startSessionTimestamps = new HashMap<>();
+    private final Map<String, LocalDateTime> activeSessionTimers = new HashMap<>();
     private final Map<String, Long> timeouts = new HashMap<>();
 
     public SessionsSupervisorRunnable(
@@ -98,6 +102,7 @@ public class SessionsSupervisorRunnable implements Runnable {
         // should be started as daemon thread
 
         Collection<InstanceId> allStaticIds = instanceRepository.retrieveInstanceIds();
+        Set<String> checked = new HashSet<>();
 
         long sleepInterval = SHORT_SLEEP_INTERVAL;
         while (true) {
@@ -114,11 +119,13 @@ public class SessionsSupervisorRunnable implements Runnable {
                 LocalDateTime now = timestampFactory.createTimestamp();
                 LOGGER.debug("Searching for timed out active sessions");
 
+                checked.clear();
+
                 sleepInterval = SHORT_SLEEP_INTERVAL;
                 for (InstanceId instanceId : activeInstances) {
                     Optional<SessionId> oSessionId = activeSessionIdRepository.retrieveActiveSessionId(instanceId);
                     if (!oSessionId.isPresent()) {
-                        LOGGER.debug("No active session found for {}, strange...", instanceId);
+                        LOGGER.debug("No active session found for '{}', strange...", instanceId);
                         continue;
                     }
 
@@ -126,36 +133,43 @@ public class SessionsSupervisorRunnable implements Runnable {
                     String baseId = instanceRef.base.getId();
                     Long timeout = timeouts.get(baseId);
                     if (timeout == null) {
-                        LOGGER.debug("No timeout specified for {}", baseId);
+                        LOGGER.debug("No timeout specified for '{}'", baseId);
                         continue;
                     }
 
                     String ref = instanceId.getId();
-                    LocalDateTime started = startSessionTimestamps.get(ref);
+                    checked.add(ref);
+
+                    LocalDateTime started = activeSessionTimers.get(ref);
                     if (started == null) {
-                        // active-session without start timestamp, set now
-                        LOGGER.debug("Initializing session start event for '{}'", ref);
-                        startSessionTimestamps.put(ref, now);
+                        LOGGER.debug("Initializing session timer for '{}'", ref);
+                        activeSessionTimers.put(ref, now);
                         continue;
                     }
 
                     Duration running = Duration.between(started, now);
-                    long age = running.get(ChronoUnit.MINUTES);
+                    long age = running.getSeconds() / 60;
                     if (age < timeout) {
-                        LOGGER.debug("Session's age is {} minutes, not timed out", age);
+                        LOGGER.debug(
+                            "Session's age of {} is {} minute(s), configured timeout: {}, waiting ...",
+                            ref,
+                            age,
+                            timeout
+                        );
                         continue;
                     }
 
                     LOGGER.info(
-                        "Timeout reached for instance {} after {} minutes (session's age: {} minutes)",
+                        "Timeout reached for instance {} after {} min.",
                         instanceId,
-                        timeout,
-                        age
+                        timeout
                     );
 
                     stopSession(instanceRef, oSessionId.get());
-                    startSessionTimestamps.remove(ref);
+                    activeSessionTimers.remove(ref);
                 }
+
+                cleanupInactiveSessions(checked);
             }
             catch (InterruptedException ex) {
                 LOGGER.info("Interrupting thread!", ex);
@@ -173,12 +187,47 @@ public class SessionsSupervisorRunnable implements Runnable {
             InstanceId instanceId = entry.getKey();
             InternalEventClassifier eventClassifier = entry.getValue();
             eventClassifier.getTimeout().ifPresent(value -> {
-                LOGGER.debug("Setting timeout for instance {} to {}", instanceId, value);
+                LOGGER.debug("Setting timeout for instance '{}' to {}", instanceId, value);
                 this.timeouts.put(instanceId.getId(), value);
             });
         }
 
         LOGGER.info("Initialized timeout mapping: {}", timeouts);
+    }
+
+    private void cleanupInactiveSessions(Set<String> checked) {
+        Set<String> inactive = new HashSet<>();
+        for (String ref : activeSessionTimers.keySet()) {
+            if (!checked.contains(ref)) {
+                inactive.add(ref);
+            }
+        }
+
+        if (!inactive.isEmpty()) {
+            LOGGER.debug("Cleaning up inactive sessions: {}", inactive);
+            for (String ref : inactive) {
+                activeSessionTimers.remove(ref);
+            }
+        }
+
+        if (LOGGER.isInfoEnabled()) {
+            if (activeSessionTimers.isEmpty()) {
+                LOGGER.debug("No active session timers currently available");
+            }
+            else {
+                List<String> keys = new ArrayList<>(activeSessionTimers.keySet());
+                Collections.sort(keys);
+
+                StringBuilder builder = new StringBuilder();
+                for (String key : keys) {
+                    if (builder.length() > 0) {
+                        builder.append('\n');
+                    }
+                    builder.append("\t- ").append(key).append(activeSessionTimers.remove(key));
+                }
+                LOGGER.info("Active session timers:\n{}", builder);
+            }
+        }
     }
 
     private void sleep(long value) throws InterruptedException {
@@ -252,7 +301,7 @@ public class SessionsSupervisorRunnable implements Runnable {
         InstanceId base;
         String dynamicContent;
 
-        public InstanceReference(InstanceId current, InstanceId base, String dynamicContent) {
+        InstanceReference(InstanceId current, InstanceId base, String dynamicContent) {
             this.current = current;
             this.base = base;
             this.dynamicContent = dynamicContent;
