@@ -66,51 +66,46 @@ import static org.adealsystems.platform.orchestrator.SessionEventConstants.TERMI
 public class InternalEventHandlerRunnable implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(InternalEventHandlerRunnable.class);
 
-    public static final Set<String> INTERNAL_SESSION_STATE_IDS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-        SESSION_START,
-        SESSION_RESUME,
-        SESSION_STOP
-    )));
+    public static final Set<String> INTERNAL_SESSION_STATE_IDS = Collections.unmodifiableSet(
+        new HashSet<>(Arrays.asList(
+            SESSION_START,
+            SESSION_RESUME,
+            SESSION_STOP
+        ))
+    );
+
+    private static final Set<String> LOOP_SANITY_CHECK_IDS = Collections.unmodifiableSet(
+        new HashSet<>(Collections.singletonList(
+            SESSION_LIFECYCLE
+        ))
+    );
+
+    public static final Set<State> FINAL_UNSUCCESSFUL_STATES = Collections.unmodifiableSet(
+        new HashSet<>(Arrays.asList(
+            State.FAILED,
+            State.CANCELLED,
+            State.ABORTED
+        ))
+    );
 
     public static final String EVENT_ID_CREATE_RUN = "create-run";
     public static final String EVENT_ID_COMPLETE_RUN = "complete-run";
 
-    private static final Set<String> LOOP_SANITY_CHECK_IDS = Collections.unmodifiableSet(new HashSet<>(Collections.singletonList(
-        SESSION_LIFECYCLE
-    )));
-
-    public static final Set<State> FINAL_UNSUCCESSFUL_STATES = new HashSet<>(Arrays.asList(
-        State.FAILED,
-        State.CANCELLED,
-        State.ABORTED
-    ));
-
     private static final Pattern DYNAMIC_CONTENT_PATTERN = Pattern.compile("[0-9a-zA-Z]*([,@%\\_\\-\\.0-9a-zA-Z/]+)*");
 
+
     private final InstanceRepository instanceRepository;
-
     private final SessionRepositoryFactory sessionRepositoryFactory;
-
     private final ActiveSessionIdRepository activeSessionIdRepository;
-
     private final EventHistory eventHistory;
-
     private final OrphanEventSource orphanEventSource;
-
     private final InternalEventReceiver rawEventReceiver;
-
     private final InstanceEventSenderResolver instanceEventSenderResolver;
-
     private final TimestampFactory timestampFactory;
-
     private final InternalEventClassifierMappingResolver eventClassifierMappingResolver;
-
     private final SessionInitializerMappingResolver sessionInitializerMappingResolver;
-
     private final RunRepository runRepository;
-
     private final EmailSenderFactory emailSenderFactory;
-
     private final String environment;
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
@@ -129,19 +124,58 @@ public class InternalEventHandlerRunnable implements Runnable {
         RunRepository runRepository,
         String environment
     ) {
-        this.instanceRepository = Objects.requireNonNull(instanceRepository, "instanceRepository must not be null!");
-        this.sessionRepositoryFactory = Objects.requireNonNull(sessionRepositoryFactory, "sessionRepositoryFactory must not be null!");
-        this.activeSessionIdRepository = Objects.requireNonNull(activeSessionIdRepository, "activeSessionIdRepository must not be null!");
-        this.eventHistory = Objects.requireNonNull(eventHistory, "eventHistory must not be null!");
-        this.orphanEventSource = Objects.requireNonNull(orphanEventSource, "orphanEventSource must not be null!");
-        this.rawEventReceiver = Objects.requireNonNull(rawEventReceiver, "rawEventReceiver must not be null!");
-        this.instanceEventSenderResolver = Objects.requireNonNull(instanceEventSenderResolver, "instanceEventSenderResolver must not be null!");
-        this.timestampFactory = Objects.requireNonNull(timestampFactory, "timestampFactory must not be null!");
-        this.eventClassifierMappingResolver = Objects.requireNonNull(eventClassifierMappingResolver, "eventClassifierMappingResolver must not be null!");
-        this.sessionInitializerMappingResolver = Objects.requireNonNull(sessionInitializerMappingResolver, "sessionInitializerMappingResolver must not be null!");
-        this.runRepository = Objects.requireNonNull(runRepository, "runRepository must not be null!");
-        this.emailSenderFactory = Objects.requireNonNull(emailSenderFactory, "emailSenderFactory must not be null!");
-        this.environment = Objects.requireNonNull(environment, "environment must not be null!");
+        this.instanceRepository = Objects.requireNonNull(
+            instanceRepository,
+            "instanceRepository must not be null!"
+        );
+        this.sessionRepositoryFactory = Objects.requireNonNull(
+            sessionRepositoryFactory,
+            "sessionRepositoryFactory must not be null!"
+        );
+        this.activeSessionIdRepository = Objects.requireNonNull(
+            activeSessionIdRepository,
+            "activeSessionIdRepository must not be null!"
+        );
+        this.eventHistory = Objects.requireNonNull(
+            eventHistory,
+            "eventHistory must not be null!"
+        );
+        this.orphanEventSource = Objects.requireNonNull(
+            orphanEventSource,
+            "orphanEventSource must not be null!"
+        );
+        this.rawEventReceiver = Objects.requireNonNull(
+            rawEventReceiver,
+            "rawEventReceiver must not be null!"
+        );
+        this.instanceEventSenderResolver = Objects.requireNonNull(
+            instanceEventSenderResolver,
+            "instanceEventSenderResolver must not be null!"
+        );
+        this.timestampFactory = Objects.requireNonNull(
+            timestampFactory,
+            "timestampFactory must not be null!"
+        );
+        this.eventClassifierMappingResolver = Objects.requireNonNull(
+            eventClassifierMappingResolver,
+            "eventClassifierMappingResolver must not be null!"
+        );
+        this.sessionInitializerMappingResolver = Objects.requireNonNull(
+            sessionInitializerMappingResolver,
+            "sessionInitializerMappingResolver must not be null!"
+        );
+        this.runRepository = Objects.requireNonNull(
+            runRepository,
+            "runRepository must not be null!"
+        );
+        this.emailSenderFactory = Objects.requireNonNull(
+            emailSenderFactory,
+            "emailSenderFactory must not be null!"
+        );
+        this.environment = Objects.requireNonNull(
+            environment,
+            "environment must not be null!"
+        );
     }
 
     protected InternalEventReceiver getRawEventReceiver() {
@@ -221,10 +255,15 @@ public class InternalEventHandlerRunnable implements Runnable {
                     }
                     currentEvents = newEvents;
                 }
-            } catch (Throwable throwable) {
+            }
+            catch (Throwable throwable) {
                 LOGGER.error("Error in the main loop of InternalEventHandler!", throwable);
                 try {
-                    EmailSender emailSender = emailSenderFactory.getSender(environment, RecipientsCluster.INTERNAL, EmailType.ERROR);
+                    EmailSender emailSender = emailSenderFactory.getSender(
+                        environment,
+                        RecipientsCluster.INTERNAL,
+                        EmailType.ERROR
+                    );
                     emailSender.sendEmail("Error in the main loop of InternalEventHandler!", String.valueOf(throwable));
                 }
                 catch (Throwable th) {
@@ -240,13 +279,23 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         if (activeSessionsInfo.isEmpty()) {
             LOGGER.info("No active running sessions available on start-run-event for '{}'", runId);
-        } else {
-            LOGGER.warn("Following sessions were active and closed on start-run-event for '{}': {}", runId, activeSessionsInfo);
-            EmailSender emailSender = emailSenderFactory.getSender(environment, RecipientsCluster.INTERNAL, EmailType.ERROR);
+        }
+        else {
+            LOGGER.warn(
+                "Following sessions were active and closed on start-run-event for '{}': {}",
+                runId,
+                activeSessionsInfo
+            );
+            EmailSender emailSender = emailSenderFactory.getSender(
+                environment,
+                RecipientsCluster.INTERNAL,
+                EmailType.ERROR
+            );
             emailSender.sendEmail(
                 "Creating new RUN",
                 "Following instances were active and closed on start-run-event for '" + runId + "'",
-                EmailParamMapper.mapObject(activeSessionsInfo));
+                EmailParamMapper.mapObject(activeSessionsInfo)
+            );
         }
     }
 
@@ -262,13 +311,23 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         if (activeSessionsInfo.isEmpty()) {
             LOGGER.info("No active sessions available on complete-run-event for '{}'", runId);
-        } else {
-            LOGGER.warn("Following sessions were active and closed on complete-run-event for '{}': {}", runId, activeSessionsInfo);
-            EmailSender emailSender = emailSenderFactory.getSender(environment, RecipientsCluster.INTERNAL, EmailType.ERROR);
+        }
+        else {
+            LOGGER.warn(
+                "Following sessions were active and closed on complete-run-event for '{}': {}",
+                runId,
+                activeSessionsInfo
+            );
+            EmailSender emailSender = emailSenderFactory.getSender(
+                environment,
+                RecipientsCluster.INTERNAL,
+                EmailType.ERROR
+            );
             emailSender.sendEmail(
                 "Completing new RUN",
                 "Following instances were active and closed on complete-run-event for '" + runId + "'",
-                EmailParamMapper.mapObject(activeSessionsInfo));
+                EmailParamMapper.mapObject(activeSessionsInfo)
+            );
         }
     }
 
@@ -391,14 +450,20 @@ public class InternalEventHandlerRunnable implements Runnable {
             }
 
             // Special handling for ABORT events
-            // TODO: determine referenced sessions, check if they are active and set a finished/cancelled/failed or whatever flag
-            //  also verify, if session needs an event to close itself!
+            // TODO: determine referenced sessions, check if they are active and set a finished/cancelled/failed
+            //  or whatever flag. Also verify, if session needs an event to close itself!
 
             boolean relevant = false;
             try {
                 relevant = eventClassifier.isRelevant(clonedEvent);
-            } catch (Exception ex) {
-                LOGGER.error("Exception while calling isRelevant with event {} on {}!", clonedEvent, eventClassifier, ex);
+            }
+            catch (Exception ex) {
+                LOGGER.error(
+                    "Exception while calling isRelevant with event {} on {}!",
+                    clonedEvent,
+                    eventClassifier,
+                    ex
+                );
             }
 
             if (!relevant) {
@@ -417,12 +482,18 @@ public class InternalEventHandlerRunnable implements Runnable {
                 }
 
                 if (!eventClassifier.isValid(clonedEvent)) {
-                    LOGGER.warn("Detected an invalid event {} for current run-id '{}' and {}", clonedEvent, run, classifierName);
+                    LOGGER.warn(
+                        "Detected an invalid event {} for current run-id '{}' and {}",
+                        clonedEvent,
+                        run,
+                        classifierName
+                    );
                     continue;
                 }
 
                 clonedEvent.setAttributeValue(ATTR_RUN_ID, run.getId());
-            } else {
+            }
+            else {
                 LOGGER.debug("Event {} is not run-specific, checking validity", clonedEvent);
 
                 if (!eventClassifier.isValid(clonedEvent)) {
@@ -458,7 +529,11 @@ public class InternalEventHandlerRunnable implements Runnable {
             // check if session is active, then put the event to the instance queue, otherwise ignore it
             Optional<SessionId> oSessionId = activeSessionIdRepository.retrieveActiveSessionId(finalInstanceId);
             if (clonedEvent.getType() == InternalEventType.CANCEL && !oSessionId.isPresent()) {
-                LOGGER.debug("Ignoring CANCEL event {} for a not active instance {} to avoid it in the orphan queue.", clonedEvent, finalInstanceId);
+                LOGGER.debug(
+                    "Ignoring CANCEL event {} for a not active instance {} to avoid it in the orphan queue.",
+                    clonedEvent,
+                    finalInstanceId
+                );
                 continue;
             }
 
@@ -475,9 +550,15 @@ public class InternalEventHandlerRunnable implements Runnable {
             boolean isStartEvent;
             try {
                 isStartEvent = eventClassifier.isSessionStartEvent(clonedEvent);
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 isStartEvent = false;
-                LOGGER.error("Exception while calling isSessionStartEvent with event {} on {}!", clonedEvent, eventClassifier, ex);
+                LOGGER.error(
+                    "Exception while calling isSessionStartEvent with event {} on {}!",
+                    clonedEvent,
+                    eventClassifier,
+                    ex
+                );
             }
 
             if (isStartEvent) {
@@ -494,27 +575,42 @@ public class InternalEventHandlerRunnable implements Runnable {
                 oSessionId = activeSessionIdRepository.retrieveActiveSessionId(finalInstanceId);
                 if (!oSessionId.isPresent()) {
                     isStopEvent = false;
-                    LOGGER.debug("Skipping check for stop-session event, because no session is active now: {}", clonedEvent);
-                } else {
+                    LOGGER.debug(
+                        "Skipping check for stop-session event, because no session is active now: {}",
+                        clonedEvent
+                    );
+                }
+                else {
                     SessionId sessionId = oSessionId.get();
                     SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
                     Optional<Session> oSession = sessionRepository.retrieveSession(sessionId);
                     if (!oSession.isPresent()) {
                         isStopEvent = false;
                         LOGGER.error("Missing active session {} for instance {}!", sessionId, instanceId);
-                    } else {
+                    }
+                    else {
                         Session session = oSession.get();
                         isStopEvent = eventClassifier.isSessionStopEvent(clonedEvent, session);
                     }
                 }
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 isStopEvent = false;
-                LOGGER.error("Exception while calling isSessionStopEvent with event {} on {}!", clonedEvent, eventClassifier, ex);
+                LOGGER.error(
+                    "Exception while calling isSessionStopEvent with event {} on {}!",
+                    clonedEvent,
+                    eventClassifier,
+                    ex
+                );
             }
 
             if (isStartEvent && isStopEvent) {
                 isStopEvent = false;
-                LOGGER.error("Event {} is considered both start event and stop event by {}!", clonedEvent, eventClassifier);
+                LOGGER.error(
+                    "Event {} is considered both start event and stop event by {}!",
+                    clonedEvent,
+                    eventClassifier
+                );
             }
 
             if (isStopEvent) {
@@ -531,7 +627,8 @@ public class InternalEventHandlerRunnable implements Runnable {
                 SessionId sessionId = oSessionId.get();
                 LOGGER.debug("Set session id {} for event {}", sessionId, clonedEvent);
                 clonedEvent.setSessionId(sessionId);
-            } else {
+            }
+            else {
                 LOGGER.debug("Received event without active session for instance {}: {}", finalInstanceId, clonedEvent);
                 if (clonedEvent.getSessionId() != null) {
                     clonedEvent.setSessionId(null);
@@ -539,7 +636,11 @@ public class InternalEventHandlerRunnable implements Runnable {
                 }
             }
 
-            registerInstanceEvent(clonedEvent);
+            registerInstanceEvent(
+                clonedEvent,
+                instanceEventSenderResolver,
+                eventHistory
+            );
         }
 
         if (!assigned) {
@@ -601,7 +702,11 @@ public class InternalEventHandlerRunnable implements Runnable {
         return Optional.of(resultEvent);
     }
 
-    private void registerInstanceEvent(InternalEvent event) {
+    public static void registerInstanceEvent(
+        InternalEvent event,
+        InstanceEventSenderResolver instanceEventSenderResolver,
+        EventHistory eventHistory
+    ) {
         if (event.getSessionId() != null) {
             // only put event into queue if session is active
             InstanceId instanceId = event.getInstanceId();
@@ -621,7 +726,9 @@ public class InternalEventHandlerRunnable implements Runnable {
         InstanceId instanceId = event.getInstanceId();
         Optional<String> oDynamicContent = getDynamicContentAttribute(event);
         return oDynamicContent
-            .map(dynamicContent -> new InstanceId(instanceId.getId() + "-" + normalizeDynamicContent(dynamicContent.toLowerCase(Locale.ROOT))))
+            .map(dynamicContent -> new InstanceId(instanceId.getId()
+                                                      + "-"
+                                                      + normalizeDynamicContent(dynamicContent.toLowerCase(Locale.ROOT))))
             .orElse(instanceId);
     }
 
@@ -642,7 +749,8 @@ public class InternalEventHandlerRunnable implements Runnable {
         if (fresh) {
             sessionId = oSessionId.get();
             LOGGER.info("Created new active session {} for instance {}", sessionId, dynamicId);
-        } else {
+        }
+        else {
             sessionId = activeSessionIdRepository.retrieveOrCreateActiveSessionId(dynamicId);
             LOGGER.info("Resuming active session {} for instance {}!", sessionId, dynamicId);
         }
@@ -653,7 +761,12 @@ public class InternalEventHandlerRunnable implements Runnable {
         if (instanceConfiguration != null && !instanceConfiguration.isEmpty()) {
             Map<String, String> state = session.getState();
             SessionProcessingState processingState = session.getProcessingState();
-            session = new Session(session.getInstanceId(), session.getId(), session.getCreationTimestamp(), instanceConfiguration);
+            session = new Session(
+                session.getInstanceId(),
+                session.getId(),
+                session.getCreationTimestamp(),
+                instanceConfiguration
+            );
             session.setState(state);
             session.setProcessingState(processingState);
             sessionRepository.updateSession(session);
@@ -693,7 +806,8 @@ public class InternalEventHandlerRunnable implements Runnable {
                     LOGGER.info("Session has a finished flag after initialization: {}", session);
                     terminateSessionProcessingState(session);
                 }
-            } else {
+            }
+            else {
                 LOGGER.debug("No special session initializer found for instance {}", instanceId);
             }
         }
@@ -720,11 +834,19 @@ public class InternalEventHandlerRunnable implements Runnable {
         Optional<String> dynamicContent = getDynamicContentAttribute(triggerEvent);
         dynamicContent.ifPresent(content -> setDynamicContentAttribute(startSessionEvent, content));
 
-        registerInstanceEvent(startSessionEvent);
+        registerInstanceEvent(
+            startSessionEvent,
+            instanceEventSenderResolver,
+            eventHistory
+        );
 
         // drain orphan events
         EventAffiliation eventAffiliation = new EventAffiliation(dynamicId, sessionId);
-        orphanEventSource.drainOrphanEventsInto(eventClassifier, eventAffiliation, new OrphanEventDrain(eventAffiliation));
+        orphanEventSource.drainOrphanEventsInto(
+            eventClassifier,
+            eventAffiliation,
+            new OrphanEventDrain(eventAffiliation)
+        );
 
         return Optional.of(startSessionEvent);
     }
@@ -749,7 +871,11 @@ public class InternalEventHandlerRunnable implements Runnable {
         }
 
         triggerEvent.setSessionId(sessionId);
-        registerInstanceEvent(triggerEvent);
+        registerInstanceEvent(
+            triggerEvent,
+            instanceEventSenderResolver,
+            eventHistory
+        );
 
         InternalEvent stopSessionEvent = new InternalEvent();
         stopSessionEvent.setType(InternalEventType.SESSION);
@@ -766,7 +892,11 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         setMinimizedSourceEventAttribute(stopSessionEvent, triggerEvent);
 
-        registerInstanceEvent(stopSessionEvent);
+        registerInstanceEvent(
+            stopSessionEvent,
+            instanceEventSenderResolver,
+            eventHistory
+        );
 
         if (!activeSessionIdRepository.deleteActiveSessionId(dynamicId)) {
             LOGGER.error("Unable to delete active session for instance {}!", dynamicId);
@@ -786,7 +916,10 @@ public class InternalEventHandlerRunnable implements Runnable {
         Optional<String> oInstanceId = sessionEvent.getAttributeValue(INSTANCE_ID_ATTRIBUTE_NAME);
         Optional<String> oSessionId = sessionEvent.getAttributeValue(SESSION_ID_ATTRIBUTE_NAME);
         if (!oInstanceId.isPresent() || !oSessionId.isPresent()) {
-            LOGGER.error("Unable to terminate session, because session event does not contain attributes with instanceId or/and sessionId: {}", sessionEvent);
+            LOGGER.error(
+                "Unable to terminate session, because session event does not contain attributes with instanceId or/and sessionId: {}",
+                sessionEvent
+            );
             return;
         }
 
@@ -796,14 +929,20 @@ public class InternalEventHandlerRunnable implements Runnable {
         SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
 
         Session session = sessionRepository.retrieveSession(sessionId)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid session reference, no session for id '" + sessionId + "' found!"));
+            .orElseThrow(() -> new IllegalArgumentException("Invalid session reference, no session for id '"
+                                                                + sessionId
+                                                                + "' found!"));
 
         if (session.getStateFlag(TERMINATING_FLAG)) {
             LOGGER.debug("Session {} is in a terminating state, ignoring an additional termination call", sessionId);
             return;
         }
 
-        LOGGER.info("Session {} will be closed due to one of termination flags, base event: {}", sessionId, sessionEvent);
+        LOGGER.info(
+            "Session {} will be closed due to one of termination flags, base event: {}",
+            sessionId,
+            sessionEvent
+        );
         session.setStateFlag(TERMINATING_FLAG, true);
         sessionRepository.updateSession(session);
 
@@ -825,17 +964,21 @@ public class InternalEventHandlerRunnable implements Runnable {
         stopEvent.ifPresent(currentEvents::add);
     }
 
-    private void terminateSessionProcessingState(Session session) {
+    public static void terminateSessionProcessingState(Session session, State finalState) {
         SessionProcessingState.update(session, processingState -> {
             processingState.setTerminated(LocalDateTime.now(ZoneId.systemDefault()));
             SessionProcessingState.buildTerminationMessage(session, processingState);
 
             if (!FINAL_UNSUCCESSFUL_STATES.contains(processingState.getState())) {
-                processingState.setState(State.DONE);
+                processingState.setState(finalState);
             }
 
             session.setProcessingState(processingState);
         });
+    }
+
+    public static void terminateSessionProcessingState(Session session) {
+        terminateSessionProcessingState(session, State.DONE);
     }
 
     class OrphanEventDrain implements Drain<InternalEvent> {
@@ -852,7 +995,11 @@ public class InternalEventHandlerRunnable implements Runnable {
             //TODO
             //event.setInstanceId(idTuple.getInstanceId());
             event.setSessionId(idTuple.getSessionId());
-            registerInstanceEvent(event);
+            registerInstanceEvent(
+                event,
+                instanceEventSenderResolver,
+                eventHistory
+            );
         }
 
         @Override

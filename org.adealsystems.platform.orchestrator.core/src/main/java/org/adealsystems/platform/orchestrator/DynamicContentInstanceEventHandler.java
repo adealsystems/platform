@@ -104,6 +104,12 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
     }
 
     @Override
+    public Optional<Long> getTimeout() {
+        DynamicContentAwareHandler handler = resolvePrototypeHandler();
+        return handler.getTimeout();
+    }
+
+    @Override
     public boolean isSessionStartEvent(InternalEvent event) {
         DynamicContentAwareHandler handler = resolveDynamicHandler(event);
         if (handler == null) {

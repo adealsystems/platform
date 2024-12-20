@@ -45,6 +45,11 @@ class FileBasedEventHistorySpec extends Specification {
             }
 
             @Override
+            Optional<Long> getTimeout() {
+                return Optional.empty()
+            }
+
+            @Override
             boolean isSessionStartEvent(InternalEvent event) {
                 return false
             }

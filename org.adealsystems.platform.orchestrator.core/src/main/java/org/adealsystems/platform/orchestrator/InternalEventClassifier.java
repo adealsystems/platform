@@ -20,6 +20,7 @@ import java.util.Optional;
 
 public interface InternalEventClassifier {
     boolean isRelevant(InternalEvent event);
+    Optional<Long> getTimeout();
     boolean isSessionStartEvent(InternalEvent event);
     boolean isSessionStopEvent(InternalEvent event, Session session);
     Optional<String> determineDynamicContent(InternalEvent event);
