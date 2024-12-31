@@ -1,3 +1,4 @@
+rootProject.name = 'adealsystems-platform'
 include 'org.adealsystems.platform.id'
 include 'org.adealsystems.platform.id.hadoop'
 include 'org.adealsystems.platform.io'

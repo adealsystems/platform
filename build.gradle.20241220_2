@@ -33,7 +33,9 @@ buildscript {
         classpath "gradle.plugin.org.cadixdev.gradle:licenser:0.6.1"
         //classpath "gradle.plugin.org.ec4j.gradle:editorconfig-gradle-plugin:0.0.3"
     }
+
 }
+
 
 def globalSourceCompatibility = 1.8
 def globalTargetCompatibility = 1.8
@@ -51,6 +53,8 @@ allprojects {
     //apply plugin: 'org.ec4j.editorconfig'
 
     group = 'org.adealsystems'
+
+
     version = '0.47.10'
     def prereleaseIdentifier = System.properties.'prerelease'
     if (prereleaseIdentifier) {
@@ -71,15 +75,19 @@ allprojects {
     tasks.withType(JavaCompile) {
         options.release = javaMajorVersion
         options.encoding = 'UTF-8'
-        options.debug = true // default, but let's be explicit
+        options.debug = true
         options.compilerArgs = compilerArgs
     }
+
+
     tasks.withType(GroovyCompile) {
         options.release = javaMajorVersion
         options.encoding = 'UTF-8'
-        options.debug = true // default, but let's be explicit
+        options.debug = true
         options.compilerArgs = compilerArgs
     }
+
+
     tasks.withType(Javadoc) {
         options.optionFiles << rootProject.file('config/javadoc.options')
         // it's actually --release but one - is added automatically. *eyeroll*
@@ -106,15 +114,6 @@ subprojects {
         include '**/*.java', '**/*.groovy'
     }
 
-//    plugins {
-//        id "maven-publish"
-//        id "signing"
-//    }
-
-    java {
-        withJavadocJar()
-        withSourcesJar()
-    }
 
     checkstyle {
         configFile = rootProject.file('config/checkstyle/checkstyle.xml')
@@ -125,6 +124,7 @@ subprojects {
         toolVersion = '9.3'
         //ignoreFailures = true
     }
+
 
     pmd {
         ruleSetFiles = files(rootProject.file('config/pmd/ruleSet.xml'))
@@ -148,6 +148,7 @@ subprojects {
         //failOnUnresolvableSignatures = false
     }
 
+
     jacocoTestReport {
         additionalSourceDirs.from(files(sourceSets.main.allSource.srcDirs))
         sourceDirectories.from(files(sourceSets.main.allSource.srcDirs))
@@ -160,6 +161,7 @@ subprojects {
     }
 
     // global exclude of "bad" dependencies
+
     configurations {
         all*.exclude group: 'commons-logging', module: 'commons-logging'
         all*.exclude group: 'org.codehaus.groovy', module: 'groovy-all'
@@ -182,15 +184,14 @@ subprojects {
         testImplementation libraries.'spock-core'
         testImplementation libraries.'junit-jupiter-api'
 
-
-
         testRuntimeOnly libraries.'junit-jupiter-engine'
         testRuntimeOnly libraries.'jcl-over-slf4j'
         testRuntimeOnly libraries.'logback-classic'
     }
 }
 
-configure(subprojects
+
+def var = configure(subprojects
         - project(':org.adealsystems.platform.id')
         - project(':org.adealsystems.platform.id.hadoop')
         - project(':org.adealsystems.platform.io')
@@ -224,131 +225,145 @@ configure(subprojects
 
     ext.isReleaseVersion = !version.endsWith("-SNAPSHOT")
     project.description = project.name
+/*
+plugins {
+    id "maven-publish"
+    id "signing"
+}
+*/
+    java {
+        withJavadocJar()
+        withSourcesJar()
+    }
 
-publishing {
-    repositories {
-        maven {
-//                def releaseRepo = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-//                def snapshotRepo = "https://oss.sonatype.org/content/repositories/snapshots/"
-//                def releaseRepo = "http://nexus.adeal-systems.com:8081/repository/maven-releases"
-//                def snapshotRepo = "http://nexus.adeal-systems.com:8081/repository/maven-mixed"
-            def releaseRepo = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-            def snapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+    publishing {
+        repositories {
+            maven {
+                def releaseRepo = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+                def snapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
 
-            name = "OSSRH"
-//                def url = isReleaseVersion ? releaseRepo : snapshotRepo
-            url = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+                def name = "OSSRH"
 
-//                allowInsecureProtocol = true
-            credentials {
-//                    username = findProperty('sonatypeUsername')
-//                    password = findProperty('sonatypePassword')
-//                    username = findProperty('nexusUsername')
-//                    password = findProperty('nexusPassword')
+                def url = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+
+                credentials {
 //                    username = findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
 //                    password = findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
-                username = 'NDjz0/05'
-                password = 'd70SCPdcoDIIu2NysHlm0W4HotfEh78+zjdc1BDjvQ2L'
+                    username = 'NDjz0/05'
+                    password = 'd70SCPdcoDIIu2NysHlm0W4HotfEh78+zjdc1BDjvQ2L'
                 }
             }
         }
 
-publications {
-    mavenJava(MavenPublication) {
-        from components.java
-//                afterEvaluate {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
 
-        pom {
-            groupId = 'org.adealsystems'
-//                    name = project.name
-            name = 'platform'
-//                    description = project.description
-            description = 'Project description'
-            url = 'https://github.com/adealsystems/platform'
-            packaging = 'jar'
-//
-//                   from components.java
-            licenses {
-                license {
-                    name = 'The Apache License, Version 2.0'
-                    url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                pom {
+                    groupId = 'org.adealsystems'
+                    name = 'platform'
+                    description = 'Project description'
+                    url = 'https://github.com/adealsystems/platform/'
+                    packaging = 'jar'
+                    licenses {
+                        license {
+                            name = 'The Unlicense'
+                            url = 'https://unlicense.org'
+//                            name = 'The Apache License, Version 2.0'
+//                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
 
-                }
-            }
-
-        scm {
-            url = "https://github.com/adealsystems/platform"
+                    scm {
+                        url = 'https://github.com/adealsystems/platform/'
 //                        connection = 'scm:git:git@github.com:adealsystems/platform.git'
-            connection = "scm:git:@github.com:adealsystems/platform.git"
-            developerConnection = "scm:git:@github.com:adealsystems/platform.git"
-        }
+                        connection = 'scm:git:@github.com:adealsystems/platform.git'
+                        developerConnection = 'scm:git:@github.com:adealsystems/platform.git'
+                    }
 
-        developers {
-            developer {
-                id = 'huxi'
-                name = 'Joern Huxhorn'
-                email = 'joern.huxhorn@adeal-systems.com'
-            }
-            developer {
-                id = 'vlad'
-                name = 'Vlad Satanovski'
-                email = 'vlad.satanovski@adeal-systems.com'
+                    developers {
+                        developer {
+                            id = 'huxi'
+                            name = 'Joern Huxhorn'
+                            email = 'joern.huxhorn@adeal-systems.com'
+                            organizationUrl = ''
+                        }
+                        developer {
+                            id = 'vlad'
+                            name = 'Vlad Satanovski'
+                            email = 'vlad.satanovski@adeal-systems.com'
+                            organizationUrl = ''
+                        }
+                    }
                 }
             }
         }
-//                }
-        }
     }
-}
 
-signing {
-    sign publishing.publications.mavenJava
-}
-
-tasks.withType(Sign) {
-//    onlyIf { isReleaseVersion }
-    onlyIf { true }
+    signing {
+        sign publishing.publications.mavenJava
     }
-}
+
+    tasks.withType(Sign) {
+        onlyIf { isReleaseVersion }
+    }
+//}
 
 
 // source: https://gist.github.com/aalmiray/e6f54aa4b3803be0bcac
-task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
-    dependsOn = subprojects.jacocoTestReport
-    dependsOn = subprojects.test
-    additionalSourceDirs.setFrom(files(subprojects.sourceSets.main.allSource.srcDirs))
-    sourceDirectories.setFrom(files(subprojects.sourceSets.main.allSource.srcDirs))
-    classDirectories.setFrom(files(subprojects.sourceSets.main.output))
-    executionData.setFrom(fileTree(dir: "${rootProject.projectDir}", includes: ['**/build/jacoco/*.exec']))
-    reports {
-        html.required = true
-        xml.required = true
-        xml.destination file("${buildDir}/reports/jacoco/report.xml")
-        csv.required = false
+
+    task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+        dependsOn = subprojects.jacocoTestReport
+        dependsOn = subprojects.test
+        additionalSourceDirs.setFrom(files(subprojects.sourceSets.main.allSource.srcDirs))
+        sourceDirectories.setFrom(files(subprojects.sourceSets.main.allSource.srcDirs))
+        classDirectories.setFrom(files(subprojects.sourceSets.main.output))
+        executionData.setFrom(fileTree(dir: "${rootProject.projectDir}", includes: ['**/ build / jacoco/*.exec']))
+        reports {
+            html.required = true
+            xml.required = true
+            xml.destination file("${buildDir}/reports/jacoco/report.xml")
+            csv.required = false
+        }
     }
-}
 
 
-def getResolvedArtifacts(Set<ResolvedArtifact> artifacts) {
-    Set<String> resolvedArtifacts = [] as Set
-    artifacts.each {
-        // add current artifact
-        resolvedArtifacts << "${it.moduleGroup}:${it.moduleName}:${it.moduleVersion}"
+/*
+    def getResolvedArtifacts(Set<ResolvedArtifact> artifacts) {
+        Set<String> resolvedArtifacts = [] as Set
+        artifacts.each {
+            // add current artifact
+            resolvedArtifacts << "${it.moduleGroup}:${it.moduleName}:${it.moduleVersion}"
 
-        // recursion to add children
-        resolvedArtifacts += getResolvedArtifacts(it.children)
+            // recursion to add children
+            resolvedArtifacts += getResolvedArtifacts(it.children)
+        }
+        return resolvedArtifacts
     }
-    return resolvedArtifacts
-}
-
+*/
 // the configuration of the subprojects is located in the file referenced below
-apply from: 'projects.gradle'
 
-tasks.register("checkCredentials") {
-    doLast {
-        println "OSSRH Username: ${project.findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")}"
-        println "OSSRH Password: ${project.findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")}"
-        println "RELEASE: ${isReleaseVersion}"
+/*
+    apply from: 'projects.gradle'
+
+    tasks.register("sourcesJar", Jar) {
+        archiveClassifier.set("sources")
+        from sourceSets.main.allSource
     }
+
+    tasks.register("javadocJar", Jar) {
+        archiveClassifier.set("javadoc")
+        from tasks.javadoc
+    }
+
+
+    tasks.register("checkCredentials") {
+        doLast {
+            println "OSSRH Username: ${project.findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")}"
+            println "OSSRH Password: ${project.findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")}"
+        }
+    }
+*/
 }
+
 

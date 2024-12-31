@@ -173,8 +173,6 @@ subprojects {
 
     dependencies {
         implementation libraries.'slf4j-api'
-        implementation 'org.xerial.snappy:snappy-java:1.1.10.7' // Replace with the latest version
-        implementation 'org.apache.commons:commons-compress:1.27.1' // Replace with the latest version
 
         testImplementation libraries.'byte-buddy'
         testImplementation libraries.'groovy'
@@ -191,32 +189,9 @@ subprojects {
 }
 
 configure(subprojects
-        - project(':org.adealsystems.platform.id')
-        - project(':org.adealsystems.platform.id.hadoop')
-        - project(':org.adealsystems.platform.io')
-        - project(':org.adealsystems.platform.io.avro')
-        - project(':org.adealsystems.platform.io.csv')
-        - project(':org.adealsystems.platform.io.json')
-        - project(':org.adealsystems.platform.io.line')
-        - project(':org.adealsystems.platform.io.parquet')
-        - project(':org.adealsystems.platform.io.test')
-        - project(':org.adealsystems.platform.io.transform')
-        - project(':org.adealsystems.platform.orchestrator.app.example')
-        - project(':org.adealsystems.platform.orchestrator.core')
-        - project(':org.adealsystems.platform.orchestrator.engine')
-        - project(':org.adealsystems.platform.process')
-        - project(':org.adealsystems.platform.queue')
-        - project(':org.adealsystems.platform.spark')
-        - project(':org.adealsystems.platform.spark.app.example')
-        - project(':org.adealsystems.platform.spark.config.example')
-        - project(':org.adealsystems.platform.spark.example')
-        - project(':org.adealsystems.platform.spark.main')
-        - project(':org.adealsystems.platform.spark.test')
-        - project(':org.adealsystems.platform.spark.udf')
-        - project(':org.adealsystems.platform.sqlcollector')
-        - project(':org.adealsystems.platform.state')
-        - project(':org.adealsystems.platform.time')
-        - project(':org.adealsystems.platform.webcollector')
+        -project(':org.adealsystems.platform.spark.example')
+        -project(':org.adealsystems.platform.spark.config.example')
+        -project(':org.adealsystems.platform.spark.app.example')
 ) {
 
     apply plugin: 'maven-publish'
@@ -225,89 +200,85 @@ configure(subprojects
     ext.isReleaseVersion = !version.endsWith("-SNAPSHOT")
     project.description = project.name
 
-publishing {
-    repositories {
-        maven {
+
+    publishing {
+        repositories {
+            maven {
 //                def releaseRepo = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
 //                def snapshotRepo = "https://oss.sonatype.org/content/repositories/snapshots/"
 //                def releaseRepo = "http://nexus.adeal-systems.com:8081/repository/maven-releases"
 //                def snapshotRepo = "http://nexus.adeal-systems.com:8081/repository/maven-mixed"
-            def releaseRepo = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-            def snapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+                def releaseRepo = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+                def snapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
 
-            name = "OSSRH"
-//                def url = isReleaseVersion ? releaseRepo : snapshotRepo
-            url = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-
+                name = "OSSRH"
+                url = isReleaseVersion ? releaseRepo : snapshotRepo
 //                allowInsecureProtocol = true
-            credentials {
+                credentials {
 //                    username = findProperty('sonatypeUsername')
 //                    password = findProperty('sonatypePassword')
 //                    username = findProperty('nexusUsername')
 //                    password = findProperty('nexusPassword')
-//                    username = findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
-//                    password = findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
-                username = 'NDjz0/05'
-                password = 'd70SCPdcoDIIu2NysHlm0W4HotfEh78+zjdc1BDjvQ2L'
+                    username = findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
+                    password = findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
                 }
             }
         }
 
-publications {
-    mavenJava(MavenPublication) {
-        from components.java
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
 //                afterEvaluate {
 
-        pom {
-            groupId = 'org.adealsystems'
+                pom {
+                    groupId = 'org.adealsystems'
 //                    name = project.name
-            name = 'platform'
+                    name = 'platform'
 //                    description = project.description
-            description = 'Project description'
-            url = 'https://github.com/adealsystems/platform'
-            packaging = 'jar'
-//
-//                   from components.java
-            licenses {
-                license {
-                    name = 'The Apache License, Version 2.0'
-                    url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    description = 'Project description'
+                    url = 'https://github.com/adealsystems/platform/'
+                    packaging = 'jar'
+//                    from components.java
+                    licenses {
+                        license {
+                            name = 'The Apache License, Version 2.0'
+                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
 
-                }
-            }
-
-        scm {
-            url = "https://github.com/adealsystems/platform"
+                    scm {
+                        url = 'https://github.com/adealsystems/platform/'
 //                        connection = 'scm:git:git@github.com:adealsystems/platform.git'
-            connection = "scm:git:@github.com:adealsystems/platform.git"
-            developerConnection = "scm:git:@github.com:adealsystems/platform.git"
-        }
+                        connection = 'scm:git:@github.com:adealsystems/platform.git'
+                        developerConnection = 'scm:git:@github.com:adealsystems/platform.git'
 
-        developers {
-            developer {
-                id = 'huxi'
-                name = 'Joern Huxhorn'
-                email = 'joern.huxhorn@adeal-systems.com'
-            }
-            developer {
-                id = 'vlad'
-                name = 'Vlad Satanovski'
-                email = 'vlad.satanovski@adeal-systems.com'
+                    }
+
+                    developers {
+                        developer {
+                            id = 'huxi'
+                            name = 'Joern Huxhorn'
+                            email = 'joern.huxhorn@adeal-systems.com'
+                        }
+                        developer {
+                            id = 'vlad'
+                            name = 'Vlad Satanovski'
+                            email = 'vlad.satanovski@adeal-systems.com'
+                        }
+                    }
                 }
-            }
-        }
 //                }
+            }
         }
     }
-}
 
-signing {
-    sign publishing.publications.mavenJava
-}
+    signing {
+        // signs jar, source und javadoc
+        sign publishing.publications.mavenJava
+    }
 
-tasks.withType(Sign) {
-//    onlyIf { isReleaseVersion }
-    onlyIf { true }
+    tasks.withType(Sign) {
+        onlyIf { isReleaseVersion }
     }
 }
 
@@ -348,7 +319,6 @@ tasks.register("checkCredentials") {
     doLast {
         println "OSSRH Username: ${project.findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")}"
         println "OSSRH Password: ${project.findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")}"
-        println "RELEASE: ${isReleaseVersion}"
     }
 }
 
