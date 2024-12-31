@@ -15,4 +15,4 @@ org.eclipse.jdt.core.prefs
 .idea
 /.java-version
 gradle.properties
-!/secring.gpg
+secring.gpg
