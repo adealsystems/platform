@@ -54,6 +54,9 @@ public class OrchestratorRuntime {
     private final InternalEventHandlerRunnable internalEventHandlerRunnable;
     private Thread internalEventHandlerThread;
 
+    private final SessionsSupervisorRunnable sessionsSupervisorRunnable;
+    private Thread sessionsSupervisorThread;
+
     private final JobReceiverRunnable asyncJobReceiverRunnable;
     private Thread asyncEventHandlerThread;
 
@@ -74,23 +77,64 @@ public class OrchestratorRuntime {
         ActiveSessionIdRepository activeSessionIdRepository,
         Map<String, Runnable> receiverRunnable,
         InternalEventHandlerRunnable internalEventHandlerRunnable,
+        SessionsSupervisorRunnable sessionsSupervisorRunnable,
         JobReceiverRunnable asyncJobReceiverRunnable,
         InstanceRepository instanceRepository,
         TimestampFactory timestampFactory,
         EventHistory eventHistory
     ) {
-        this.orchestratorBasePath = Objects.requireNonNull(orchestratorBasePath, "orchestratorBasePath must not be null!");
-        this.instanceEventHandlerResolver = Objects.requireNonNull(instanceEventHandlerResolver, "instanceEventHandlerResolver must not be null!");
-        this.instanceEventReceiverResolver = Objects.requireNonNull(instanceEventReceiverResolver, "instanceEventReceiverResolver must not be null!");
-        this.sessionRepositoryFactory = Objects.requireNonNull(sessionRepositoryFactory, "sessionRepositoryFactory must not be null!");
-        this.rawEventSender = Objects.requireNonNull(rawEventSender, "rawEventSender must not be null!");
-        this.uncaughtExceptionHandler = Objects.requireNonNull(uncaughtExceptionHandler, "uncaughtExceptionHandler must not be null!");
-        this.activeSessionIdRepository = Objects.requireNonNull(activeSessionIdRepository, "activeSessionIdRepository must not be null!");
-        this.receiverRunnable = Objects.requireNonNull(receiverRunnable, "receiverRunnable must not be null!");
-        this.internalEventHandlerRunnable = Objects.requireNonNull(internalEventHandlerRunnable, "internalEventHandlerRunnable must not be null!");
-        this.instanceRepository = Objects.requireNonNull(instanceRepository, "instanceRepository must not be null!");
-        this.timestampFactory = Objects.requireNonNull(timestampFactory, "timestampFactory must not be null!");
-        this.eventHistory = Objects.requireNonNull(eventHistory, "eventHistory must not be null!");
+        this.orchestratorBasePath = Objects.requireNonNull(
+            orchestratorBasePath,
+            "orchestratorBasePath must not be null!"
+        );
+        this.instanceEventHandlerResolver = Objects.requireNonNull(
+            instanceEventHandlerResolver,
+            "instanceEventHandlerResolver must not be null!"
+        );
+        this.instanceEventReceiverResolver = Objects.requireNonNull(
+            instanceEventReceiverResolver,
+            "instanceEventReceiverResolver must not be null!"
+        );
+        this.sessionRepositoryFactory = Objects.requireNonNull(
+            sessionRepositoryFactory,
+            "sessionRepositoryFactory must not be null!"
+        );
+        this.rawEventSender = Objects.requireNonNull(
+            rawEventSender,
+            "rawEventSender must not be null!"
+        );
+        this.uncaughtExceptionHandler = Objects.requireNonNull(
+            uncaughtExceptionHandler,
+            "uncaughtExceptionHandler must not be null!"
+        );
+        this.activeSessionIdRepository = Objects.requireNonNull(
+            activeSessionIdRepository,
+            "activeSessionIdRepository must not be null!"
+        );
+        this.receiverRunnable = Objects.requireNonNull(
+            receiverRunnable,
+            "receiverRunnable must not be null!"
+        );
+        this.internalEventHandlerRunnable = Objects.requireNonNull(
+            internalEventHandlerRunnable,
+            "internalEventHandlerRunnable must not be null!"
+        );
+        this.sessionsSupervisorRunnable = Objects.requireNonNull(
+            sessionsSupervisorRunnable,
+            "sessionsSupervisorRunnable must not be null!"
+        );
+        this.instanceRepository = Objects.requireNonNull(
+            instanceRepository,
+            "instanceRepository must not be null!"
+        );
+        this.timestampFactory = Objects.requireNonNull(
+            timestampFactory,
+            "timestampFactory must not be null!"
+        );
+        this.eventHistory = Objects.requireNonNull(
+            eventHistory,
+            "eventHistory must not be null!"
+        );
         this.asyncJobReceiverRunnable = asyncJobReceiverRunnable;
     }
 
@@ -191,6 +235,11 @@ public class OrchestratorRuntime {
             LOGGER.info("Starting {} thread", internalEventHandlerThread.getName());
             internalEventHandlerThread.start();
 
+            sessionsSupervisorThread = new Thread(sessionsSupervisorRunnable, "sessions-supervisor");
+            sessionsSupervisorThread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
+            LOGGER.info("Starting {} thread", sessionsSupervisorThread.getName());
+            sessionsSupervisorThread.start();
+
             for (Map.Entry<String, Runnable> entry : receiverRunnable.entrySet()) {
                 String instanceKey = entry.getKey();
                 Thread thread = new Thread(entry.getValue(), "event-receiver-" + instanceKey); // NOPMD AvoidInstantiatingObjectsInLoops
@@ -271,6 +320,9 @@ public class OrchestratorRuntime {
 
             LOGGER.info("Interrupting {} thread", internalEventHandlerThread.getName());
             internalEventHandlerThread.interrupt();
+
+            LOGGER.info("Interrupting {} thread", sessionsSupervisorThread.getName());
+            sessionsSupervisorThread.interrupt();
 
             for (Map.Entry<InstanceId, Thread> entry : instanceEventHandlerThreads.entrySet()) {
                 Thread thread = entry.getValue();

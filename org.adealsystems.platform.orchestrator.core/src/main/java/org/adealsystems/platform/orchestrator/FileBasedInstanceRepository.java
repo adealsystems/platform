@@ -18,6 +18,8 @@ package org.adealsystems.platform.orchestrator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,8 +34,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class FileBasedInstanceRepository implements InstanceRepository {
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedInstanceRepository.class);
 
     private static final ObjectMapper OBJECT_MAPPER;
+
     static {
         OBJECT_MAPPER = new ObjectMapper();
         OBJECT_MAPPER.enable(SerializationFeature.INDENT_OUTPUT);
@@ -49,10 +53,10 @@ public class FileBasedInstanceRepository implements InstanceRepository {
     public FileBasedInstanceRepository(File baseDirectory) {
         Objects.requireNonNull(baseDirectory, "baseDirectory must not be null!");
         if (!baseDirectory.exists()) {
-            throw new IllegalArgumentException("Missing mandatory baseDirectory: '" + baseDirectory.getAbsolutePath() + "'!");
+            throw new IllegalArgumentException("Missing mandatory baseDirectory: '" + baseDirectory + "'!");
         }
         if (!baseDirectory.isDirectory()) {
-            throw new IllegalArgumentException("baseDirectory '" + baseDirectory.getAbsolutePath() + "' must be directory!");
+            throw new IllegalArgumentException("baseDirectory '" + baseDirectory + "' must be directory!");
         }
         this.baseDirectory = baseDirectory;
     }
@@ -129,7 +133,8 @@ public class FileBasedInstanceRepository implements InstanceRepository {
             }
 
             writeInstance(instanceFile, instance);
-        } finally {
+        }
+        finally {
             writeLock.unlock();
         }
 
@@ -147,8 +152,9 @@ public class FileBasedInstanceRepository implements InstanceRepository {
                 return Optional.empty();
             }
 
-            return Optional.of(readInstance(instanceFile));
-        } finally {
+            return Optional.of(readInstance(instanceFile, id));
+        }
+        finally {
             readLock.unlock();
         }
     }
@@ -161,13 +167,14 @@ public class FileBasedInstanceRepository implements InstanceRepository {
         writeLock.lock();
         try {
             if (instanceFile.exists()) {
-                return readInstance(instanceFile);
+                return readInstance(instanceFile, id);
             }
 
             Instance instance = new Instance(id);
             writeInstance(instanceFile, instance);
             return instance;
-        } finally {
+        }
+        finally {
             writeLock.unlock();
         }
     }
@@ -187,7 +194,8 @@ public class FileBasedInstanceRepository implements InstanceRepository {
             }
 
             writeInstance(instanceFile, instance);
-        } finally {
+        }
+        finally {
             writeLock.unlock();
         }
     }
@@ -211,19 +219,35 @@ public class FileBasedInstanceRepository implements InstanceRepository {
         return new File(baseDirectory, id.getId() + ".json");
     }
 
-    private Instance readInstance(File instanceFile) {
+    private Instance readInstance(File instanceFile, InstanceId id) {
         try {
-            return OBJECT_MAPPER.readValue(instanceFile, Instance.class);
-        } catch (IOException ex) {
-            throw new IllegalStateException("Unable to read instance file '" + instanceFile.getAbsolutePath() + "'!", ex);
+            Instance stored = OBJECT_MAPPER.readValue(instanceFile, Instance.class);
+            InstanceId storedId = stored.getId();
+            if (storedId.equals(id)) {
+                return stored;
+            }
+
+            LOGGER.warn(
+                "InstanceID {} stored in {} does not match requested ID {}! Overriding it!",
+                storedId,
+                instanceFile,
+                id
+            );
+            Instance result = new Instance(id);
+            result.setConfiguration(stored.getConfiguration());
+            return result;
+        }
+        catch (IOException ex) {
+            throw new IllegalStateException("Unable to read instance file '" + instanceFile + "'!", ex);
         }
     }
 
     private void writeInstance(File instanceFile, Instance instance) {
         try {
             OBJECT_MAPPER.writeValue(instanceFile, instance);
-        } catch (IOException ex) {
-            throw new IllegalStateException("Unable to write instance file '" + instanceFile.getAbsolutePath() + "'!", ex);
+        }
+        catch (IOException ex) {
+            throw new IllegalStateException("Unable to write instance file '" + instanceFile + "'!", ex);
         }
     }
 }

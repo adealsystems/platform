@@ -51,7 +51,7 @@ allprojects {
     //apply plugin: 'org.ec4j.editorconfig'
 
     group = 'org.adealsystems'
-    version = '0.47.10'
+    version = '0.48.0'
     def prereleaseIdentifier = System.properties.'prerelease'
     if (prereleaseIdentifier) {
         version = version + '-' + prereleaseIdentifier
@@ -219,7 +219,6 @@ configure(subprojects
         - project(':org.adealsystems.platform.time')
         - project(':org.adealsystems.platform.webcollector')
 ) {
-
     apply plugin: 'maven-publish'
     apply plugin: 'signing'
 
