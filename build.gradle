@@ -195,6 +195,7 @@ configure(subprojects
         - project(':org.adealsystems.platform.id.hadoop')
         - project(':org.adealsystems.platform.io')
         - project(':org.adealsystems.platform.io.avro')
+        - project(':org.adealsystems.platform.io.compression')
         - project(':org.adealsystems.platform.io.csv')
         - project(':org.adealsystems.platform.io.json')
         - project(':org.adealsystems.platform.io.line')
@@ -245,10 +246,10 @@ publishing {
 //                    password = findProperty('sonatypePassword')
 //                    username = findProperty('nexusUsername')
 //                    password = findProperty('nexusPassword')
-//                    username = findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
-//                    password = findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
-                username = 'NDjz0/05'
-                password = 'd70SCPdcoDIIu2NysHlm0W4HotfEh78+zjdc1BDjvQ2L'
+                    username = findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
+                    password = findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
+//                username = 'sUkyQucR'
+//                password = 'vjUoXaHO03E9d56bruMNxmLGCXjmMVj3eXjVXakbnHIP'
                 }
             }
         }
@@ -301,13 +302,16 @@ publications {
     }
 }
 
+    ext.isReleaseVersion = !version.endsWith("-SNAPSHOT")
+
 signing {
     sign publishing.publications.mavenJava
 }
 
 tasks.withType(Sign) {
-//    onlyIf { isReleaseVersion }
-    onlyIf { true }
+    println "RELEASE: ${isReleaseVersion.toString()}"
+    onlyIf { isReleaseVersion }
+//    onlyIf { true }
     }
 }
 
@@ -346,9 +350,16 @@ apply from: 'projects.gradle'
 
 tasks.register("checkCredentials") {
     doLast {
-        println "OSSRH Username: ${project.findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")}"
-        println "OSSRH Password: ${project.findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")}"
-        println "RELEASE: ${isReleaseVersion}"
+//        println "OSSRH Username: ${project.findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")}"
+//        println "OSSRH Password: ${project.findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")}"
+
+//    println "RELEASE: ${project.ext.isReleaseVersion.toString()}"
+
+//        println "RELEASE: ${ext.getProperties()}.toString()"
+        println "VERSION: ${version}"
+//        def isReleaseVersion = !version.endsWith("-SNAPSHOT")
+        println "RELEASE: ${isReleaseVersion.toString()}"
+
     }
 }
 
