@@ -192,6 +192,7 @@ public class InternalEventHandlerRunnable implements Runnable {
                 dejaVu.clear();
                 currentEvents.clear();
 
+                LOGGER.debug("Getting a new raw event");
                 Optional<InternalEvent> oEvent = rawEventReceiver.receiveEvent();
                 if (!oEvent.isPresent()) {
                     LOGGER.info("Shutting down internal event handler thread. Raw event receiver returned no value.");
@@ -201,6 +202,7 @@ public class InternalEventHandlerRunnable implements Runnable {
                 InternalEvent event = oEvent.get();
                 String eventId = event.getId();
                 InternalEventType eventType = event.getType();
+                LOGGER.debug("Analysing a new received event {} of type {}", eventId, eventType);
 
                 // Session events special handling
                 if (eventType == InternalEventType.SESSION && !SESSION_STATE.equals(eventId)) {
@@ -239,7 +241,7 @@ public class InternalEventHandlerRunnable implements Runnable {
 
                 // File event special handling
                 if (eventType == InternalEventType.FILE && isFileSizeZero(event)) {
-                    LOGGER.debug("Ignoring zero byte File event {}!", event);
+                    LOGGER.debug("Ignoring zero byte file event {}!", event);
                     continue;
                 }
 
@@ -416,6 +418,8 @@ public class InternalEventHandlerRunnable implements Runnable {
     }
 
     private List<InternalEvent> propagateEvent(InternalEvent event, Set<InternalEvent> dejaVu) {
+        LOGGER.debug("Propagating event: {}", event);
+
         if (event.getInstanceId() != null || event.getSessionId() != null) {
             LOGGER.warn("Raw event contains instanceId or sessionId, fixing it: {}", event);
             event.setInstanceId(null);
@@ -434,6 +438,8 @@ public class InternalEventHandlerRunnable implements Runnable {
     }
 
     private List<InternalEvent> handleEvent(InternalEvent event) {
+        LOGGER.debug("Handling event: {}", event);
+
         // mapping: event -> instance
         List<InternalEvent> sessionStateEvents = new ArrayList<>();
 
@@ -562,6 +568,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             }
 
             if (isStartEvent) {
+                LOGGER.debug("Starting a new session");
                 Optional<InternalEvent> optionalEvent = startSession(eventClassifier, clonedEvent);
                 if (optionalEvent.isPresent()) {
                     optionalEvent = deriveSessionStateEvent(optionalEvent.get());
@@ -614,6 +621,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             }
 
             if (isStopEvent) {
+                LOGGER.debug("Stopping a session");
                 Optional<InternalEvent> optionalEvent = stopSession(clonedEvent);
                 if (optionalEvent.isPresent()) {
                     optionalEvent = deriveSessionStateEvent(optionalEvent.get());
@@ -636,6 +644,7 @@ public class InternalEventHandlerRunnable implements Runnable {
                 }
             }
 
+            LOGGER.debug("Registering instance event {}", clonedEvent);
             registerInstanceEvent(
                 clonedEvent,
                 instanceEventSenderResolver,
@@ -815,9 +824,12 @@ public class InternalEventHandlerRunnable implements Runnable {
         // Add RUN-ID attribute with the corresponding value to the session, if the owner event classifier is run specific
         Optional<RunSpecification> oRun = eventClassifier.getCurrentRun();
         if (oRun.isPresent()) {
-            session.setStateValue(SessionEventConstants.RUN_ID_ATTRIBUTE_NAME, oRun.get().getId());
+            String runId = oRun.get().getId();
+            LOGGER.debug("Extending a new session with RUN-ID attribute '{}'", runId);
+            session.setStateValue(SessionEventConstants.RUN_ID_ATTRIBUTE_NAME, runId);
         }
 
+        LOGGER.debug("Creating a SESSION_START session event");
         InternalEvent startSessionEvent = new InternalEvent();
         startSessionEvent.setType(InternalEventType.SESSION);
         startSessionEvent.setId(fresh ? SESSION_START : SESSION_RESUME);
@@ -829,11 +841,14 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         setSessionStateAttribute(startSessionEvent, session);
 
+        LOGGER.debug("Updating a session repository");
         sessionRepository.updateSession(session);
 
+        LOGGER.debug("Resolving session's dynamic content from {}", triggerEvent);
         Optional<String> dynamicContent = getDynamicContentAttribute(triggerEvent);
         dynamicContent.ifPresent(content -> setDynamicContentAttribute(startSessionEvent, content));
 
+        LOGGER.debug("Registering start session event {}", startSessionEvent);
         registerInstanceEvent(
             startSessionEvent,
             instanceEventSenderResolver,
@@ -842,12 +857,14 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         // drain orphan events
         EventAffiliation eventAffiliation = new EventAffiliation(dynamicId, sessionId);
+        LOGGER.debug("Draining orphan events of {}", eventAffiliation);
         orphanEventSource.drainOrphanEventsInto(
             eventClassifier,
             eventAffiliation,
             new OrphanEventDrain(eventAffiliation)
         );
 
+        LOGGER.debug("Returning start session event {}", startSessionEvent);
         return Optional.of(startSessionEvent);
     }
 
