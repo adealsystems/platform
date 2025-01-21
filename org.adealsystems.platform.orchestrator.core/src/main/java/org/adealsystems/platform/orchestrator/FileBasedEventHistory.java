@@ -47,6 +47,7 @@ import static org.adealsystems.platform.orchestrator.InternalEvent.normalizeDyna
 
 public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedEventHistory.class);
+
     public static final String RAW_FILE_NAME = "_raw";
     public static final String ARCHIVE_DIRECTORY_NAME = "_archive";
     public static final String ORPHAN_FILE_NAME = "_orphan";
@@ -77,10 +78,10 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
 
         Objects.requireNonNull(baseDirectory, "baseDirectory must not be null!");
         if (!baseDirectory.exists()) {
-            throw new IllegalArgumentException("Missing mandatory baseDirectory: '" + baseDirectory.getAbsolutePath() + "'!");
+            throw new IllegalArgumentException("Missing mandatory baseDirectory: '" + baseDirectory + "'!");
         }
         if (!baseDirectory.isDirectory()) {
-            throw new IllegalArgumentException("baseDirectory '" + baseDirectory.getAbsolutePath() + "' must be directory!");
+            throw new IllegalArgumentException("baseDirectory '" + baseDirectory + "' must be directory!");
         }
         this.baseDirectory = baseDirectory;
     }
@@ -136,19 +137,20 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
                 return false;
             }
             if (!orphanFile.isFile()) {
-                LOGGER.warn("{} is not a file! No orphan events transferred for instanceId {}!", orphanFile.getAbsolutePath(), instanceId);
+                LOGGER.warn("{} is not a file! No orphan events transferred for instanceId {}!", orphanFile, instanceId);
                 return false;
             }
 
             int eventCounter = 0;
             try (Well<InternalEvent> well = createWell(orphanFile)) {
+                Optional<RunSpecification> oRun = eventClassifier.getCurrentRun();
+
                 for (InternalEvent current : well) {
                     if (current == null) {
                         LOGGER.warn("Ignoring null orphan event for '{}'!", instanceId);
                         continue;
                     }
 
-                    Optional<RunSpecification> oRun = eventClassifier.getCurrentRun();
                     if (oRun.isPresent()) {
                         RunSpecification run = oRun.get();
                         LOGGER.debug("EventClassifier {} is run-specific for {}, checking run validity",
@@ -172,9 +174,9 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
             }
 
             if (orphanFile.delete()) {
-                LOGGER.debug("Deleted orphan file '{}'.", orphanFile.getAbsolutePath());
+                LOGGER.debug("Deleted orphan file '{}'.", orphanFile);
             } else {
-                LOGGER.error("Failed to delete orphan file '{}'!", orphanFile.getAbsolutePath());
+                LOGGER.error("Failed to delete orphan file '{}'!", orphanFile);
             }
 
             return eventCounter > 0;
@@ -188,19 +190,19 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
         try {
             File rawEventsFile = createFile(EventAffiliation.RAW);
             if (!rawEventsFile.isFile()) {
-                LOGGER.info("No raw events file '{}' found!", rawEventsFile.getAbsolutePath());
+                LOGGER.info("No raw events file '{}' found!", rawEventsFile);
                 return;
             }
 
             File archiveDir = new File(baseDirectory, ARCHIVE_DIRECTORY_NAME);
             if (archiveDir.mkdirs()) {
-                LOGGER.info("Created archive directory '{}'", archiveDir.getAbsolutePath());
+                LOGGER.info("Created archive directory '{}'", archiveDir);
             } else {
                 if (!archiveDir.isDirectory()) {
-                    LOGGER.error("Archive dir '{}' is not a directory!", archiveDir.getAbsolutePath());
+                    LOGGER.error("Archive dir '{}' is not a directory!", archiveDir);
                     return;
                 }
-                LOGGER.debug("Using existing archive directory '{}'", archiveDir.getAbsolutePath());
+                LOGGER.debug("Using existing archive directory '{}'", archiveDir);
             }
 
             LocalDateTime timestamp = timestampFactory.createTimestamp();
@@ -209,16 +211,16 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
 
             try {
                 Files.move(rawEventsFile.toPath(), targetFile.toPath(), REPLACE_EXISTING);
-                LOGGER.info("Moved raw events to '{}'", targetFile.getAbsolutePath());
+                LOGGER.info("Moved raw events to '{}'", targetFile);
                 return;
             } catch (IOException ex) {
-                LOGGER.warn("Failed to move raw events file to '{}'", targetFile.getAbsolutePath(), ex);
+                LOGGER.warn("Failed to move raw events file to '{}'", targetFile, ex);
             }
 
             try {
                 Files.copy(rawEventsFile.toPath(), targetFile.toPath(), REPLACE_EXISTING);
             } catch (IOException ex) {
-                LOGGER.error("Failed to copy raw events file to '{}'", targetFile.getAbsolutePath(), ex);
+                LOGGER.error("Failed to copy raw events file to '{}'", targetFile, ex);
                 return;
             }
 
@@ -229,7 +231,7 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
                 return;
             }
 
-            LOGGER.info("Manually moved raw events to '{}'", targetFile.getAbsolutePath());
+            LOGGER.info("Manually moved raw events to '{}'", targetFile);
         } finally {
             lock.unlock();
         }
@@ -237,7 +239,7 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
 
     private Drain<InternalEvent> createDrain(EventAffiliation eventAffiliation) throws IOException {
         File file = createFile(eventAffiliation);
-        LOGGER.debug("Creating file drain '{}' for {}.", file.getAbsolutePath(), eventAffiliation);
+        LOGGER.debug("Creating file drain '{}' for {}.", file, eventAffiliation);
         return createDrain(file, objectMapper);
     }
 
@@ -258,21 +260,11 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
         File instanceBaseDirectory = new File(baseDirectory, instanceId.getId());
         if (!instanceBaseDirectory.mkdirs()) {
             if (!instanceBaseDirectory.isDirectory()) {
-                throw new IllegalStateException("Failed to create instanceBaseDirectory '" + instanceBaseDirectory.getAbsolutePath() + "'!");
+                throw new IllegalStateException("Failed to create instanceBaseDirectory '" + instanceBaseDirectory + "'!");
             }
-            LOGGER.debug("Using existing instanceBaseDirectory '{}'", instanceBaseDirectory.getAbsolutePath());
+            LOGGER.debug("Using existing instanceBaseDirectory '{}'", instanceBaseDirectory);
         } else {
-            LOGGER.debug("Created instanceBaseDirectory '{}'", instanceBaseDirectory.getAbsolutePath());
-        }
-
-        File monitoringBaseDirectory = new File(instanceBaseDirectory, MONITORING_DIRECTORY_NAME);
-        if (!monitoringBaseDirectory.mkdirs()) {
-            if (!monitoringBaseDirectory.isDirectory()) {
-                throw new IllegalStateException("Failed to create monitoringBaseDirectory '" + monitoringBaseDirectory.getAbsolutePath() + "'!");
-            }
-            LOGGER.debug("Using existing monitoringBaseDirectory '{}'", monitoringBaseDirectory.getAbsolutePath());
-        } else {
-            LOGGER.debug("Created monitoringBaseDirectory '{}'", monitoringBaseDirectory.getAbsolutePath());
+            LOGGER.debug("Created instanceBaseDirectory '{}'", instanceBaseDirectory);
         }
 
         SessionId sessionId = key.getSessionId();
@@ -280,11 +272,22 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
             return new File(instanceBaseDirectory, ORPHAN_FILE_NAME + FILE_EXTENSION);
         }
 
+        String id = sessionId.getId();
         if (key.isProcessed()) {
-            return new File(monitoringBaseDirectory, sessionId.getId() + "_processed" + FILE_EXTENSION);
+            File monitoringBaseDirectory = new File(instanceBaseDirectory, MONITORING_DIRECTORY_NAME);
+            if (!monitoringBaseDirectory.mkdirs()) {
+                if (!monitoringBaseDirectory.isDirectory()) {
+                    throw new IllegalStateException("Failed to create monitoringBaseDirectory '" + monitoringBaseDirectory + "'!");
+                }
+                LOGGER.debug("Using existing monitoringBaseDirectory '{}'", monitoringBaseDirectory);
+            } else {
+                LOGGER.debug("Created monitoringBaseDirectory '{}'", monitoringBaseDirectory);
+            }
+
+            return new File(monitoringBaseDirectory, id + "_processed" + FILE_EXTENSION);
         }
 
-        return new File(instanceBaseDirectory, sessionId.getId() + FILE_EXTENSION);
+        return new File(instanceBaseDirectory, id + FILE_EXTENSION);
     }
 
     static Map<EventAffiliation, List<InternalEvent>> splitEvents(Iterable<InternalEvent> events) {

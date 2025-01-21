@@ -250,12 +250,14 @@ public class InternalEventHandlerRunnable implements Runnable {
                     stopSessionFlaggedToTerminate(event, currentEvents);
                 }
 
+                LOGGER.debug("Initial checking for non-propagated events in {}", currentEvents);
                 while (!currentEvents.isEmpty()) {
                     List<InternalEvent> newEvents = new ArrayList<>(); // NOPMD AvoidInstantiatingObjectsInLoops
                     for (InternalEvent currentEvent : currentEvents) {
                         newEvents.addAll(propagateEvent(currentEvent, dejaVu));
                     }
                     currentEvents = newEvents;
+                    LOGGER.debug("Checking for non-propagated events in {}", currentEvents);
                 }
             }
             catch (Throwable throwable) {
