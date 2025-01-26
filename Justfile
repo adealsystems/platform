@@ -1,5 +1,5 @@
-build prerelease:
-    ./gradlew clean build --refresh-dependencies -Dprerelease={{prerelease}}
+build:
+    ./gradlew clean build
 publish-local:
     ./gradlew clean publishToMavenLocal --warn --stacktrace
 
