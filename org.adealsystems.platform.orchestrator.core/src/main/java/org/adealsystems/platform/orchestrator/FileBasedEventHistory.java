@@ -24,8 +24,12 @@ import org.adealsystems.platform.io.json.JsonlWell;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -114,7 +118,11 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
     }
 
     @Override
-    public boolean drainOrphanEventsInto(InternalEventClassifier eventClassifier, EventAffiliation idTuple, Drain<InternalEvent> eventDrain) {
+    public boolean drainOrphanEventsInto(
+        InternalEventClassifier eventClassifier,
+        EventAffiliation idTuple,
+        Drain<InternalEvent> eventDrain
+    ) {
         Objects.requireNonNull(idTuple, "idTuple must not be null!");
         Objects.requireNonNull(eventDrain, "eventDrain must not be null!");
 
@@ -182,6 +190,35 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
             return eventCounter > 0;
         } finally {
             lock.unlock();
+        }
+    }
+
+    public int getOrphansCount(InstanceId instanceId) {
+        EventAffiliation orphanIdTuple = new EventAffiliation(instanceId, null);
+        File orphanFile = createFile(orphanIdTuple);
+        if (!orphanFile.exists()) {
+            LOGGER.debug("No orphan events found for instanceId {}.", instanceId);
+            return -1;
+        }
+        if (!orphanFile.isFile()) {
+            LOGGER.warn("{} is not a file! No orphan events transferred for instanceId {}!", orphanFile, instanceId);
+            return -1;
+        }
+
+        try (
+            InputStream is = Files.newInputStream(orphanFile.toPath());
+            InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8);
+            BufferedReader reader = new BufferedReader(isr)
+        ) {
+            int lines = 0;
+            while (reader.readLine() != null) {
+                lines++;
+            }
+            return lines;
+        }
+        catch (IOException ex) {
+            LOGGER.warn("Error reading orphan events for instanceId {}!", instanceId, ex);
+            return -1;
         }
     }
 
