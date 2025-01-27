@@ -38,6 +38,11 @@ public class BlockingQueueInternalEventQueue implements InternalEventSender, Int
     }
 
     @Override
+    public boolean isBlocking() {
+        return queue.remainingCapacity() == 0;
+    }
+
+    @Override
     public int getSize() {
         return queue.size();
     }

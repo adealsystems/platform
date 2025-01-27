@@ -18,5 +18,6 @@ package org.adealsystems.platform.orchestrator;
 
 public interface InternalEventSender {
     boolean isEmpty();
+    boolean isBlocking();
     void sendEvent(InternalEvent event);
 }

@@ -92,7 +92,8 @@ public class InternalEventHandlerRunnable implements Runnable {
     public static final String EVENT_ID_COMPLETE_RUN = "complete-run";
 
     private static final Pattern DYNAMIC_CONTENT_PATTERN = Pattern.compile("[0-9a-zA-Z]*([,@%\\_\\-\\.0-9a-zA-Z/]+)*");
-
+    private static final int MAX_BLOCKING_RETRY_ATTEMPTS = 3;
+    private static final int BLOCKING_RETRY_DELAY = 2 * 1_000;
 
     private final InstanceRepository instanceRepository;
     private final SessionRepositoryFactory sessionRepositoryFactory;
@@ -728,7 +729,29 @@ public class InternalEventHandlerRunnable implements Runnable {
                 return;
             }
 
-            eventSender.sendEvent(event);
+            boolean added = false;
+            for (int i = 0; i < MAX_BLOCKING_RETRY_ATTEMPTS; i++) {
+                if (!eventSender.isBlocking()) {
+                    eventSender.sendEvent(event);
+                    added = true;
+                    break;
+                }
+
+                LOGGER.warn(
+                    "Unable to add an event, because the sender is in blocking state! Retrying after {} ms",
+                    BLOCKING_RETRY_DELAY
+                );
+                try {
+                    Thread.sleep(BLOCKING_RETRY_DELAY);
+                }
+                catch (InterruptedException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+
+            if (!added) {
+                throw new IllegalStateException("Unable to add an event, because the sender is in blocking state!");
+            }
         }
         eventHistory.add(event);
     }
@@ -738,7 +761,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         Optional<String> oDynamicContent = getDynamicContentAttribute(event);
         return oDynamicContent
             .map(dynamicContent -> new InstanceId(instanceId.getId()
-                                                      + "-"
+                                                      + '-'
                                                       + normalizeDynamicContent(dynamicContent.toLowerCase(Locale.ROOT))))
             .orElse(instanceId);
     }

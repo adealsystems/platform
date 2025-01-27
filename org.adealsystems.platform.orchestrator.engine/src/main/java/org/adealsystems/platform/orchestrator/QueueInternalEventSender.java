@@ -62,6 +62,11 @@ public class QueueInternalEventSender implements InternalEventSender {
     }
 
     @Override
+    public boolean isBlocking() {
+        return false;
+    }
+
+    @Override
     public void sendEvent(InternalEvent event) {
         Objects.requireNonNull(event, "event must not be null!");
 
