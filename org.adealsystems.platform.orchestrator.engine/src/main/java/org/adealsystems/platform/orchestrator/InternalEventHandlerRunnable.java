@@ -745,7 +745,7 @@ public class InternalEventHandlerRunnable implements Runnable {
                     Thread.sleep(BLOCKING_RETRY_DELAY);
                 }
                 catch (InterruptedException ex) {
-                    throw new RuntimeException(ex);
+                    break;
                 }
             }
 
