@@ -31,4 +31,6 @@ public interface OrphanEventSource {
      * @throws IllegalArgumentException if idTuple is missing either instanceId or sessionId
      */
     boolean drainOrphanEventsInto(InternalEventClassifier eventClassifier, EventAffiliation idTuple, Drain<InternalEvent> eventDrain);
+
+    int getOrphansCount(InstanceId instanceId);
 }

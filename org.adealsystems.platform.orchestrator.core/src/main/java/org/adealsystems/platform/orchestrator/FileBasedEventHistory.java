@@ -193,6 +193,7 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
         }
     }
 
+    @Override
     public int getOrphansCount(InstanceId instanceId) {
         EventAffiliation orphanIdTuple = new EventAffiliation(instanceId, null);
         File orphanFile = createFile(orphanIdTuple);

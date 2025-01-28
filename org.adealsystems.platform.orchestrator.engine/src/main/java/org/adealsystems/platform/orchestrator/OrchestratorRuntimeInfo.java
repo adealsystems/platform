@@ -40,6 +40,7 @@ public class OrchestratorRuntimeInfo {
 
     private final Map<String, Boolean> instanceEventHandlerThreadAlive;
     private final Map<String, Integer> instanceEventHandlerQueueSize;
+    private final Map<String, Integer> instanceEventHandlerOrphanSize;
 
     public OrchestratorRuntimeInfo(OrchestratorRuntime runtime) {
         this.base = runtime.getBasePath();
@@ -76,8 +77,11 @@ public class OrchestratorRuntimeInfo {
         InternalEventReceiver rawEventReceiver = internalEventHandlerRunnable.getRawEventReceiver();
         this.internalEventReceiverQueueSize = rawEventReceiver.getSize();
 
+        OrphanEventSource eventHistory = (OrphanEventSource) runtime.getEventHistory();
+
         this.instanceEventHandlerThreadAlive = new HashMap<>();
         this.instanceEventHandlerQueueSize = new HashMap<>();
+        this.instanceEventHandlerOrphanSize = new HashMap<>();
         Map<InstanceId, InstanceEventHandlerRunnable> instanceRunnable = runtime.getInstanceEventHandlerRunnable();
         Map<InstanceId, Thread> instanceThreads = runtime.getInstanceEventHandlerThreads();
         for (Map.Entry<InstanceId, InstanceEventHandlerRunnable> entry : instanceRunnable.entrySet()) {
@@ -88,6 +92,7 @@ public class OrchestratorRuntimeInfo {
             this.instanceEventHandlerThreadAlive.put(instanceRef, currentThread.isAlive());
             InternalEventReceiver eventReceiver = currentRunnable.getEventReceiver();
             this.instanceEventHandlerQueueSize.put(instanceRef, eventReceiver.getSize());
+            this.instanceEventHandlerOrphanSize.put(instanceRef, eventHistory.getOrphansCount(instanceId));
         }
     }
 
@@ -147,6 +152,10 @@ public class OrchestratorRuntimeInfo {
         return instanceEventHandlerQueueSize;
     }
 
+    public Map<String, Integer> getInstanceEventHandlerOrphanSize() {
+        return instanceEventHandlerOrphanSize;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -165,7 +174,8 @@ public class OrchestratorRuntimeInfo {
             && Objects.equals(receiverRunnableClassNames, that.receiverRunnableClassNames)
             && Objects.equals(receiverRunnableThreadsAlive, that.receiverRunnableThreadsAlive)
             && Objects.equals(instanceEventHandlerThreadAlive, that.instanceEventHandlerThreadAlive)
-            && Objects.equals(instanceEventHandlerQueueSize, that.instanceEventHandlerQueueSize);
+            && Objects.equals(instanceEventHandlerQueueSize, that.instanceEventHandlerQueueSize)
+            && Objects.equals(instanceEventHandlerOrphanSize, that.instanceEventHandlerOrphanSize);
     }
 
     @Override
@@ -184,7 +194,8 @@ public class OrchestratorRuntimeInfo {
             internalEventReceiverThreadAlive,
             internalEventReceiverQueueSize,
             instanceEventHandlerThreadAlive,
-            instanceEventHandlerQueueSize
+            instanceEventHandlerQueueSize,
+            instanceEventHandlerOrphanSize
         );
     }
 
@@ -205,6 +216,7 @@ public class OrchestratorRuntimeInfo {
             ", internalEventReceiverQueueSize=" + internalEventReceiverQueueSize +
             ", instanceEventHandlerThreadAlive=" + instanceEventHandlerThreadAlive +
             ", instanceEventHandlerQueueSize=" + instanceEventHandlerQueueSize +
+            ", instanceEventHandlerOrphanSize" + instanceEventHandlerOrphanSize +
             '}';
     }
 }
