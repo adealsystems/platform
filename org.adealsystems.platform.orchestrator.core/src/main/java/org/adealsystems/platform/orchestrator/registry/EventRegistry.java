@@ -42,6 +42,8 @@ import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSI
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSION_STATE;
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSION_STOP;
 import static org.adealsystems.platform.orchestrator.registry.CommandExecutionCompletedMessageEvent.COMMAND_EXECUTION_COMPLETED_MESSAGE_PATTERN;
+import static org.adealsystems.platform.orchestrator.registry.CommandExecutionCompletedMessageEvent.COMMAND_ID_GROUP_NAME;
+import static org.adealsystems.platform.orchestrator.registry.CommandExecutionCompletedMessageEvent.LEGACY_COMMAND_EXECUTION_COMPLETED_MESSAGE_PREFIX;
 
 
 public class EventRegistry {
@@ -295,10 +297,20 @@ public class EventRegistry {
         Matcher matcher = COMMAND_EXECUTION_COMPLETED_MESSAGE_PATTERN.matcher(eventId);
         if (!matcher.matches()) {
             LOGGER.debug("Event-ID '{}' does not match expected pattern {}", eventId, COMMAND_EXECUTION_COMPLETED_MESSAGE_PATTERN.pattern());
-            return Optional.empty();
+            // return Optional.empty();
+
+            // TODO: remove legacy message support after migration!
+            matcher = Pattern
+                .compile(LEGACY_COMMAND_EXECUTION_COMPLETED_MESSAGE_PREFIX + "(?<" + COMMAND_ID_GROUP_NAME + ">.*)")
+                .matcher(eventId);
+
+            if (!matcher.matches()) {
+                return Optional.empty();
+            }
+            // TODO: end
         }
 
-        String commandId = matcher.group(CommandExecutionCompletedMessageEvent.COMMAND_ID_GROUP_NAME);
+        String commandId = matcher.group(COMMAND_ID_GROUP_NAME);
         if (commandId == null || commandId.isEmpty()) {
             LOGGER.debug("Command-ID isn't a part of event-ID '{}'", eventId);
             return Optional.empty();

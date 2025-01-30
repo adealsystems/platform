@@ -21,9 +21,18 @@ import java.util.regex.Pattern;
 
 public final class CommandExecutionCompletedMessageEvent implements EventDescriptor {
     public static final String COMMAND_ID_GROUP_NAME = "command";
-    public static final String COMMAND_EXECUTION_COMPLETED_MESSAGE_PREFIX = "Command execution result of ";
-    public static final String COMMAND_EXECUTION_COMPLETED_MESSAGE = COMMAND_EXECUTION_COMPLETED_MESSAGE_PREFIX + "(?<" + COMMAND_ID_GROUP_NAME + ">.*)";
-    public static final Pattern COMMAND_EXECUTION_COMPLETED_MESSAGE_PATTERN = Pattern.compile(COMMAND_EXECUTION_COMPLETED_MESSAGE);
+    public static final String INSTANCE_ID_GROUP_NAME = "instance";
+
+    private static final String PREFIX = "Command execution result ";
+
+    public static final String LEGACY_COMMAND_EXECUTION_COMPLETED_MESSAGE_PREFIX
+        = PREFIX + "of ";
+    public static final String COMMAND_EXECUTION_COMPLETED_MESSAGE_PREFIX
+        = PREFIX + "for instance ${" + INSTANCE_ID_GROUP_NAME + "} of ";
+    public static final String COMMAND_EXECUTION_COMPLETED_MESSAGE
+        = PREFIX + "for instance (?<" + INSTANCE_ID_GROUP_NAME + ">.*) of (?<" + COMMAND_ID_GROUP_NAME + ">.*)";
+    public static final Pattern COMMAND_EXECUTION_COMPLETED_MESSAGE_PATTERN
+        = Pattern.compile(COMMAND_EXECUTION_COMPLETED_MESSAGE);
 
     private final String id;
     private boolean stopEvent;
