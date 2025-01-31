@@ -17,6 +17,7 @@
 package org.adealsystems.platform.orchestrator.registry;
 
 import java.util.Objects;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class CommandExecutionCompletedMessageEvent implements EventDescriptor {
@@ -39,12 +40,25 @@ public final class CommandExecutionCompletedMessageEvent implements EventDescrip
     private String sessionRegistryName;
     private boolean repeatable = false;
 
+    private final String instanceId;
+    private final String commandId;
+
     public static CommandExecutionCompletedMessageEvent forId(String id){
         return new CommandExecutionCompletedMessageEvent(id);
     }
 
     private CommandExecutionCompletedMessageEvent(String id) {
         this.id = Objects.requireNonNull(id, "id must not be null!");
+
+        Matcher matcher = COMMAND_EXECUTION_COMPLETED_MESSAGE_PATTERN.matcher(id);
+        if (matcher.matches()) {
+            this.commandId = matcher.group(COMMAND_ID_GROUP_NAME);
+            this.instanceId = matcher.group(INSTANCE_ID_GROUP_NAME);
+        }
+        else {
+            this.commandId = null;
+            this.instanceId = null;
+        }
     }
 
     public CommandExecutionCompletedMessageEvent asStopEvent() {
@@ -91,6 +105,14 @@ public final class CommandExecutionCompletedMessageEvent implements EventDescrip
 
     public String getSessionRegistryName() {
         return sessionRegistryName;
+    }
+
+    public String getInstanceId() {
+        return instanceId;
+    }
+
+    public String getCommandId() {
+        return commandId;
     }
 
     @Override
