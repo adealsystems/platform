@@ -46,13 +46,13 @@ public final class CommandExecutionCompletedMessageEvent implements EventDescrip
 
     public static CommandExecutionCompletedMessageEvent fromEvent(
         String eventId,
-        CommandExecutionCompletedMessageEvent base
+        CommandExecutionCompletedMessageEvent message
     ){
-        CommandExecutionCompletedMessageEvent result = new CommandExecutionCompletedMessageEvent(base.getId());
+        CommandExecutionCompletedMessageEvent result = new CommandExecutionCompletedMessageEvent(message.getId());
 
-        result.stopEvent = base.isStopEvent();
-        result.sessionRegistryName = base.getSessionRegistryName();
-        result.repeatable = base.isRepeatable();
+        result.stopEvent = message.isStopEvent();
+        result.sessionRegistryName = message.getSessionRegistryName();
+        result.repeatable = message.isRepeatable();
 
         Matcher matcher = COMMAND_EXECUTION_COMPLETED_MESSAGE_PATTERN.matcher(eventId);
         if (matcher.matches()) {
