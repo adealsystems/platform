@@ -323,7 +323,7 @@ public class EventRegistry {
             Set<String> registry = session.getStateRegistry(sessionRegistryName);
             if (registry.contains(commandId)) {
                 LOGGER.info("Found a session registry '{}' containing command-id '{}'", sessionRegistryName, commandId);
-                return Optional.of(messageEvent);
+                return Optional.of(CommandExecutionCompletedMessageEvent.from(eventId, messageEvent));
             }
 
             // try the next configured command-execution-finished message

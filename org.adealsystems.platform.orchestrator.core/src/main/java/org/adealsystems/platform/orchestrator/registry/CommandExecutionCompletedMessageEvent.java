@@ -43,6 +43,20 @@ public final class CommandExecutionCompletedMessageEvent implements EventDescrip
     private final String instanceId;
     private final String commandId;
 
+
+    public static CommandExecutionCompletedMessageEvent from(
+        String id,
+        CommandExecutionCompletedMessageEvent base
+    ){
+        CommandExecutionCompletedMessageEvent result = new CommandExecutionCompletedMessageEvent(id);
+
+        result.stopEvent = base.isStopEvent();
+        result.sessionRegistryName = base.getSessionRegistryName();
+        result.repeatable = base.isRepeatable();
+
+        return result;
+    }
+
     public static CommandExecutionCompletedMessageEvent forId(String id){
         return new CommandExecutionCompletedMessageEvent(id);
     }
