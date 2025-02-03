@@ -223,7 +223,8 @@ public class SessionsSupervisorRunnable implements Runnable {
                     if (builder.length() > 0) {
                         builder.append('\n');
                     }
-                    builder.append("\t- ").append(key).append(": ").append(activeSessionTimers.get(key));
+                    builder.append("\t- ").append(key)
+                        .append(": ").append(activeSessionTimers.get(key));
                 }
                 LOGGER.info("Active session timers:\n{}", builder);
             }
