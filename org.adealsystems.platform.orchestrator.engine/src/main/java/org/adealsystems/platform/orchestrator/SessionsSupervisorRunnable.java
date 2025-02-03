@@ -283,18 +283,21 @@ public class SessionsSupervisorRunnable implements Runnable {
             setDynamicContentAttribute(stopSessionEvent, instanceRef.dynamicContent);
         }
 
+        LOGGER.debug("Registering stop event {}", stopSessionEvent);
         registerInstanceEvent(
             stopSessionEvent,
             instanceEventSenderResolver,
             eventHistory
         );
 
+        LOGGER.debug("Updating session {}", sessionId);
+        terminateSessionProcessingState(session, State.ABORTED);
+        sessionRepository.updateSession(session);
+
+        LOGGER.debug("Deleting active session file for {}", instanceRef.current);
         if (!activeSessionIdRepository.deleteActiveSessionId(instanceRef.current)) {
             LOGGER.error("Unable to delete active session for instance {}!", instanceRef.current);
         }
-
-        terminateSessionProcessingState(session, State.ABORTED);
-        sessionRepository.updateSession(session);
     }
 
     static class InstanceReference {
@@ -306,6 +309,30 @@ public class SessionsSupervisorRunnable implements Runnable {
             this.current = current;
             this.base = base;
             this.dynamicContent = dynamicContent;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            InstanceReference that = (InstanceReference) o;
+            return Objects.equals(current, that.current)
+                && Objects.equals(base, that.base)
+                && Objects.equals(dynamicContent, that.dynamicContent);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(current, base, dynamicContent);
+        }
+
+        @Override
+        public String toString() {
+            return "InstanceReference{" +
+                "current=" + current +
+                ", base=" + base +
+                ", dynamicContent='" + dynamicContent + '\'' +
+                '}';
         }
     }
 }
