@@ -40,19 +40,25 @@ public final class CommandExecutionCompletedMessageEvent implements EventDescrip
     private String sessionRegistryName;
     private boolean repeatable = false;
 
-    private final String instanceId;
-    private final String commandId;
+    private String instanceId;
+    private String commandId;
 
 
-    public static CommandExecutionCompletedMessageEvent from(
-        String id,
+    public static CommandExecutionCompletedMessageEvent fromEvent(
+        String eventId,
         CommandExecutionCompletedMessageEvent base
     ){
-        CommandExecutionCompletedMessageEvent result = new CommandExecutionCompletedMessageEvent(id);
+        CommandExecutionCompletedMessageEvent result = new CommandExecutionCompletedMessageEvent(base.getId());
 
         result.stopEvent = base.isStopEvent();
         result.sessionRegistryName = base.getSessionRegistryName();
         result.repeatable = base.isRepeatable();
+
+        Matcher matcher = COMMAND_EXECUTION_COMPLETED_MESSAGE_PATTERN.matcher(eventId);
+        if (matcher.matches()) {
+            result.commandId = matcher.group(COMMAND_ID_GROUP_NAME);
+            result.instanceId = matcher.group(INSTANCE_ID_GROUP_NAME);
+        }
 
         return result;
     }
@@ -63,16 +69,6 @@ public final class CommandExecutionCompletedMessageEvent implements EventDescrip
 
     private CommandExecutionCompletedMessageEvent(String id) {
         this.id = Objects.requireNonNull(id, "id must not be null!");
-
-        Matcher matcher = COMMAND_EXECUTION_COMPLETED_MESSAGE_PATTERN.matcher(id);
-        if (matcher.matches()) {
-            this.commandId = matcher.group(COMMAND_ID_GROUP_NAME);
-            this.instanceId = matcher.group(INSTANCE_ID_GROUP_NAME);
-        }
-        else {
-            this.commandId = null;
-            this.instanceId = null;
-        }
     }
 
     public CommandExecutionCompletedMessageEvent asStopEvent() {
