@@ -18,5 +18,6 @@ package org.adealsystems.platform.orchestrator;
 
 public enum RunType {
     ACTIVE,
-    WAITING
+    WAITING,
+    NONE
 }
