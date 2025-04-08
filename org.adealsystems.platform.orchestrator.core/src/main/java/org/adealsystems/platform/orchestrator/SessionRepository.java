@@ -16,13 +16,13 @@
 
 package org.adealsystems.platform.orchestrator;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.Set;
 
 public interface SessionRepository {
     Set<SessionId> retrieveSessionIds();
-    Set<SessionId> retrieveSessionIds(LocalDateTime createdTimestamp);
+    Set<SessionId> retrieveSessionIds(LocalDate createdOn);
     Session createSession(SessionId id);
     Optional<Session> retrieveSession(SessionId id);
     Session retrieveOrCreateSession(SessionId id);

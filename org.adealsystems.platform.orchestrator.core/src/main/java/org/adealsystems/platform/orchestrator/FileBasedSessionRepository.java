@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -42,6 +43,10 @@ import java.util.stream.Collectors;
 public class FileBasedSessionRepository implements SessionRepository {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedSessionRepository.class);
 
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern(
+        "yyyyMMdd",
+        Locale.ROOT
+    );
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern(
         "yyyyMMddHHmmss",
         Locale.ROOT
@@ -103,8 +108,8 @@ public class FileBasedSessionRepository implements SessionRepository {
     }
 
     @Override
-    public Set<SessionId> retrieveSessionIds(LocalDateTime createdTimestamp) {
-        Objects.requireNonNull(createdTimestamp, "createdTimestamp must not be null!");
+    public Set<SessionId> retrieveSessionIds(LocalDate createdOn) {
+        Objects.requireNonNull(createdOn, "createdOn must not be null!");
 
         ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
         readLock.lock();
@@ -114,7 +119,7 @@ public class FileBasedSessionRepository implements SessionRepository {
                 return Collections.emptySet();
             }
 
-            String timestamp = TIMESTAMP_FORMATTER.format(createdTimestamp);
+            String relevantDate = DATE_FORMATTER.format(createdOn);
             return Arrays.stream(allFiles)
                 .map(file -> {
                     Matcher matcher = FILE_PATTERN.matcher(file.getName());
@@ -125,22 +130,20 @@ public class FileBasedSessionRepository implements SessionRepository {
                     SessionId id = new SessionId(matcher.group("id"));
 
                     String ts = matcher.group("timestamp");
-                    if (ts == null) {
-                        // fallback
-                        Optional<Session> session = retrieveSession(id);
-                        if (!session.isPresent()) {
-                            return null;
-                        }
-                        LocalDateTime sessionTimestamp = session.get().getCreationTimestamp();
-                        if (!createdTimestamp.equals(sessionTimestamp)) {
-                            return null;
-                        }
-                    }
-                    if (!timestamp.equals(ts)) {
-                        return null;
+                    if (ts != null) {
+                        return ts.startsWith(relevantDate) ? id : null;
                     }
 
-                    return id;
+                    // fallback
+                    Optional<Session> session = retrieveSession(id);
+                    if (!session.isPresent()) {
+                        return null;
+                    }
+                    LocalDateTime sessionTimestamp = session.get().getCreationTimestamp();
+                    if (sessionTimestamp == null) {
+                        return null;
+                    }
+                    return createdOn.equals(sessionTimestamp.toLocalDate()) ? id : null;
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
