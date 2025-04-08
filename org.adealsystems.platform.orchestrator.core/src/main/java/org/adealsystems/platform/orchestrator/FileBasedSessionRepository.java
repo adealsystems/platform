@@ -25,8 +25,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -36,8 +40,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class FileBasedSessionRepository implements SessionRepository {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedSessionRepository.class);
+
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern(
+        "yyyyMMddHHmmss",
+        Locale.ROOT
+    );
 
     private static final ObjectMapper OBJECT_MAPPER;
     static {
@@ -48,22 +56,21 @@ public class FileBasedSessionRepository implements SessionRepository {
         OBJECT_MAPPER.registerModule(new SessionProcessingStateModule());
     }
 
-    private static final Pattern FILE_PATTERN = Pattern.compile('(' + SessionId.PATTERN_STRING + ")\\.json");
+    private static final Pattern FILE_PATTERN
+        = Pattern.compile("(?<timestamp>[0-9]{14}_)?(?<id>" + SessionId.PATTERN_STRING + ")\\.json");
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-
     private final InstanceId instanceId;
-
     private final File baseDirectory;
 
     public FileBasedSessionRepository(InstanceId instanceId, File baseDirectory) {
         Objects.requireNonNull(instanceId, "instanceId must not be null!");
         Objects.requireNonNull(baseDirectory, "baseDirectory must not be null!");
         if (!baseDirectory.exists()) {
-            throw new IllegalArgumentException("Missing mandatory baseDirectory: '" + baseDirectory.getAbsolutePath() + "'!");
+            throw new IllegalArgumentException("Missing mandatory baseDirectory: '" + baseDirectory + "'!");
         }
         if (!baseDirectory.isDirectory()) {
-            throw new IllegalArgumentException("baseDirectory '" + baseDirectory.getAbsolutePath() + "' must be directory!");
+            throw new IllegalArgumentException("baseDirectory '" + baseDirectory + "' must be directory!");
         }
         this.instanceId = instanceId;
         this.baseDirectory = baseDirectory;
@@ -85,7 +92,55 @@ public class FileBasedSessionRepository implements SessionRepository {
                     if (!matcher.matches()) {
                         return null;
                     }
-                    return new SessionId(matcher.group(1));
+                    return new SessionId(matcher.group("id"));
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        }
+        finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public Set<SessionId> retrieveSessionIds(LocalDateTime createdTimestamp) {
+        Objects.requireNonNull(createdTimestamp, "createdTimestamp must not be null!");
+
+        ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
+        readLock.lock();
+        try {
+            File[] allFiles = baseDirectory.listFiles();
+            if (allFiles == null) {
+                return Collections.emptySet();
+            }
+
+            String timestamp = TIMESTAMP_FORMATTER.format(createdTimestamp);
+            return Arrays.stream(allFiles)
+                .map(file -> {
+                    Matcher matcher = FILE_PATTERN.matcher(file.getName());
+                    if (!matcher.matches()) {
+                        return null;
+                    }
+
+                    SessionId id = new SessionId(matcher.group("id"));
+
+                    String ts = matcher.group("timestamp");
+                    if (ts == null) {
+                        // fallback
+                        Optional<Session> session = retrieveSession(id);
+                        if (!session.isPresent()) {
+                            return null;
+                        }
+                        LocalDateTime sessionTimestamp = session.get().getCreationTimestamp();
+                        if (!createdTimestamp.equals(sessionTimestamp)) {
+                            return null;
+                        }
+                    }
+                    if (!timestamp.equals(ts)) {
+                        return null;
+                    }
+
+                    return id;
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
@@ -118,7 +173,7 @@ public class FileBasedSessionRepository implements SessionRepository {
 
     @Override
     public Optional<Session> retrieveSession(SessionId id) {
-        File sessionFile = getSessionFile(id);
+        File sessionFile = findOrCreateSessionFile(id);
 
         ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
         readLock.lock();
@@ -135,7 +190,7 @@ public class FileBasedSessionRepository implements SessionRepository {
 
     @Override
     public Session retrieveOrCreateSession(SessionId id) {
-        File sessionFile = getSessionFile(id);
+        File sessionFile = findOrCreateSessionFile(id);
 
         ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
         writeLock.lock();
@@ -163,7 +218,7 @@ public class FileBasedSessionRepository implements SessionRepository {
         LOGGER.debug("Updating session {}", session);
 
         SessionId id = session.getId();
-        File sessionFile = getSessionFile(id);
+        File sessionFile = findOrCreateSessionFile(id);
 
         ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
         writeLock.lock();
@@ -180,7 +235,7 @@ public class FileBasedSessionRepository implements SessionRepository {
 
     @Override
     public boolean deleteSession(SessionId id) {
-        File sessionFile = getSessionFile(id);
+        File sessionFile = findOrCreateSessionFile(id);
 
         ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
         writeLock.lock();
@@ -194,7 +249,32 @@ public class FileBasedSessionRepository implements SessionRepository {
 
     File getSessionFile(SessionId id) {
         Objects.requireNonNull(id, "id must not be null!");
-        return new File(baseDirectory, id.getId() + ".json");
+        LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
+        String timestamp = TIMESTAMP_FORMATTER.format(now);
+        return new File(baseDirectory, timestamp + '_' + id.getId() + ".json");
+    }
+
+    File findSessionFile(SessionId id) {
+        Objects.requireNonNull(id, "id must not be null!");
+        String fileSuffix = id.getId() + ".json";
+
+        File[] matchingFiles = baseDirectory.listFiles((dir, name) -> name.endsWith(fileSuffix));
+        if (matchingFiles == null || matchingFiles.length == 0) {
+            return null;
+        }
+        if (matchingFiles.length > 1) {
+            LOGGER.warn("Multiple matching files found for session id '{}'", id);
+        }
+
+        return matchingFiles[0];
+    }
+
+    File findOrCreateSessionFile(SessionId id) {
+        File file = findSessionFile(id);
+        if (file == null) {
+            file = getSessionFile(id);
+        }
+        return file;
     }
 
     private Session readSession(File sessionFile) {
@@ -205,12 +285,17 @@ public class FileBasedSessionRepository implements SessionRepository {
             }
 
             LOGGER.warn("Correcting InstanceId of {} to {}", session, instanceId);
-            Session newSession = new Session(instanceId, session.getId(), session.getCreationTimestamp(), session.getInstanceConfiguration());
+            Session newSession = new Session(
+                instanceId,
+                session.getId(),
+                session.getCreationTimestamp(),
+                session.getInstanceConfiguration()
+            );
             newSession.setState(session.getState());
             newSession.setProcessingState(session.getProcessingState());
             return newSession;
         } catch (IOException ex) {
-            throw new IllegalStateException("Unable to read session file '" + sessionFile.getAbsolutePath() + "'!", ex);
+            throw new IllegalStateException("Unable to read session file '" + sessionFile + "'!", ex);
         }
     }
 
@@ -218,7 +303,7 @@ public class FileBasedSessionRepository implements SessionRepository {
         try {
             OBJECT_MAPPER.writeValue(sessionFile, session);
         } catch (IOException ex) {
-            throw new IllegalStateException("Unable to write session file '" + sessionFile.getAbsolutePath() + "'!", ex);
+            throw new IllegalStateException("Unable to write session file '" + sessionFile + "'!", ex);
         }
     }
 }
