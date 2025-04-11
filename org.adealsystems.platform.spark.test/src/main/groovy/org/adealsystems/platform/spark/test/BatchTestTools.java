@@ -68,7 +68,7 @@ public final class BatchTestTools {
         = DateTimeFormatter.ofPattern(DEFAULT_DATE_TIME_PATTERN);
 
     private static final Pattern QUERY_PATTERN
-        = Pattern.compile("^(?<target>[[a-zA-Z0-9_]+])\\[(?<expr>.*)\\]$");
+        = Pattern.compile("(?<target>[[a-zA-Z0-9_]+])\\[(?<expr>.*)\\]");
     private static final String EQUALITY_FORMAT = "([a-zA-Z0-9_]+)\\s*=\\s*([^\\s]+)";
 
     private BatchTestTools() {
