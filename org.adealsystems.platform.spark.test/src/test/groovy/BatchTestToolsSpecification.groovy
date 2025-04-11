@@ -122,12 +122,12 @@ class BatchTestToolsSpecification extends Specification {
             spark,
             defaultDateTimeStruct,
             "+---+----------+----------------+\n" +
-            "|  a|         b|               c|\n" +
-            "+---+----------+----------------+\n" +
-            "|AAA|2025-04-14|2025-04-14 07:28|\n" +
-            "|BBB|2025-02-17|2025-02-17 17:19|\n" +
-            "|CCC|          |                |\n" +
-            "+---+----------+----------------+"
+                "|  a|         b|               c|\n" +
+                "+---+----------+----------------+\n" +
+                "|AAA|2025-04-14|2025-04-14 07:28|\n" +
+                "|BBB|2025-02-17|2025-02-17 17:19|\n" +
+                "|CCC|          |                |\n" +
+                "+---+----------+----------------+"
         )
 
         then:
@@ -139,12 +139,12 @@ class BatchTestToolsSpecification extends Specification {
             spark,
             specificDateTimeStruct,
             "+---+----------+-------------+\n" +
-            "|  a|         b|            c|\n" +
-            "+---+----------+-------------+\n" +
-            "|AAA|2025.04.14|250414:072820|\n" +
-            "|BBB|2025.02.17|250217:171905|\n" +
-            "|CCC|          |             |\n" +
-            "+---+----------+-------------+"
+                "|  a|         b|            c|\n" +
+                "+---+----------+-------------+\n" +
+                "|AAA|2025.04.14|250414:072820|\n" +
+                "|BBB|2025.02.17|250217:171905|\n" +
+                "|CCC|          |             |\n" +
+                "+---+----------+-------------+"
         )
 
         then:
@@ -166,13 +166,13 @@ class BatchTestToolsSpecification extends Specification {
             spark,
             simpleStruct,
             "+---+--+-------+-----+\n" +
-            "|  a| b|      c|    d|\n" +
-            "+---+--+-------+-----+\n" +
-            "|AAA|17|123456L| true|\n" +
-            "|BBB|21|987654L|false|\n" +
-            "|CCC|  |       |     |\n" +
-            "|AAA|27|1982376|false|\n" +
-            "+---+--+-------+-----+"
+                "|  a| b|      c|    d|\n" +
+                "+---+--+-------+-----+\n" +
+                "|AAA|17|123456L| true|\n" +
+                "|BBB|21|987654L|false|\n" +
+                "|CCC|  |       |     |\n" +
+                "|AAA|27|1982376|false|\n" +
+                "+---+--+-------+-----+"
         )
 
         then:
@@ -185,5 +185,26 @@ class BatchTestToolsSpecification extends Specification {
         BatchTestTools.valuesAt(dataset5, "b[a='AAA' & d=false]", Integer.class) == [27] as Set
         BatchTestTools.valuesAt(dataset5, "a[d=false]", String.class) == ['AAA', 'BBB'] as Set
         BatchTestTools.valuesAt(dataset5, "a", String.class) == ['AAA', 'BBB', 'CCC'] as Set
+
+        when:
+        def otherDataset = BatchTestTools.createDataset(
+            spark,
+            DatasetColumnDefinitions.builder()
+                .string('FIRST')
+                .string('SECOND')
+                .build(),
+            BatchTestTools.Rows.builder()
+                .row('AAA', 'XXX')
+                .row('BBB', 'YYY')
+                .row('CCC', 'XXX')
+                .build()
+        )
+
+        then:
+        BatchTestTools.valuesAt(otherDataset, "SECOND", String.class) == ['XXX', 'YYY'] as Set
+        BatchTestTools.valuesAt(otherDataset, "FIRST", String.class) == ['AAA', 'BBB', 'CCC'] as Set
+        BatchTestTools.valuesAt(otherDataset, "SECOND[FIRST='AAA']", String.class) == ['XXX'] as Set
+        BatchTestTools.valuesAt(otherDataset, "FIRST[SECOND='XXX']", String.class) == ['AAA', 'CCC'] as Set
+        BatchTestTools.valuesAt(otherDataset, "FIRST[SECOND='YYY']", String.class) == ['BBB'] as Set
     }
 }
