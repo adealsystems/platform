@@ -65,7 +65,7 @@ class BatchTestToolsSpecification extends Specification {
 
         then:
         dataset1a != null
-        dataset1a.show()
+        // dataset1a.show()
 
         when:
         def dataset1b = BatchTestTools.createDataset(
@@ -79,7 +79,7 @@ class BatchTestToolsSpecification extends Specification {
 
         then:
         dataset1b != null
-        dataset1b.show()
+        // dataset1b.show()
 
         when:
         def dataset1c = BatchTestTools.createDataset(
@@ -93,7 +93,7 @@ class BatchTestToolsSpecification extends Specification {
 
         then:
         dataset1c != null
-        dataset1c.show()
+        // dataset1c.show()
 
         and:
         BatchTestTools.assertDatasetEqual(dataset1a, dataset1b)
@@ -112,7 +112,7 @@ class BatchTestToolsSpecification extends Specification {
 
         then:
         dataset2 != null
-        dataset2.show()
+        // dataset2.show()
 
         and:
         BatchTestTools.assertDatasetEqual(dataset1a, dataset2)
@@ -132,7 +132,7 @@ class BatchTestToolsSpecification extends Specification {
 
         then:
         dataset3 != null
-        dataset3.show()
+        // dataset3.show()
 
         when:
         def dataset4 = BatchTestTools.createDataset(
@@ -149,7 +149,7 @@ class BatchTestToolsSpecification extends Specification {
 
         then:
         dataset4 != null
-        dataset4.show()
+        // dataset4.show()
     }
 
     def "valueAt works as expected"() {
@@ -177,12 +177,13 @@ class BatchTestToolsSpecification extends Specification {
 
         then:
         dataset5 != null
-        dataset5.show()
+        // dataset5.show()
 
         and:
         BatchTestTools.valuesAt(dataset5, "b[a='BBB']", Integer.class) == [21] as Set
         BatchTestTools.valuesAt(dataset5, "b[a='AAA']", Integer.class) == [17, 27] as Set
         BatchTestTools.valuesAt(dataset5, "b[a='AAA' & d=false]", Integer.class) == [27] as Set
         BatchTestTools.valuesAt(dataset5, "a[d=false]", String.class) == ['AAA', 'BBB'] as Set
+        BatchTestTools.valuesAt(dataset5, "a", String.class) == ['AAA', 'BBB', 'CCC'] as Set
     }
 }

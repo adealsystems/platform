@@ -41,6 +41,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -68,7 +69,7 @@ public final class BatchTestTools {
         = DateTimeFormatter.ofPattern(DEFAULT_DATE_TIME_PATTERN);
 
     private static final Pattern QUERY_PATTERN
-        = Pattern.compile("(?<target>[[a-zA-Z0-9_]+])\\[(?<expr>.*)\\]");
+        = Pattern.compile("(?<target>[[a-zA-Z0-9_]+])(\\[(?<expr>.*)\\])?");
     private static final String EQUALITY_FORMAT = "([a-zA-Z0-9_]+)\\s*=\\s*([^\\s]+)";
 
     private BatchTestTools() {
@@ -255,9 +256,11 @@ public final class BatchTestTools {
         String target = matcher.group("target");
         String expr = matcher.group("expr");
 
-        String parsedFilter = parseExpression(expr);
-        Dataset<Row> filtered = dataset.filter(parsedFilter);
-        Dataset<Row> selected = filtered.select(target);
+        Optional<String> parsedFilter = parseExpression(expr);
+        if (parsedFilter.isPresent()) {
+            dataset = dataset.filter(parsedFilter.get());
+        }
+        Dataset<Row> selected = dataset.select(target);
 
         return selected.collectAsList()
             .stream()
@@ -265,7 +268,11 @@ public final class BatchTestTools {
             .collect(Collectors.toSet());
     }
 
-    private static String parseExpression(String expr) {
+    private static Optional<String> parseExpression(String expr) {
+        if (expr == null || expr.isEmpty()) {
+            return Optional.empty();
+        }
+
         String parsed = expr
             .replace("&", "AND")
             .replace("|", "OR");
@@ -273,7 +280,7 @@ public final class BatchTestTools {
         // Ensure proper formatting for equality checks
         parsed = parsed.replaceAll(EQUALITY_FORMAT, "$1 = $2");
 
-        return parsed;
+        return Optional.of(parsed);
     }
 
     // endregion
