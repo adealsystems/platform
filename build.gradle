@@ -14,7 +14,7 @@ wrapper {
     gradleVersion = '7.3.3'
 }
 
-def javaMajorVersion = 8
+def javaMajorVersion = 11
 
 buildscript {
     repositories {
@@ -51,7 +51,7 @@ allprojects {
     //apply plugin: 'org.ec4j.editorconfig'
 
     group = 'org.adealsystems'
-    version = '0.49.10'
+    version = '0.50.0'
     def prereleaseIdentifier = System.properties.'prerelease'
     if (prereleaseIdentifier) {
         version = version + '-' + prereleaseIdentifier

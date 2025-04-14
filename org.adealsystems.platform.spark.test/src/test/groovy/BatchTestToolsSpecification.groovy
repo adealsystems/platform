@@ -166,13 +166,13 @@ class BatchTestToolsSpecification extends Specification {
             spark,
             simpleStruct,
             "+---+--+-------+-----+\n" +
-                "|  a| b|      c|    d|\n" +
-                "+---+--+-------+-----+\n" +
-                "|AAA|17|123456L| true|\n" +
-                "|BBB|21|987654L|false|\n" +
-                "|CCC|  |       |     |\n" +
-                "|AAA|27|1982376|false|\n" +
-                "+---+--+-------+-----+"
+            "|  a| b|      c|    d|\n" +
+            "+---+--+-------+-----+\n" +
+            "|AAA|17|123456L| true|\n" +
+            "|BBB|21|987654L|false|\n" +
+            "|CCC|  |       |     |\n" +
+            "|AAA|27|1982376|false|\n" +
+            "+---+--+-------+-----+"
         )
 
         then:

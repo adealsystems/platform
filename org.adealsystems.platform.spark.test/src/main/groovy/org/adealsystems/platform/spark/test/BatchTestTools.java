@@ -61,12 +61,12 @@ public final class BatchTestTools {
     private static final Pattern DATE_PATTERN
         = Pattern.compile("[0-9]{4}-[0-9]{2}-[0-9]{2}");
     private static final DateTimeFormatter DATE_FORMATTER
-        = DateTimeFormatter.ofPattern(DEFAULT_DATE_PATTERN);
+        = DateTimeFormatter.ofPattern(DEFAULT_DATE_PATTERN, Locale.ROOT);
 
     private static final Pattern DATE_TIME_PATTERN
         = Pattern.compile("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}(:[0-9]{2})?");
     private static final DateTimeFormatter DATE_TIME_FORMATTER
-        = DateTimeFormatter.ofPattern(DEFAULT_DATE_TIME_PATTERN);
+        = DateTimeFormatter.ofPattern(DEFAULT_DATE_TIME_PATTERN, Locale.ROOT);
 
     private static final Pattern QUERY_PATTERN
         = Pattern.compile("(?<target>[a-zA-Z_]+[a-zA-Z0-9_]*)(\\[(?<expr>.*)\\])?");
@@ -123,7 +123,7 @@ public final class BatchTestTools {
         StructField[] fields = colDefs.resolveDatasetStructure();
 
         List<Row> dfRows = new ArrayList<>();
-        for (String[] dataRow : rows.rows) {
+        for (String[] dataRow : rows.data) {
             dfRows.add(RowFactory.create(row(dataRow, colDefs)));
         }
 
@@ -131,15 +131,16 @@ public final class BatchTestTools {
 
     }
 
+    @SuppressWarnings("PMD.ShortClassName")
     public static class Rows {
-        private final List<String[]> rows;
+        private final List<String[]> data;
 
         public Rows(List<String[]> rows) {
-            this.rows = rows;
+            this.data = rows;
         }
 
         public List<String[]> getRows() {
-            return rows;
+            return data;
         }
 
         public static Builder builder() {
@@ -165,7 +166,7 @@ public final class BatchTestTools {
     }
 
     public static class RowFormat {
-        private final String DEFAULT_DELIMITER = ",";
+        private static final String DEFAULT_DELIMITER = ",";
 
         private String delimiter = DEFAULT_DELIMITER;
 
@@ -309,10 +310,8 @@ public final class BatchTestTools {
             return new Object[0];
         }
 
-        if (colDefs != null) {
-            if (colDefs.getColumnCount() != cells.length) {
-                throw new IllegalArgumentException("Number of type definitions does not match number of cells!");
-            }
+        if (colDefs != null && colDefs.getColumnCount() != cells.length) {
+            throw new IllegalArgumentException("Number of type definitions does not match number of cells!");
         }
 
         List<Object> values = new ArrayList<>();
@@ -334,8 +333,11 @@ public final class BatchTestTools {
             Object obj = parseObject(value, type, pattern);
             if (obj == null && !nullable) {
                 String colName = colDefs.getColumnName(i);
-                String msg = String.format(Locale.ROOT, "Value is null for a non nullable column '%s'!", colName);
-                throw new IllegalArgumentException(msg);
+                throw new IllegalArgumentException(String.format(
+                    Locale.ROOT,
+                    "Value is null for a non nullable column '%s'!",
+                    colName
+                ));
             }
             values.add(obj);
         }
@@ -431,7 +433,8 @@ public final class BatchTestTools {
             case "java.time.LocalDate":
                 try {
                     DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
-                        pattern == null ? DEFAULT_DATE_PATTERN : pattern
+                        pattern == null ? DEFAULT_DATE_PATTERN : pattern,
+                        Locale.ROOT
                     );
                     return LocalDate.parse(value, formatter);
                 }
@@ -443,7 +446,8 @@ public final class BatchTestTools {
             case "java.time.LocalDateTime":
                 try {
                     DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
-                        pattern == null ? DEFAULT_DATE_TIME_PATTERN : pattern
+                        pattern == null ? DEFAULT_DATE_TIME_PATTERN : pattern,
+                        Locale.ROOT
                     );
                     return Timestamp.valueOf(LocalDateTime.parse(value, formatter));
                 }
@@ -453,9 +457,11 @@ public final class BatchTestTools {
                 }
 
             default:
-                throw new IllegalArgumentException(
-                    String.format("Type '%s' is not supported for value '%s'!", type.getName(), value)
-                );
+                throw new IllegalArgumentException(String.format(
+                    Locale.ROOT,
+                    "Type '%s' is not supported for value '%s'!",
+                    type.getName(), value
+                ));
         }
     }
 
@@ -551,7 +557,7 @@ public final class BatchTestTools {
         private final Queue<String> queue = new LinkedList<>();
         private final String valueDelimiter;
 
-        public RowIterator(String valueDelimiter, String[] lines) {
+        RowIterator(String valueDelimiter, String[] lines) {
             this.valueDelimiter = Objects.requireNonNull(valueDelimiter, "valueDelimiter must not be null!");
             Objects.requireNonNull(lines, "lines must not be null!");
 
