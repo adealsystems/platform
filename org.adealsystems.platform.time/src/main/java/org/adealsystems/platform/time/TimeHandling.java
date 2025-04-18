@@ -199,7 +199,11 @@ public final class TimeHandling {
         if (matcher.matches()) {
             return Integer.parseInt(matcher.group(2));
         }
-        throw new IllegalArgumentException("weekOfYear '" + weekOfYear + "' does not match either '" + TWO_DIGIT_WEEK_OF_YEAR_PATTERN + "' or '" + FOUR_DIGIT_WEEK_OF_YEAR_PATTERN + "'!");
+        throw new IllegalArgumentException(String.format(
+            Locale.ROOT,
+            "weekOfYear '%s' does not match either '%s' or '%s'!",
+            weekOfYear, TWO_DIGIT_WEEK_OF_YEAR_PATTERN, FOUR_DIGIT_WEEK_OF_YEAR_PATTERN
+        ));
     }
 
     // TODO: docs
@@ -216,6 +220,10 @@ public final class TimeHandling {
         if (matcher.matches()) {
             return Integer.parseInt(matcher.group(1));
         }
-        throw new IllegalArgumentException("weekOfYear '" + weekOfYear + "' does not match either '" + TWO_DIGIT_WEEK_OF_YEAR_PATTERN + "' or '" + FOUR_DIGIT_WEEK_OF_YEAR_PATTERN + "'!");
+        throw new IllegalArgumentException(String.format(
+            Locale.ROOT,
+            "weekOfYear '%s' does not match either '%s' or '%s'!",
+            weekOfYear, TWO_DIGIT_WEEK_OF_YEAR_PATTERN, FOUR_DIGIT_WEEK_OF_YEAR_PATTERN
+        ));
     }
 }

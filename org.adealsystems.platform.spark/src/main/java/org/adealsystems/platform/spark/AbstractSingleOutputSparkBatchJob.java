@@ -1060,7 +1060,8 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
             LOGGER.debug("Found successPath");
 
-            FileStatus[] globs = fs.globStatus(new Path(source + "/part-*"));
+            Path pathPattern = new Path(source + "/part-*");
+            FileStatus[] globs = fs.globStatus(pathPattern);
             if (globs == null) {
                 // from Globber.doGlob():
                 /*
@@ -1075,10 +1076,10 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
                 throw new IllegalStateException("globStatus() returned null! This should not happen...");
             }
 
-            LOGGER.debug("Globs: {}", (Object) globs);
+            LOGGER.debug("Globs for path {}: {}", pathPattern, globs);
             if (globs.length != 1) {
-                LOGGER.error("Expected one part but found {}! {}", globs.length, globs);
-                throw new IllegalStateException("Expected one part but found " + globs.length);
+                LOGGER.error("Expected one part file for {} but found {}! {}", source, globs.length, globs);
+                throw new IllegalStateException("Expected one part file for " + source + " but found " + globs.length);
             }
 
             Path sourcePath = globs[0].getPath();
