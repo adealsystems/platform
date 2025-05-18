@@ -183,6 +183,8 @@ public class Transformer<I, J, O, P> {
             metrics.addSkippedInput();
             return true;
         }
+
+        LOGGER.info("Processing {}", inputString);
         try {
             for (J entry : well) {
                 if (!processEntry(entry, drain, metrics)) {
