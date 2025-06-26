@@ -131,22 +131,23 @@ public class SessionProcessingState implements Cloneable {
 
         long hours = duration.toHours();
         if (hours > 0) {
-            msg.append(' ').append(hours).append(" hours");
+            msg.append(' ').append(hours).append(' ').append(hours == 1 ? "hour" : "hours");
             duration = duration.minusHours(hours);
         }
 
         long minutes = duration.toMinutes();
         if (minutes > 0) {
-            msg.append(' ').append(minutes).append(" minutes");
+            msg.append(' ').append(minutes).append(' ').append(minutes == 1 ? "minute" : "minutes");
             duration = duration.minusMinutes(minutes);
         }
 
         long seconds = duration.getSeconds();
         if (seconds > 0) {
-            msg.append(' ').append(seconds).append(" seconds");
+            msg.append(' ').append(seconds).append(' ').append(seconds == 1 ? "second" : "seconds");
         }
         else {
-            msg.append(' ').append(duration.getNano()).append(" nanos");
+            int nanos = duration.getNano();
+            msg.append(' ').append(nanos).append(' ').append(nanos == 1 ? "nano" : "nanos");
         }
 
         state.setMessage(msg.toString());

@@ -36,7 +36,7 @@ public final class SessionId implements Comparable<SessionId> {
         }
 
         if (!PATTERN.matcher(id).matches()) {
-            throw new SessionIdCreationException("id value doesn't match the pattern '" + PATTERN.pattern() + "'!", id);
+            throw new SessionIdCreationException("id value '" + id + "' doesn't match the pattern '" + PATTERN.pattern() + "'!", id);
         }
 
         this.id = id;
