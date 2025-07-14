@@ -17,6 +17,7 @@
 package org.adealsystems.platform.time;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -104,6 +105,13 @@ public final class TimeHandling {
         return Date.from(localDate.atStartOfDay(zoneId).toInstant());
     }
 
+    public static String toHumanReadableDuration(Duration duration) {
+        return duration.toString()
+            .substring(2)
+            .replaceAll("(\\d[HMS])(?!$)", "$1 ")
+            .replaceAll("\\.\\d+", "")
+            .toLowerCase();
+    }
 
     // TODO: docs
     public static LocalDate convertToLocalDate(Object input) {
