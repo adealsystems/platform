@@ -51,6 +51,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.adealsystems.platform.spark.AbstractSingleOutputSparkBatchJob.readAthenaJdbc;
@@ -214,6 +215,10 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
     protected DatasetLogger getDatasetLogger() {
         return datasetLogger;
+    }
+
+    public void addSessionAnalyser(String sessionCode, Consumer<DatasetLogger.AnalyserSession> analyser) {
+        datasetLogger.addSessionAnalyser(sessionCode, analyser);
     }
 
     @Override

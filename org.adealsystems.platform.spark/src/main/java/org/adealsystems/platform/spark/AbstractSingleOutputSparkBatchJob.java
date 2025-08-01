@@ -59,6 +59,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 
@@ -231,6 +232,10 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     protected DatasetLogger getDatasetLogger() {
         return datasetLogger;
+    }
+
+    public void addSessionAnalyser(String sessionCode, Consumer<DatasetLogger.AnalyserSession> analyser) {
+        datasetLogger.addSessionAnalyser(sessionCode, analyser);
     }
 
     @Override
