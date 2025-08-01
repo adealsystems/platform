@@ -809,6 +809,9 @@ public class DatasetLogger {
         public void close() {
             this.stopTime = LocalDateTime.now(ZoneId.systemDefault());
             this.closed = true;
+            for (Dataset<Row> dataset : datasets.values()) {
+                dataset.unpersist();
+            }
         }
 
         public void add(String key, Dataset<Row> dataset) {
