@@ -24,14 +24,19 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * This utility class can be used to log dataset states and should help
@@ -308,6 +313,10 @@ public class DatasetLogger {
 
     private final Context context;
 
+    private final Map<String, AnalyserSession> analyserSessions = new HashMap<>();
+    private final Set<String> activeSessions = new HashSet<>();
+    private final Map<String, Consumer<AnalyserSession>> analysers = new HashMap<>();
+
     public DatasetLogger() {
         this(null);
     }
@@ -339,6 +348,8 @@ public class DatasetLogger {
 
         return !ctx.isEnabled();
     }
+
+    // region show columns
 
     public void showColumns(String message, Dataset<?>... datasets) {
         showColumns(null, message, datasets);
@@ -423,6 +434,10 @@ public class DatasetLogger {
         ctx.getLogger().info("\n{}", builder);
     }
 
+    // endregion
+
+    // region show schema
+
     public void showSchema(String message, Dataset<Row> dataset) {
         showSchema(null, message, dataset);
     }
@@ -451,6 +466,10 @@ public class DatasetLogger {
 
         ctx.getLogger().info("\n{}", builder);
     }
+
+    // endregion
+
+    // region show struct
 
     public void showStruct(String message, StructType structType) {
         showStruct(null, message, structType);
@@ -497,6 +516,10 @@ public class DatasetLogger {
 
         ctx.getLogger().info("\n{}", builder);
     }
+
+    // endregion
+
+    // region show info
 
     public void showInfo(String message, Dataset<Row> dataset, Column... columns) {
         showInfo(null, message, dataset, columns);
@@ -564,6 +587,66 @@ public class DatasetLogger {
 
         ctx.getLogger().info("\n{}", builder);
     }
+
+    // endregion
+
+    // region analyser
+
+    public void addSessionAnalyser(String sessionCode, Consumer<AnalyserSession> analyser) {
+        Objects.requireNonNull(sessionCode, "session code must not be null!");
+        Objects.requireNonNull(analyser, "analyser must not be null!");
+
+        this.analysers.put(sessionCode, analyser);
+    }
+
+    public void startSession(String code) {
+        Objects.requireNonNull(code, "session code must not be null!");
+
+        LOGGER.debug("Starting analysis session {}", code);
+        analyserSessions.put(code, new AnalyserSession(code));
+        activeSessions.add(code);
+    }
+
+    public void stopSession(String code) {
+        Objects.requireNonNull(code, "session code must not be null!");
+
+        AnalyserSession session = analyserSessions.get(code);
+        if (session == null) {
+            throw new IllegalArgumentException("No analysis session found for '" + code + "'");
+        }
+
+        LOGGER.debug("Stopping analysis session {}", code);
+        session.close();
+        activeSessions.remove(code);
+    }
+
+    public void analyse(String analysisCode, Dataset<Row> dataset) {
+        Objects.requireNonNull(analysisCode, "analysisCode code must not be null!");
+        Objects.requireNonNull(dataset, "dataset must not be null!");
+
+        if (activeSessions.isEmpty()) {
+            LOGGER.debug("No active analysis sessions found, skipping dataset analysis");
+            return;
+        }
+
+        for (String code : activeSessions) {
+            AnalyserSession session = analyserSessions.get(code);
+            if (session == null) {
+                throw new IllegalArgumentException("No analysis session found for '" + code + "'");
+            }
+
+            LOGGER.debug("Adding dataset {} to active analysis session '{}'", analysisCode, code);
+            session.add(analysisCode, dataset);
+
+            Consumer<AnalyserSession> analyser = analysers.get(code);
+            if (analyser != null) {
+                LOGGER.debug("Calling analyser for session '{}' and analysis '{}'", code, analysisCode);
+                analyser.accept(session);
+            }
+        }
+    }
+
+    // endregion
 
     private DatasetLogger.Context resolveContext(DatasetLogger.Context ctx) {
         return ctx == null ? context : ctx;
@@ -705,6 +788,85 @@ public class DatasetLogger {
 
         public boolean isEnabled() {
             return enabled && getLogger().isInfoEnabled();
+        }
+    }
+
+    public static class AnalyserSession {
+        private final String code;
+        private final Map<String, Dataset<Row>> datasets = new HashMap<>();
+
+        private final LocalDateTime startTime;
+        private LocalDateTime lastUpdateTime;
+        private LocalDateTime stopTime;
+        private boolean closed;
+
+        public AnalyserSession(String code) {
+            this.code = code;
+            this.startTime = LocalDateTime.now(ZoneId.systemDefault());
+            this.closed = false;
+        }
+
+        public void close() {
+            this.stopTime = LocalDateTime.now(ZoneId.systemDefault());
+            this.closed = true;
+        }
+
+        public void add(String key, Dataset<Row> dataset) {
+            datasets.put(key, dataset);
+            this.lastUpdateTime = LocalDateTime.now(ZoneId.systemDefault());
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public Map<String, Dataset<Row>> getDatasets() {
+            return datasets;
+        }
+
+        public LocalDateTime getStartTime() {
+            return startTime;
+        }
+
+        public LocalDateTime getLastUpdateTime() {
+            return lastUpdateTime;
+        }
+
+        public LocalDateTime getStopTime() {
+            return stopTime;
+        }
+
+        public boolean isClosed() {
+            return closed;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+            AnalyserSession that = (AnalyserSession) o;
+            return closed == that.closed
+                && Objects.equals(code, that.code)
+                && Objects.equals(datasets, that.datasets)
+                && Objects.equals(startTime, that.startTime)
+                && Objects.equals(lastUpdateTime, that.lastUpdateTime)
+                && Objects.equals(stopTime, that.stopTime);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(code, datasets, startTime, lastUpdateTime, stopTime, closed);
+        }
+
+        @Override
+        public String toString() {
+            return "AnalyserSession{" +
+                "code='" + code + '\'' +
+                ", datasets=" + datasets +
+                ", startTime=" + startTime +
+                ", lastUpdateTime=" + lastUpdateTime +
+                ", stopTime=" + stopTime +
+                ", closed=" + closed +
+                '}';
         }
     }
 
