@@ -122,7 +122,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         setWriteMode(WriteMode.DATE);
         DatasetLogger.Context dlc = DatasetLogger.newContext();
         dlc.setLogger(logger);
-        this.datasetLogger = new DatasetLogger(dlc);
+        this.datasetLogger = new DatasetLogger(dlc, sparkContext);
     }
 
     public AbstractSingleOutputSparkBatchJob(

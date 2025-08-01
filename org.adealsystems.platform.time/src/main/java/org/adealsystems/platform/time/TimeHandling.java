@@ -110,7 +110,7 @@ public final class TimeHandling {
             .substring(2)
             .replaceAll("(\\d[HMS])(?!$)", "$1 ")
             .replaceAll("\\.\\d+", "")
-            .toLowerCase();
+            .toLowerCase(Locale.ROOT);
     }
 
     // TODO: docs

@@ -16,6 +16,7 @@
 
 package org.adealsystems.platform.spark;
 
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -312,16 +313,18 @@ public class DatasetLogger {
     private static boolean firstCall = true;
 
     private final Context context;
+    private final JavaSparkContext sparkContext;
 
     private final Map<String, AnalyserSession> analyserSessions = new HashMap<>();
     private final Set<String> activeSessions = new HashSet<>();
     private final Map<String, BiConsumer<AnalyserSession, String>> analysers = new HashMap<>();
 
-    public DatasetLogger() {
-        this(null);
+    public DatasetLogger(JavaSparkContext sparkContext) {
+        this(null, sparkContext);
     }
 
-    public DatasetLogger(Context context) {
+    public DatasetLogger(Context context, JavaSparkContext sparkContext) {
+        this.sparkContext = sparkContext;
         if (context == null) {
             context = Context.getDefaultContext();
         }
@@ -596,6 +599,9 @@ public class DatasetLogger {
         Objects.requireNonNull(sessionCode, "session code must not be null!");
         Objects.requireNonNull(analyser, "analyser must not be null!");
 
+        if (JavaSparkContextAware.class.isAssignableFrom(analyser.getClass())) {
+            ((JavaSparkContextAware)analyser).setSparkContext(sparkContext);
+        }
         this.analysers.put(sessionCode, analyser);
     }
 

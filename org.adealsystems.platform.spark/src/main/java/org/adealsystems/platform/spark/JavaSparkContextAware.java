@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.orchestrator.handler;
+package org.adealsystems.platform.spark;
 
-import java.util.Map;
+import org.apache.spark.api.java.JavaSparkContext;
 
-public interface ConfigurableHandler {
-    void configure(String instanceKey, Map<String, String> config);
+public interface JavaSparkContextAware {
+    JavaSparkContext getSparkContext();
+
+    void setSparkContext(JavaSparkContext sparkContext);
 }

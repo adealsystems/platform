@@ -110,7 +110,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         setWriteMode(WriteMode.DATE);
         DatasetLogger.Context dlc = DatasetLogger.newContext();
         dlc.setLogger(logger);
-        this.datasetLogger = new DatasetLogger(dlc);
+        this.datasetLogger = new DatasetLogger(dlc, sparkContext);
     }
 
     public AbstractMultipleOutputSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, Collection<DataIdentifier> outputIdentifiers, LocalDate invocationDate) {
