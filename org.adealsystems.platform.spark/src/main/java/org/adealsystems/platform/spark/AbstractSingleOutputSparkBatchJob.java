@@ -1040,7 +1040,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
     }
 
     // this is broken code... but now it's in a single place
-    static void moveFile(JavaSparkContext sparkContext, String source, String target) {
+    public static void moveFile(JavaSparkContext sparkContext, String source, String target) {
         try (FileSystem fs = getFileSystem(sparkContext, source)) {
             String successFilename = source + '/' + SUCCESS_INDICATOR;
             LOGGER.debug("successFilename: {}", successFilename);

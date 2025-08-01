@@ -36,7 +36,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * This utility class can be used to log dataset states and should help
@@ -315,7 +315,7 @@ public class DatasetLogger {
 
     private final Map<String, AnalyserSession> analyserSessions = new HashMap<>();
     private final Set<String> activeSessions = new HashSet<>();
-    private final Map<String, Consumer<AnalyserSession>> analysers = new HashMap<>();
+    private final Map<String, BiConsumer<AnalyserSession, String>> analysers = new HashMap<>();
 
     public DatasetLogger() {
         this(null);
@@ -592,7 +592,7 @@ public class DatasetLogger {
 
     // region analyser
 
-    public void addSessionAnalyser(String sessionCode, Consumer<AnalyserSession> analyser) {
+    public void addSessionAnalyser(String sessionCode, BiConsumer<AnalyserSession, String> analyser) {
         Objects.requireNonNull(sessionCode, "session code must not be null!");
         Objects.requireNonNull(analyser, "analyser must not be null!");
 
@@ -635,7 +635,7 @@ public class DatasetLogger {
                 throw new IllegalArgumentException("No analysis session found for '" + code + "'");
             }
 
-            Consumer<AnalyserSession> analyser = analysers.get(code);
+            BiConsumer<AnalyserSession, String> analyser = analysers.get(code);
             if (analyser == null) {
                 LOGGER.debug("No analyser specified for '{}', skipping analysis '{}'", code, analysisCode);
                 return;
@@ -645,7 +645,7 @@ public class DatasetLogger {
             session.add(analysisCode, dataset);
 
             LOGGER.debug("Calling analyser for session '{}' and analysis '{}'", code, analysisCode);
-            analyser.accept(session);
+            analyser.accept(session, code);
         }
     }
 
