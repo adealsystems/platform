@@ -635,14 +635,17 @@ public class DatasetLogger {
                 throw new IllegalArgumentException("No analysis session found for '" + code + "'");
             }
 
+            Consumer<AnalyserSession> analyser = analysers.get(code);
+            if (analyser == null) {
+                LOGGER.debug("No analyser specified for '{}', skipping analysis '{}'", code, analysisCode);
+                return;
+            }
+
             LOGGER.debug("Adding dataset {} to active analysis session '{}'", analysisCode, code);
             session.add(analysisCode, dataset);
 
-            Consumer<AnalyserSession> analyser = analysers.get(code);
-            if (analyser != null) {
-                LOGGER.debug("Calling analyser for session '{}' and analysis '{}'", code, analysisCode);
-                analyser.accept(session);
-            }
+            LOGGER.debug("Calling analyser for session '{}' and analysis '{}'", code, analysisCode);
+            analyser.accept(session);
         }
     }
 
