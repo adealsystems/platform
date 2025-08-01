@@ -51,7 +51,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import static org.adealsystems.platform.spark.AbstractSingleOutputSparkBatchJob.readAthenaJdbc;
@@ -217,7 +217,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         return datasetLogger;
     }
 
-    public void addSessionAnalyser(String sessionCode, Consumer<DatasetLogger.AnalyserSession> analyser) {
+    public void addSessionAnalyser(String sessionCode, BiConsumer<DatasetLogger.AnalyserSession, String> analyser) {
         datasetLogger.addSessionAnalyser(sessionCode, analyser);
     }
 
