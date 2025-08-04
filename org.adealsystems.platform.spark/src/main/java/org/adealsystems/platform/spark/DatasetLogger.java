@@ -651,7 +651,7 @@ public class DatasetLogger {
             session.add(analysisCode, dataset);
 
             LOGGER.debug("Calling analyser for session '{}' and analysis '{}'", code, analysisCode);
-            analyser.accept(session, code);
+            analyser.accept(session, analysisCode);
         }
     }
 
@@ -821,6 +821,7 @@ public class DatasetLogger {
             for (Dataset<Row> dataset : datasets.values()) {
                 dataset.unpersist();
             }
+            datasets.clear();
         }
 
         public void add(String key, Dataset<Row> dataset) {
@@ -904,4 +905,23 @@ public class DatasetLogger {
 
         return stack.remove(len - 1);
     }
+
+    // region for unit tests only
+
+    // package private for unit tests
+    Map<String, AnalyserSession> getAnalyserSessions() {
+        return new HashMap<>(analyserSessions);
+    }
+
+    // package private for unit tests
+    Set<String> getActiveSessions() {
+        return new HashSet<>(activeSessions);
+    }
+
+    // package private for unit tests
+    Map<String, BiConsumer<AnalyserSession, String>> getAnalysers() {
+        return new HashMap<>(analysers);
+    }
+
+    // endregion
 }
