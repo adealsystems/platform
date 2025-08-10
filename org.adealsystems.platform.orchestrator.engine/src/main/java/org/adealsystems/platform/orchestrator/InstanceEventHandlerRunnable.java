@@ -27,6 +27,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static org.adealsystems.platform.orchestrator.InternalEvent.setSessionStateAttribute;
+import static org.adealsystems.platform.orchestrator.InternalEventHandlerRunnable.FINAL_STATES;
 import static org.adealsystems.platform.orchestrator.InternalEventHandlerRunnable.FINAL_UNSUCCESSFUL_STATES;
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.INSTANCE_ID_ATTRIBUTE_NAME;
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSION_ID_ATTRIBUTE_NAME;
@@ -77,7 +78,7 @@ public class InstanceEventHandlerRunnable implements Runnable {
         while (true) {
             LOGGER.debug("Waiting for the next available event for {}", instanceId);
             Optional<InternalEvent> oEvent = eventReceiver.receiveEvent();
-            if (!oEvent.isPresent()) {
+            if (oEvent.isEmpty()) {
                 LOGGER.info("Shutting down.");
                 return;
             }
@@ -95,7 +96,7 @@ public class InstanceEventHandlerRunnable implements Runnable {
             }
 
             Optional<Session> oSession = sessionRepository.retrieveSession(sessionId);
-            if (!oSession.isPresent()) {
+            if (oSession.isEmpty()) {
                 LOGGER.warn("No session available for instanceId {} and sessionId {}!", instanceId, sessionId);
                 continue;
             }
@@ -141,8 +142,11 @@ public class InstanceEventHandlerRunnable implements Runnable {
                 continue;
             }
 
-            LOGGER.debug("Updating session from {} to {}.", previousSession, session);
-            sessionRepository.updateSession(session);
+            SessionProcessingState prevState = previousSession.getProcessingState();
+            if (prevState != null && !FINAL_STATES.contains(prevState.getState())) {
+                LOGGER.debug("Updating session from {} to {}.", previousSession, session);
+                sessionRepository.updateSession(session);
+            }
 
             InternalEvent changeSessionEvent = createSessionStateEvent(session);
             LOGGER.debug("Sending change session event {} to handler for {}", event, instanceId);

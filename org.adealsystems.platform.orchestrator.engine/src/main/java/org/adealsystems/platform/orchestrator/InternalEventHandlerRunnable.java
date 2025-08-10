@@ -88,6 +88,15 @@ public class InternalEventHandlerRunnable implements Runnable {
         ))
     );
 
+    public static final Set<State> FINAL_STATES = Collections.unmodifiableSet(
+        new HashSet<>(Arrays.asList(
+            State.DONE,
+            State.FAILED,
+            State.CANCELLED,
+            State.ABORTED
+        ))
+    );
+
     public static final String EVENT_ID_CREATE_RUN = "create-run";
     public static final String EVENT_ID_COMPLETE_RUN = "complete-run";
 
