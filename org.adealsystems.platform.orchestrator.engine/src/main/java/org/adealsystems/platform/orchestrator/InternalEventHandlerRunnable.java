@@ -195,7 +195,7 @@ public class InternalEventHandlerRunnable implements Runnable {
 
                 LOGGER.debug("Getting a new raw event");
                 Optional<InternalEvent> oEvent = rawEventReceiver.receiveEvent();
-                if (!oEvent.isPresent()) {
+                if (oEvent.isEmpty()) {
                     LOGGER.info("Shutting down internal event handler thread. Raw event receiver returned no value.");
                     return;
                 }
@@ -215,7 +215,7 @@ public class InternalEventHandlerRunnable implements Runnable {
                 // Run events special handling
                 if (eventType == InternalEventType.RUN) {
                     Optional<String> oRunId = event.getAttributeValue(ATTR_RUN_ID);
-                    if (!oRunId.isPresent()) {
+                    if (oRunId.isEmpty()) {
                         LOGGER.warn("Invalid RUN event, missing run-id attribute! Ignoring...");
                         continue;
                     }
@@ -307,7 +307,7 @@ public class InternalEventHandlerRunnable implements Runnable {
     private void cleanupAllRunningSessions(String runId) {
         Set<String> activeSessionsInfo = cleanupRunningSessions(runId, (runSpecification, session) -> {
             Optional<String> oSessionRunId = session.getStateValue(SessionEventConstants.RUN_ID_ATTRIBUTE_NAME);
-            if (!oSessionRunId.isPresent()) {
+            if (oSessionRunId.isEmpty()) {
                 LOGGER.info("No run-id specified in the session {}", session);
                 return false;
             }
@@ -349,7 +349,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         Set<String> activeSessionsInfo = new HashSet<>();
         for (InstanceId instanceId : activeInstances) {
             Optional<SessionId> oSessionId = activeSessionIdRepository.retrieveActiveSessionId(instanceId);
-            if (!oSessionId.isPresent()) {
+            if (oSessionId.isEmpty()) {
                 LOGGER.debug("No active session found for {}", instanceId);
                 continue;
             }
@@ -360,7 +360,7 @@ public class InternalEventHandlerRunnable implements Runnable {
 
             SessionId sessionId = oSessionId.get();
             Optional<Session> oSession = sessionRepository.retrieveSession(sessionId);
-            if (!oSession.isPresent()) {
+            if (oSession.isEmpty()) {
                 LOGGER.info("No session found for {}", sessionId);
                 continue;
             }
@@ -372,7 +372,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             }
 
             Optional<RunSpecification> oRun = classifier.getCurrentRun();
-            if (!oRun.isPresent()) {
+            if (oRun.isEmpty()) {
                 LOGGER.debug("Event classifier for {} is not run-specific", instanceRef);
                 continue;
             }
@@ -412,7 +412,7 @@ public class InternalEventHandlerRunnable implements Runnable {
 
     private boolean hasFlagForTerminateSession(InternalEvent event) {
         Optional<Session> oSession = getSessionStateAttribute(event);
-        if (!oSession.isPresent()) {
+        if (oSession.isEmpty()) {
             return false;
         }
 
@@ -479,43 +479,7 @@ public class InternalEventHandlerRunnable implements Runnable {
                 continue;
             }
 
-            // Outdated events check (run specific)
-            Optional<RunSpecification> oRun = eventClassifier.getCurrentRun();
-            String classifierName = eventClassifier.getClass().getName();
-            if (oRun.isPresent()) {
-                RunSpecification run = oRun.get();
-                LOGGER.debug("EventClassifier {} is run-specific for {}, checking validity", classifierName, run);
-                if (RunSpecification.isEventOutdated(clonedEvent, run.getType(), runRepository)) {
-                    LOGGER.warn("Detected an outdated event {}, current run-id: '{}'", clonedEvent, run);
-                    continue;
-                }
-
-                if (!eventClassifier.isValid(clonedEvent)) {
-                    LOGGER.warn(
-                        "Detected an invalid event {} for current run-id '{}' and {}",
-                        clonedEvent,
-                        run,
-                        classifierName
-                    );
-                    continue;
-                }
-
-                clonedEvent.setAttributeValue(ATTR_RUN_ID, run.getId());
-            }
-            else {
-                LOGGER.debug("Event {} is not run-specific, checking validity", clonedEvent);
-
-                if (!eventClassifier.isValid(clonedEvent)) {
-                    LOGGER.warn("Detected an invalid event {} for {}", clonedEvent, classifierName);
-                    continue;
-                }
-            }
-
-            assigned = true;
-
-            InstanceId instanceId = entry.getKey();
-            clonedEvent.setInstanceId(instanceId);
-
+            // Determine & set dynamic content, if any
             Optional<String> oDynamicContent = eventClassifier.determineDynamicContent(clonedEvent);
             if (oDynamicContent.isPresent()) {
                 String content = oDynamicContent.get();
@@ -531,13 +495,52 @@ public class InternalEventHandlerRunnable implements Runnable {
                 setDynamicContentAttribute(clonedEvent, content);
             }
 
+            // Outdated events check (run specific)
+            Optional<RunSpecification> oRun = eventClassifier.getCurrentRun();
+            String classifierName = eventClassifier.getClass().getName();
+            if (oRun.isPresent()) {
+                RunSpecification run = oRun.get();
+                LOGGER.debug("EventClassifier {} is run-specific for {}, checking validity", classifierName, run);
+                if (RunSpecification.isEventOutdated(clonedEvent, run.getType(), runRepository)) {
+                    LOGGER.warn("Detected an outdated event {}, current run-id: '{}'", clonedEvent, run);
+                    continue;
+                }
+
+                // Validity check
+                if (!eventClassifier.isValid(clonedEvent)) {
+                    LOGGER.warn(
+                        "Detected an invalid event {} for current run-id '{}' and {}",
+                        clonedEvent,
+                        run,
+                        classifierName
+                    );
+                    continue;
+                }
+
+                clonedEvent.setAttributeValue(ATTR_RUN_ID, run.getId());
+            }
+            else {
+                LOGGER.debug("Event {} is not run-specific, checking validity", clonedEvent);
+
+                // Validity check
+                if (!eventClassifier.isValid(clonedEvent)) {
+                    LOGGER.warn("Detected an invalid event {} for {}", clonedEvent, classifierName);
+                    continue;
+                }
+            }
+
+            // Found a corresponding instance
+            InstanceId instanceId = entry.getKey();
+            clonedEvent.setInstanceId(instanceId);
+            assigned = true;
+
             InstanceId finalInstanceId = resolveDynamicInstanceId(clonedEvent);
             LOGGER.debug("Resolved final InstanceId {}", finalInstanceId);
 
             // Special handling for CANCEL events
             // check if session is active, then put the event to the instance queue, otherwise ignore it
             Optional<SessionId> oSessionId = activeSessionIdRepository.retrieveActiveSessionId(finalInstanceId);
-            if (clonedEvent.getType() == InternalEventType.CANCEL && !oSessionId.isPresent()) {
+            if (clonedEvent.getType() == InternalEventType.CANCEL && oSessionId.isEmpty()) {
                 LOGGER.debug(
                     "Ignoring CANCEL event {} for a not active instance {} to avoid it in the orphan queue.",
                     clonedEvent,
@@ -583,7 +586,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             try {
                 // reload the current session state (just to be sure...)
                 oSessionId = activeSessionIdRepository.retrieveActiveSessionId(finalInstanceId);
-                if (!oSessionId.isPresent()) {
+                if (oSessionId.isEmpty()) {
                     isStopEvent = false;
                     LOGGER.debug(
                         "Skipping check for stop-session event, because no session is active now: {}",
@@ -594,7 +597,7 @@ public class InternalEventHandlerRunnable implements Runnable {
                     SessionId sessionId = oSessionId.get();
                     SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
                     Optional<Session> oSession = sessionRepository.retrieveSession(sessionId);
-                    if (!oSession.isPresent()) {
+                    if (oSession.isEmpty()) {
                         isStopEvent = false;
                         LOGGER.error("Missing active session {} for instance {}!", sessionId, instanceId);
                     }
@@ -770,7 +773,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         InstanceId instanceId = triggerEvent.getInstanceId();
 
         Optional<Instance> oInstance = instanceRepository.retrieveInstance(instanceId);
-        if (!oInstance.isPresent()) {
+        if (oInstance.isEmpty()) {
             LOGGER.error("No instance found for id {}!", instanceId);
             return Optional.empty();
         }
@@ -897,7 +900,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         InstanceId dynamicId = resolveDynamicInstanceId(triggerEvent);
 
         Optional<SessionId> oSessionId = activeSessionIdRepository.retrieveActiveSessionId(dynamicId);
-        if (!oSessionId.isPresent()) {
+        if (oSessionId.isEmpty()) {
             LOGGER.info("Unable to stop session! Missing active session for instance '{}'!", dynamicId);
             return Optional.empty();
         }
@@ -907,7 +910,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         InstanceId instanceId = triggerEvent.getInstanceId();
         SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
         Optional<Session> oSession = sessionRepository.retrieveSession(sessionId);
-        if (!oSession.isPresent()) {
+        if (oSession.isEmpty()) {
             LOGGER.info("Missing session {} for instance {}!", sessionId, instanceId);
             return Optional.empty();
         }
@@ -957,7 +960,7 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         Optional<String> oInstanceId = sessionEvent.getAttributeValue(INSTANCE_ID_ATTRIBUTE_NAME);
         Optional<String> oSessionId = sessionEvent.getAttributeValue(SESSION_ID_ATTRIBUTE_NAME);
-        if (!oInstanceId.isPresent() || !oSessionId.isPresent()) {
+        if (oInstanceId.isEmpty() || oSessionId.isEmpty()) {
             LOGGER.error(
                 "Unable to terminate session, because session event does not contain attributes with instanceId or/and sessionId: {}",
                 sessionEvent
@@ -995,7 +998,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         oDynamicContent.ifPresent(content -> setDynamicContentAttribute(sessionEvent, content));
 
         Optional<InternalEvent> oStopSessionEvent = stopSession(sessionEvent);
-        if (!oStopSessionEvent.isPresent()) {
+        if (oStopSessionEvent.isEmpty()) {
             LOGGER.info("Failed to stop session {}, event {}", sessionId, event);
             return;
         }
