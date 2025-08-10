@@ -956,8 +956,10 @@ public class InternalEventHandlerRunnable implements Runnable {
             LOGGER.error("Unable to delete active session for instance {}!", dynamicId);
         }
 
-        terminateSessionProcessingState(session);
-        sessionRepository.updateSession(session);
+        Session finalSession = sessionRepository.retrieveSession(sessionId)
+            .orElseThrow(IllegalStateException::new);
+        terminateSessionProcessingState(finalSession);
+        sessionRepository.updateSession(finalSession);
 
         return Optional.of(stopSessionEvent);
     }
