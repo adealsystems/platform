@@ -52,6 +52,7 @@ public final class Session implements Cloneable {
     public static final String FAILED_COMMANDS = "failed-commands";
     public static final String COMMAND_IN_PROGRESS_PREFIX = "command:";
     public static final String LOCKED_EVENTS = "locked-events";
+    public static final String UPDATE_HISTORY = "update-history";
 
     private final InstanceId instanceId;
     private final SessionId id;
@@ -150,7 +151,7 @@ public final class Session implements Cloneable {
 
     public <T> T getStateBean(String key, Class<T> beanClass) {
         Optional<String> value = getStateValue(key);
-        if (!value.isPresent()) {
+        if (value.isEmpty()) {
             return null;
         }
 
@@ -174,7 +175,7 @@ public final class Session implements Cloneable {
 
     public Set<String> getStateRegistry(String key) {
         Optional<String> oRegistry = getStateValue(key);
-        if (!oRegistry.isPresent()) {
+        if (oRegistry.isEmpty()) {
             return new HashSet<>();
         }
 

@@ -218,7 +218,19 @@ public class FileBasedSessionRepository implements SessionRepository {
             throw new IllegalArgumentException("InstanceId does not match '" + instanceId + "'!");
         }
 
-        LOGGER.debug("Updating session {}", session);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Updating session {}", session);
+
+            // log the update caller
+            Throwable th = new Throwable();
+            StackTraceElement[] stackTrace = th.getStackTrace();
+            String history = session.getStateValue(Session.UPDATE_HISTORY).orElse("");
+            if (!history.isEmpty()) {
+                history += "; ";
+            }
+            history += stackTrace[stackTrace.length - 1].toString();
+            session.setStateValue(Session.UPDATE_HISTORY, history);
+        }
 
         SessionId id = session.getId();
         File sessionFile = findOrCreateSessionFile(id);
