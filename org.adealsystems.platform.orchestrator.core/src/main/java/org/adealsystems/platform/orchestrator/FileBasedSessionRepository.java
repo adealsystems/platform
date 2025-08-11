@@ -53,6 +53,7 @@ public class FileBasedSessionRepository implements SessionRepository {
     );
 
     private static final ObjectMapper OBJECT_MAPPER;
+
     static {
         OBJECT_MAPPER = new ObjectMapper();
         OBJECT_MAPPER.enable(SerializationFeature.INDENT_OUTPUT);
@@ -136,7 +137,7 @@ public class FileBasedSessionRepository implements SessionRepository {
 
                     // fallback
                     Optional<Session> session = retrieveSession(id);
-                    if (!session.isPresent()) {
+                    if (session.isEmpty()) {
                         return null;
                     }
                     LocalDateTime sessionTimestamp = session.get().getCreationTimestamp();
@@ -167,7 +168,8 @@ public class FileBasedSessionRepository implements SessionRepository {
             }
 
             writeSession(sessionFile, session);
-        } finally {
+        }
+        finally {
             writeLock.unlock();
         }
 
@@ -186,7 +188,8 @@ public class FileBasedSessionRepository implements SessionRepository {
             }
 
             return Optional.of(readSession(sessionFile));
-        } finally {
+        }
+        finally {
             readLock.unlock();
         }
     }
@@ -205,7 +208,8 @@ public class FileBasedSessionRepository implements SessionRepository {
             Session session = new Session(instanceId, id);
             writeSession(sessionFile, session);
             return session;
-        } finally {
+        }
+        finally {
             writeLock.unlock();
         }
     }
@@ -243,7 +247,8 @@ public class FileBasedSessionRepository implements SessionRepository {
             }
 
             writeSession(sessionFile, session);
-        } finally {
+        }
+        finally {
             writeLock.unlock();
         }
     }
@@ -309,7 +314,8 @@ public class FileBasedSessionRepository implements SessionRepository {
             newSession.setState(session.getState());
             newSession.setProcessingState(session.getProcessingState());
             return newSession;
-        } catch (IOException ex) {
+        }
+        catch (IOException ex) {
             throw new IllegalStateException("Unable to read session file '" + sessionFile + "'!", ex);
         }
     }
@@ -317,7 +323,8 @@ public class FileBasedSessionRepository implements SessionRepository {
     private void writeSession(File sessionFile, Session session) {
         try {
             OBJECT_MAPPER.writeValue(sessionFile, session);
-        } catch (IOException ex) {
+        }
+        catch (IOException ex) {
             throw new IllegalStateException("Unable to write session file '" + sessionFile + "'!", ex);
         }
     }

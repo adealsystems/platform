@@ -16,6 +16,7 @@
 
 package org.adealsystems.platform.orchestrator
 
+
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import spock.lang.Specification
@@ -40,18 +41,18 @@ class FileBasedSessionRepositorySpec extends Specification {
             'ddd': '000',
         ]
 
-        FileBasedSessionRepository instance = new FileBasedSessionRepository(instanceId, baseDirectory)
+        FileBasedSessionRepository sessionRepository = new FileBasedSessionRepository(instanceId, baseDirectory)
         def id = 'SESSION-ID'
         SessionId sessionId = new SessionId(id)
 
         when:
-        def allIds = instance.retrieveSessionIds()
+        def allIds = sessionRepository.retrieveSessionIds()
 
         then:
         allIds == [] as Set
 
         when:
-        def session = instance.createSession(sessionId)
+        def session = sessionRepository.createSession(sessionId)
 
         then:
         session != null
@@ -60,7 +61,7 @@ class FileBasedSessionRepositorySpec extends Specification {
         session.state == null
 
         when:
-        allIds = instance.retrieveSessionIds()
+        allIds = sessionRepository.retrieveSessionIds()
 
         then:
         allIds == [sessionId] as Set
@@ -68,8 +69,9 @@ class FileBasedSessionRepositorySpec extends Specification {
         when:
         def sessionWithConfig = new Session(instanceId, session.getId(), LocalDateTime.of(2023, 3,24,0,0,0,0), instanceConfiguration)
         sessionWithConfig.setState(sessionState)
-        instance.updateSession(sessionWithConfig)
-        def otherSession = instance.retrieveSession(sessionId)
+        sessionRepository.updateSession(sessionWithConfig)
+
+        def otherSession = sessionRepository.retrieveSession(sessionId)
 
         then:
         otherSession.present
@@ -78,7 +80,7 @@ class FileBasedSessionRepositorySpec extends Specification {
         otherSession.get().state == sessionState
 
         when:
-        def lines = readLines(instance, sessionId)
+        def lines = readLines(sessionRepository, sessionId)
 
         then:
         lines == [
@@ -98,7 +100,7 @@ class FileBasedSessionRepositorySpec extends Specification {
         ]
 
         when:
-        def existingSession = instance.retrieveOrCreateSession(sessionId)
+        def existingSession = sessionRepository.retrieveOrCreateSession(sessionId)
 
         then:
         existingSession.id == sessionId
@@ -106,19 +108,19 @@ class FileBasedSessionRepositorySpec extends Specification {
         existingSession.state == sessionState
 
         when:
-        def deleted = instance.deleteSession(sessionId)
+        def deleted = sessionRepository.deleteSession(sessionId)
 
         then:
         deleted
 
         when:
-        def oneMoreSession = instance.retrieveSession(sessionId)
+        def oneMoreSession = sessionRepository.retrieveSession(sessionId)
 
         then:
         !oneMoreSession.present
 
         when:
-        def freshSession = instance.retrieveOrCreateSession(sessionId)
+        def freshSession = sessionRepository.retrieveOrCreateSession(sessionId)
 
         then:
         freshSession.id == sessionId
