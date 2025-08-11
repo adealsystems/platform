@@ -226,14 +226,21 @@ public class FileBasedSessionRepository implements SessionRepository {
             LOGGER.debug("Updating session {}", session);
 
             // log the update caller
-            Throwable th = new Throwable();
-            StackTraceElement[] stackTrace = th.getStackTrace();
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
             String history = session.getStateValue(Session.UPDATE_HISTORY).orElse("");
             if (!history.isEmpty()) {
                 history += "; ";
             }
-            history += stackTrace[stackTrace.length - 1].toString();
-            session.setStateValue(Session.UPDATE_HISTORY, history);
+            if (stackTrace.length > 2) {
+                history += stackTrace[2].toString();
+                session.setStateValue(Session.UPDATE_HISTORY, history);
+            }
+
+            for (int i=0; i<10; i++) {
+                if (stackTrace.length > i) {
+                    LOGGER.debug("\tTRACE[{}]: {}", i, stackTrace[i]);
+                }
+            }
         }
 
         SessionId id = session.getId();
