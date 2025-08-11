@@ -51,7 +51,7 @@ allprojects {
     //apply plugin: 'org.ec4j.editorconfig'
 
     group = 'org.adealsystems'
-    version = '0.50.4b'
+    version = '0.50.4d'
     def prereleaseIdentifier = System.properties.'prerelease'
     if (prereleaseIdentifier) {
         version = version + '-' + prereleaseIdentifier
