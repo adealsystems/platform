@@ -239,7 +239,7 @@ public class FileBasedSessionRepository implements SessionRepository {
         writeLock.lock();
         try {
             if (!sessionFile.exists()) {
-                throw new IllegalArgumentException("Session with id '" + id + "' does not exist!");
+                throw new IllegalArgumentException("Session '" + id + "' does not exist!");
             }
 
             writeSession(sessionFile, session);
