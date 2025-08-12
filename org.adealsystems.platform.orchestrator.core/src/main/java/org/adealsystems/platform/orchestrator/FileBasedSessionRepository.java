@@ -248,10 +248,11 @@ public class FileBasedSessionRepository implements SessionRepository {
             StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
             String history = session.getStateValue(Session.UPDATE_HISTORY).orElse("");
             if (!history.isEmpty()) {
-                history += "; ";
+                history += ", ";
             }
 
             String me = this.getClass().getName() + '(';
+            String timestamp = TIMESTAMP_FORMATTER.format(LocalDateTime.now(ZoneId.systemDefault()));
             for (int i = 0; i < stackTrace.length; i++) {
                 if (i > 10) {
                     // Strange! Caller class should be in one of the first 3-4 elements.
@@ -267,8 +268,8 @@ public class FileBasedSessionRepository implements SessionRepository {
                 String value = element.toString();
                 LOGGER.debug("\tTRACE[{}]: {}", i, value);
 
-                if (value.startsWith(me)) {
-                    history += value;
+                if (!value.startsWith(me)) {
+                    history += timestamp + ": " + value;
                     session.setStateValue(Session.UPDATE_HISTORY, history);
                     break;
                 }
