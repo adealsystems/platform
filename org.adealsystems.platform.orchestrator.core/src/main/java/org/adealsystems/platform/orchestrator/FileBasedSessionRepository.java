@@ -250,14 +250,27 @@ public class FileBasedSessionRepository implements SessionRepository {
             if (!history.isEmpty()) {
                 history += "; ";
             }
-            if (stackTrace.length > 2) {
-                history += stackTrace[2].toString();
-                session.setStateValue(Session.UPDATE_HISTORY, history);
-            }
 
-            for (int i=0; i<10; i++) {
-                if (stackTrace.length > i) {
-                    LOGGER.debug("\tTRACE[{}]: {}", i, stackTrace[i]);
+            String me = this.getClass().getName() + '(';
+            for (int i = 0; i < stackTrace.length; i++) {
+                if (i > 10) {
+                    // Strange! Caller class should be in one of the first 3-4 elements.
+                    LOGGER.warn("Unable to identify caller from {}", Arrays.asList(stackTrace));
+                    break;
+                }
+
+                if (i == 0) {
+                    continue;
+                }
+
+                StackTraceElement element = stackTrace[i];
+                String value = element.toString();
+                LOGGER.debug("\tTRACE[{}]: {}", i, value);
+
+                if (value.startsWith(me)) {
+                    history += value;
+                    session.setStateValue(Session.UPDATE_HISTORY, history);
+                    break;
                 }
             }
         }
@@ -295,7 +308,8 @@ public class FileBasedSessionRepository implements SessionRepository {
             internalUpdateSession(session);
 
             return session.clone();
-        } finally {
+        }
+        finally {
             lock.unlock();
         }
     }
