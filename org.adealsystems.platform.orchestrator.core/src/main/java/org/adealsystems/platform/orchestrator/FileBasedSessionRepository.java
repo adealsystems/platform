@@ -251,7 +251,7 @@ public class FileBasedSessionRepository implements SessionRepository {
                 history += ", ";
             }
 
-            String me = this.getClass().getName() + '(';
+            String me = this.getClass().getName();
             String timestamp = TIMESTAMP_FORMATTER.format(LocalDateTime.now(ZoneId.systemDefault()));
             for (int i = 0; i < stackTrace.length; i++) {
                 if (i > 10) {
