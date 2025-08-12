@@ -35,7 +35,11 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -66,6 +70,7 @@ public class FileBasedSessionRepository implements SessionRepository {
         = Pattern.compile("(?<timestamp>[0-9]{14}_)?(?<id>" + SessionId.PATTERN_STRING + ")\\.json");
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    private final ConcurrentMap<String, ReentrantLock> lockMap = new ConcurrentHashMap<>();
     private final InstanceId instanceId;
     private final File baseDirectory;
 
@@ -196,28 +201,42 @@ public class FileBasedSessionRepository implements SessionRepository {
 
     @Override
     public Session retrieveOrCreateSession(SessionId id) {
-        File sessionFile = findOrCreateSessionFile(id);
-
         ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
         writeLock.lock();
         try {
-            if (sessionFile.exists()) {
-                return readSession(sessionFile);
-            }
-
-            Session session = new Session(instanceId, id);
-            writeSession(sessionFile, session);
-            return session;
+            return internalRetrieveOrCreateSession(id);
         }
         finally {
             writeLock.unlock();
         }
     }
 
+    private Session internalRetrieveOrCreateSession(SessionId id) {
+        File sessionFile = findOrCreateSessionFile(id);
+        if (sessionFile.exists()) {
+            return readSession(sessionFile);
+        }
+
+        Session session = new Session(instanceId, id);
+        writeSession(sessionFile, session);
+        return session;
+    }
+
     @Override
     public void updateSession(Session session) {
         Objects.requireNonNull(session, "session must not be null!");
 
+        ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
+        writeLock.lock();
+        try {
+            internalUpdateSession(session);
+        }
+        finally {
+            writeLock.unlock();
+        }
+    }
+
+    private void internalUpdateSession(Session session) {
         if (!instanceId.equals(session.getInstanceId())) {
             throw new IllegalArgumentException("InstanceId does not match '" + instanceId + "'!");
         }
@@ -245,19 +264,11 @@ public class FileBasedSessionRepository implements SessionRepository {
 
         SessionId id = session.getId();
         File sessionFile = findOrCreateSessionFile(id);
-
-        ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
-        writeLock.lock();
-        try {
-            if (!sessionFile.exists()) {
-                throw new IllegalArgumentException("Session '" + id + "' does not exist!");
-            }
-
-            writeSession(sessionFile, session);
+        if (!sessionFile.exists()) {
+            throw new IllegalArgumentException("Session '" + id + "' does not exist!");
         }
-        finally {
-            writeLock.unlock();
-        }
+
+        writeSession(sessionFile, session);
     }
 
     @Override
@@ -271,6 +282,21 @@ public class FileBasedSessionRepository implements SessionRepository {
         }
         finally {
             writeLock.unlock();
+        }
+    }
+
+    @Override
+    public Session modifySession(SessionId sessionId, Consumer<Session> modifier) {
+        ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        lock.lock();
+        try {
+            Session session = internalRetrieveOrCreateSession(sessionId);
+            modifier.accept(session);
+            internalUpdateSession(session);
+
+            return session.clone();
+        } finally {
+            lock.unlock();
         }
     }
 

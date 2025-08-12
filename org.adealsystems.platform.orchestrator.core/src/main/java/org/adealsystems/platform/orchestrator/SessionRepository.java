@@ -19,6 +19,7 @@ package org.adealsystems.platform.orchestrator;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public interface SessionRepository {
     Set<SessionId> retrieveSessionIds();
@@ -28,4 +29,5 @@ public interface SessionRepository {
     Session retrieveOrCreateSession(SessionId id);
     void updateSession(Session session);
     boolean deleteSession(SessionId id);
+    Session modifySession(SessionId sessionId, Consumer<Session> modifier);
 }

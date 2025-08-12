@@ -261,12 +261,6 @@ public class SessionsSupervisorRunnable implements Runnable {
         LOGGER.debug("Stopping session {} of instance {}", sessionId, instanceRef);
 
         InstanceId base = instanceRef.base;
-        SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(base);
-        Optional<Session> oSession = sessionRepository.retrieveSession(sessionId);
-        if (!oSession.isPresent()) {
-            LOGGER.info("Missing session {} for instance {}!", sessionId, base);
-            return;
-        }
 
         InternalEvent stopSessionEvent = new InternalEvent();
         stopSessionEvent.setType(InternalEventType.SESSION);
@@ -276,8 +270,11 @@ public class SessionsSupervisorRunnable implements Runnable {
         stopSessionEvent.setTimestamp(timestampFactory.createTimestamp());
         stopSessionEvent.setAttributeValue("timed-out", "true");
 
-        Session session = oSession.get();
-        setSessionStateAttribute(stopSessionEvent, session);
+        SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(base);
+        sessionRepository.modifySession(sessionId, s -> {
+            setSessionStateAttribute(stopSessionEvent, s);
+            terminateSessionProcessingState(s, State.ABORTED);
+        });
 
         if (instanceRef.dynamicContent != null) {
             setDynamicContentAttribute(stopSessionEvent, instanceRef.dynamicContent);
@@ -289,10 +286,6 @@ public class SessionsSupervisorRunnable implements Runnable {
             instanceEventSenderResolver,
             eventHistory
         );
-
-        LOGGER.debug("Updating session {}", sessionId);
-        terminateSessionProcessingState(session, State.ABORTED);
-        sessionRepository.updateSession(session);
 
         LOGGER.debug("Deleting active session file for {}", instanceRef.current);
         if (!activeSessionIdRepository.deleteActiveSessionId(instanceRef.current)) {

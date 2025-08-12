@@ -802,7 +802,11 @@ public class InternalEventHandlerRunnable implements Runnable {
         }
 
         SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
+
+        // don't use modifySession() here. It's not really possible to have a conflict
+        // at this point, because the session is new and can't be referenced from another thread.
         Session session = sessionRepository.retrieveOrCreateSession(sessionId);
+
         Map<String, String> instanceConfiguration = instance.getConfiguration();
         if (instanceConfiguration != null && !instanceConfiguration.isEmpty()) {
             Map<String, String> state = session.getState();
@@ -815,7 +819,6 @@ public class InternalEventHandlerRunnable implements Runnable {
             );
             session.setState(state);
             session.setProcessingState(processingState);
-            sessionRepository.updateSession(session);
         }
 
         SessionProcessingState processingState = session.getProcessingState();
@@ -918,11 +921,6 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         InstanceId instanceId = triggerEvent.getInstanceId();
         SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
-        Optional<Session> oSession = sessionRepository.retrieveSession(sessionId);
-        if (oSession.isEmpty()) {
-            LOGGER.info("Missing session {} for instance {}!", sessionId, instanceId);
-            return Optional.empty();
-        }
 
         triggerEvent.setSessionId(sessionId);
         registerInstanceEvent(
@@ -938,28 +936,25 @@ public class InternalEventHandlerRunnable implements Runnable {
         stopSessionEvent.setSessionId(sessionId);
         stopSessionEvent.setTimestamp(timestampFactory.createTimestamp());
 
-        Session session = oSession.get();
-        setSessionStateAttribute(stopSessionEvent, session);
-
         Optional<String> dynamicContent = getDynamicContentAttribute(triggerEvent);
         dynamicContent.ifPresent(content -> setDynamicContentAttribute(stopSessionEvent, content));
 
         setMinimizedSourceEventAttribute(stopSessionEvent, triggerEvent);
 
-        registerInstanceEvent(
-            stopSessionEvent,
-            instanceEventSenderResolver,
-            eventHistory
-        );
+        sessionRepository.modifySession(sessionId, s -> {
+            setSessionStateAttribute(stopSessionEvent, s);
+
+            registerInstanceEvent(
+                stopSessionEvent,
+                instanceEventSenderResolver,
+                eventHistory
+            );
+            terminateSessionProcessingState(s);
+        });
 
         if (!activeSessionIdRepository.deleteActiveSessionId(dynamicId)) {
             LOGGER.error("Unable to delete active session for instance {}!", dynamicId);
         }
-
-        Session finalSession = sessionRepository.retrieveSession(sessionId)
-            .orElseThrow(IllegalStateException::new);
-        terminateSessionProcessingState(finalSession);
-        sessionRepository.updateSession(finalSession);
 
         return Optional.of(stopSessionEvent);
     }
@@ -983,24 +978,24 @@ public class InternalEventHandlerRunnable implements Runnable {
         SessionId sessionId = new SessionId(oSessionId.get());
 
         SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
-
         Session session = sessionRepository.retrieveSession(sessionId)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid session reference, no session for id '"
-                                                                + sessionId
-                                                                + "' found!"));
+            .orElseThrow(() -> new IllegalArgumentException(
+                "Invalid session reference, no session for id '" + sessionId + "' found!")
+            );
 
         if (session.getStateFlag(TERMINATING_FLAG)) {
             LOGGER.debug("Session {} is in a terminating state, ignoring an additional termination call", sessionId);
             return;
         }
 
-        LOGGER.info(
-            "Session {} will be closed due to one of termination flags, base event: {}",
-            sessionId,
-            sessionEvent
-        );
-        session.setStateFlag(TERMINATING_FLAG, true);
-        sessionRepository.updateSession(session);
+        sessionRepository.modifySession(sessionId, s -> {
+            LOGGER.info(
+                "Session {} will be closed due to one of termination flags, base event: {}",
+                sessionId,
+                sessionEvent
+            );
+            session.setStateFlag(TERMINATING_FLAG, true);
+        });
 
         sessionEvent.setInstanceId(session.getInstanceId());
         sessionEvent.setSessionId(session.getId());
