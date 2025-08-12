@@ -253,8 +253,9 @@ public class FileBasedSessionRepository implements SessionRepository {
 
             String me = this.getClass().getName();
             String timestamp = TIMESTAMP_FORMATTER.format(LocalDateTime.now(ZoneId.systemDefault()));
+            boolean found = false;
             for (int i = 0; i < stackTrace.length; i++) {
-                if (i > 10) {
+                if (i > 10 && !found) {
                     // Strange! Caller class should be in one of the first 3-4 elements.
                     LOGGER.warn("Unable to identify caller from {}", Arrays.asList(stackTrace));
                     break;
@@ -268,10 +269,10 @@ public class FileBasedSessionRepository implements SessionRepository {
                 String value = element.toString();
                 LOGGER.debug("\tTRACE[{}]: {}", i, value);
 
-                if (!value.startsWith(me)) {
+                if (!found && !value.startsWith(me)) {
+                    found = true;
                     history += timestamp + ": " + value;
                     session.setStateValue(Session.UPDATE_HISTORY, history);
-                    break;
                 }
             }
         }
