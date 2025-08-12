@@ -55,6 +55,10 @@ public class FileBasedSessionRepository implements SessionRepository {
         "yyyyMMddHHmmss",
         Locale.ROOT
     );
+    private static final DateTimeFormatter SESSION_UPDATE_FORMATTER = DateTimeFormatter.ofPattern(
+        "HH:mm:ss.SSS",
+        Locale.ROOT
+    );
 
     private static final ObjectMapper OBJECT_MAPPER;
 
@@ -252,7 +256,7 @@ public class FileBasedSessionRepository implements SessionRepository {
             }
 
             String me = this.getClass().getName();
-            String timestamp = TIMESTAMP_FORMATTER.format(LocalDateTime.now(ZoneId.systemDefault()));
+            String timestamp = SESSION_UPDATE_FORMATTER.format(LocalDateTime.now(ZoneId.systemDefault()));
             boolean found = false;
             for (int i = 0; i < stackTrace.length; i++) {
                 if (i > 10 && !found) {
@@ -267,7 +271,7 @@ public class FileBasedSessionRepository implements SessionRepository {
 
                 StackTraceElement element = stackTrace[i];
                 String value = element.toString();
-                LOGGER.debug("\tTRACE[{}]: {}", i, value);
+                LOGGER.trace("\tTRACE[{}]: {}", i, value);
 
                 if (!found && !value.startsWith(me)) {
                     found = true;
