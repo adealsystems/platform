@@ -221,7 +221,6 @@ public final class Session implements Cloneable {
         setStateValue(key, builder.toString());
     }
 
-    @JsonIgnore
     public void setExpectedStateRegistry(String key, Set<String> expectedValues) {
         setStateRegistry(REGISTRY_PREFIX_EXPECTED_VALUES_OF + key, expectedValues);
     }
@@ -241,7 +240,6 @@ public final class Session implements Cloneable {
         return registry;
     }
 
-    @JsonIgnore
     public Set<String> getExpectedStateRegistry(String key) {
         String expectedKey = REGISTRY_PREFIX_EXPECTED_VALUES_OF + key;
         if (!state.containsKey(expectedKey)) {
@@ -272,11 +270,13 @@ public final class Session implements Cloneable {
 
     // region dependencies
 
+    @JsonIgnore
     public void setExpectedDependencies(String... dependencies) {
         Objects.requireNonNull(dependencies, "dependencies must not be null!");
         setStateRegistry(REG_DEPENDENCIES, Collections.emptySet(), new HashSet<>(Set.of(dependencies)));
     }
 
+    @JsonIgnore
     public void setExpectedDependencies(Set<String> dependencies) {
         Objects.requireNonNull(dependencies, "dependencies must not be null!");
         setStateRegistry(REG_DEPENDENCIES, Collections.emptySet(), new HashSet<>(dependencies));
@@ -287,6 +287,7 @@ public final class Session implements Cloneable {
         extendStateRegistry(REG_DEPENDENCIES, dependency);
     }
 
+    @JsonIgnore
     public Optional<Set<String>> getMissingDependencies() {
         Set<String> dependencies = getStateRegistry(REG_DEPENDENCIES);
         if (dependencies.isEmpty()) {
