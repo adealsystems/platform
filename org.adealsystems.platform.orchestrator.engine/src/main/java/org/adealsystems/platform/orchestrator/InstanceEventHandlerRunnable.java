@@ -25,9 +25,11 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.adealsystems.platform.orchestrator.InternalEvent.setSessionStateAttribute;
 import static org.adealsystems.platform.orchestrator.InternalEventHandlerRunnable.FINAL_UNSUCCESSFUL_STATES;
+import static org.adealsystems.platform.orchestrator.Session.REG_DEPENDENCIES;
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.INSTANCE_ID_ATTRIBUTE_NAME;
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSION_ID_ATTRIBUTE_NAME;
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSION_STATE;
@@ -37,17 +39,11 @@ public class InstanceEventHandlerRunnable implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(InstanceEventHandlerRunnable.class);
 
     private final InstanceId instanceId;
-
     private final InternalEventSender rawEventSender;
-
     private final InstanceEventHandler instanceEventHandler;
-
     private final SessionRepository sessionRepository;
-
     private final InternalEventReceiver eventReceiver;
-
     private final TimestampFactory timestampFactory;
-
     private final EventHistory eventHistory;
 
     public InstanceEventHandlerRunnable(
@@ -99,10 +95,14 @@ public class InstanceEventHandlerRunnable implements Runnable {
             Session session = sessionRepository.modifySession(sessionId, s -> {
                 // Get current session processing state
                 SessionProcessingState.update(s, processingState -> {
-                    if (processingState.getState() == State.READY_TO_RUN) {
+                    Set<String> deps = s.getStateRegistry(REG_DEPENDENCIES);
+                    if (deps.isEmpty()) {
                         processingState.setState(State.RUNNING);
-                        s.setProcessingState(processingState);
                     }
+                    else {
+                        processingState.setState(State.WAITING_FOR_DEPENDENCIES);
+                    }
+                    s.setProcessingState(processingState);
                 });
 
                 try {

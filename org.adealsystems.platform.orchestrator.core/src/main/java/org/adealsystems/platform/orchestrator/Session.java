@@ -45,6 +45,7 @@ public final class Session implements Cloneable {
     public static final String FLAG_SESSION_FINISHED = "SESSION_FINISHED";
     public static final String FLAG_SESSION_CANCELLED = "SESSION_CANCELLED";
 
+    public static final String REG_DEPENDENCIES = "dependencies";
     public static final String REGISTRY_PREFIX_EXPECTED_VALUES_OF = "expected-values-of--";
 
     public static final String COMMANDS_IN_PROGRESS = "commands-in-progress";

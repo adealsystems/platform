@@ -18,6 +18,7 @@ package org.adealsystems.platform.orchestrator.status;
 
 public enum State {
     READY_TO_RUN,
+    WAITING_FOR_DEPENDENCIES,
     RUNNING,
     DONE,
     FAILED,
