@@ -270,7 +270,7 @@ public final class Session implements Cloneable {
     // region dependencies
 
     public void setExpectedDependencies(Set<String> dependencies) {
-        setStateRegistry(REG_DEPENDENCIES, dependencies);
+        setStateRegistry(REG_DEPENDENCIES, Collections.emptySet(), dependencies);
     }
 
     public void registerDependency(String dependency) {
