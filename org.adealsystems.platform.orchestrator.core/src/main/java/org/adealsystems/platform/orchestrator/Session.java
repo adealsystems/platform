@@ -269,11 +269,18 @@ public final class Session implements Cloneable {
 
     // region dependencies
 
+    public void setExpectedDependencies(String... dependencies) {
+        Objects.requireNonNull(dependencies, "dependencies must not be null!");
+        setStateRegistry(REG_DEPENDENCIES, Collections.emptySet(), new HashSet<>(Set.of(dependencies)));
+    }
+
     public void setExpectedDependencies(Set<String> dependencies) {
-        setStateRegistry(REG_DEPENDENCIES, Collections.emptySet(), dependencies);
+        Objects.requireNonNull(dependencies, "dependencies must not be null!");
+        setStateRegistry(REG_DEPENDENCIES, Collections.emptySet(), new HashSet<>(dependencies));
     }
 
     public void registerDependency(String dependency) {
+        Objects.requireNonNull(dependency, "dependency must not be null!");
         extendStateRegistry(REG_DEPENDENCIES, dependency);
     }
 
