@@ -267,6 +267,26 @@ public final class Session implements Cloneable {
         return registry;
     }
 
+    // region dependencies
+
+    public void setExpectedDependencies(Set<String> dependencies) {
+        setStateRegistry(REG_DEPENDENCIES, dependencies);
+    }
+
+    public void registerDependency(String dependency) {
+        extendStateRegistry(REG_DEPENDENCIES, dependency);
+    }
+
+    public Optional<Set<String>> getMissingDependencies() {
+        Set<String> dependencies = getStateRegistry(REG_DEPENDENCIES);
+        if (dependencies.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(dependencies);
+    }
+
+    // endregion
+
     public void setCommandExecutionId(String commandId) {
         setStateRegistry(COMMANDS_IN_PROGRESS, new HashSet<>(Collections.singleton(commandId)));
     }
