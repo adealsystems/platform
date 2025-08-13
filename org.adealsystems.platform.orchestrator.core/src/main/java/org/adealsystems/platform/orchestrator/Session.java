@@ -74,9 +74,10 @@ public final class Session implements Cloneable {
 
     @ConstructorProperties({"instanceId", "id", "creationTimestamp", "instanceConfiguration"})
     public Session(InstanceId instanceId, SessionId id, LocalDateTime creationTimestamp, Map<String, String> instanceConfiguration) {
+        Objects.requireNonNull(instanceConfiguration, "instanceConfiguration must be not null!");
+
         this.instanceId = Objects.requireNonNull(instanceId, "instanceId must be not null!");
         this.id = Objects.requireNonNull(id, "id must be not null!");
-        Objects.requireNonNull(instanceConfiguration, "instanceConfiguration must be not null!");
         this.instanceConfiguration = Collections.unmodifiableMap(new HashMap<>(instanceConfiguration));
         this.creationTimestamp = creationTimestamp;
     }
@@ -220,6 +221,7 @@ public final class Session implements Cloneable {
         setStateValue(key, builder.toString());
     }
 
+    @JsonIgnore
     public void setExpectedStateRegistry(String key, Set<String> expectedValues) {
         setStateRegistry(REGISTRY_PREFIX_EXPECTED_VALUES_OF + key, expectedValues);
     }
@@ -239,6 +241,7 @@ public final class Session implements Cloneable {
         return registry;
     }
 
+    @JsonIgnore
     public Set<String> getExpectedStateRegistry(String key) {
         String expectedKey = REGISTRY_PREFIX_EXPECTED_VALUES_OF + key;
         if (!state.containsKey(expectedKey)) {
