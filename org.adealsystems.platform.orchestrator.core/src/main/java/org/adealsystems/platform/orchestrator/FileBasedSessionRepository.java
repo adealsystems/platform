@@ -164,22 +164,22 @@ public class FileBasedSessionRepository implements SessionRepository {
     }
 
     @Override
-    public Session createSession(SessionId id) {
-        File sessionFile = getSessionFile(id);
+    public Session createSession(SessionId sessionId) {
+        File sessionFile = getSessionFile(sessionId);
 
-        Session session = new Session(instanceId, id);
+        Session session = new Session(instanceId, sessionId);
 
-        ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
-        writeLock.lock();
+        ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        lock.lock();
         try {
             if (sessionFile.exists()) {
-                throw new IllegalArgumentException("Session with id '" + id + "' already exists!");
+                throw new IllegalArgumentException("Session with id '" + sessionId + "' already exists!");
             }
 
             writeSession(sessionFile, session);
         }
         finally {
-            writeLock.unlock();
+            lock.unlock();
         }
 
         return session;
@@ -204,14 +204,14 @@ public class FileBasedSessionRepository implements SessionRepository {
     }
 
     @Override
-    public Session retrieveOrCreateSession(SessionId id) {
-        ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
-        writeLock.lock();
+    public Session retrieveOrCreateSession(SessionId sessionId) {
+        ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        lock.lock();
         try {
-            return internalRetrieveOrCreateSession(id);
+            return internalRetrieveOrCreateSession(sessionId);
         }
         finally {
-            writeLock.unlock();
+            lock.unlock();
         }
     }
 
@@ -230,13 +230,14 @@ public class FileBasedSessionRepository implements SessionRepository {
     public void updateSession(Session session) {
         Objects.requireNonNull(session, "session must not be null!");
 
-        ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
-        writeLock.lock();
+        SessionId sessionId = session.getId();
+        ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        lock.lock();
         try {
             internalUpdateSession(session);
         }
         finally {
-            writeLock.unlock();
+            lock.unlock();
         }
     }
 
@@ -291,16 +292,16 @@ public class FileBasedSessionRepository implements SessionRepository {
     }
 
     @Override
-    public boolean deleteSession(SessionId id) {
-        File sessionFile = findOrCreateSessionFile(id);
+    public boolean deleteSession(SessionId sessionId) {
+        File sessionFile = findOrCreateSessionFile(sessionId);
 
-        ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
-        writeLock.lock();
+        ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        lock.lock();
         try {
             return sessionFile.delete();
         }
         finally {
-            writeLock.unlock();
+            lock.unlock();
         }
     }
 
