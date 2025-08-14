@@ -37,6 +37,7 @@ public class OrchestratorRuntimeInfo {
 
     private final boolean internalEventReceiverThreadAlive;
     private final int internalEventReceiverQueueSize;
+    private final String internalEventReceiverCurrentProcessingEvent;
 
     private final Map<String, Boolean> instanceEventHandlerThreadAlive;
     private final Map<String, Integer> instanceEventHandlerQueueSize;
@@ -74,6 +75,7 @@ public class OrchestratorRuntimeInfo {
 
         this.internalEventReceiverThreadAlive = runtime.getInternalEventHandlerThread().isAlive();
         InternalEventHandlerRunnable internalEventHandlerRunnable = runtime.getInternalEventHandlerRunnable();
+        this.internalEventReceiverCurrentProcessingEvent = internalEventHandlerRunnable.getClass().getName();
         InternalEventReceiver rawEventReceiver = internalEventHandlerRunnable.getRawEventReceiver();
         this.internalEventReceiverQueueSize = rawEventReceiver.getSize();
 
@@ -168,6 +170,7 @@ public class OrchestratorRuntimeInfo {
             && asyncEventHandlerThreadAlive == that.asyncEventHandlerThreadAlive
             && internalEventReceiverThreadAlive == that.internalEventReceiverThreadAlive
             && internalEventReceiverQueueSize == that.internalEventReceiverQueueSize
+            && Objects.equals(internalEventReceiverCurrentProcessingEvent, that.internalEventReceiverCurrentProcessingEvent)
             && Objects.equals(base, that.base)
             && Objects.equals(rawEventSenderClassName, that.rawEventSenderClassName)
             && Objects.equals(asyncJobReceiverRunnableClassName, that.asyncJobReceiverRunnableClassName)
@@ -193,6 +196,7 @@ public class OrchestratorRuntimeInfo {
             receiverRunnableThreadsAlive,
             internalEventReceiverThreadAlive,
             internalEventReceiverQueueSize,
+            internalEventReceiverCurrentProcessingEvent,
             instanceEventHandlerThreadAlive,
             instanceEventHandlerQueueSize,
             instanceEventHandlerOrphanSize
@@ -214,6 +218,7 @@ public class OrchestratorRuntimeInfo {
             ", receiverRunnableThreadsAlive=" + receiverRunnableThreadsAlive +
             ", internalEventReceiverThreadAlive=" + internalEventReceiverThreadAlive +
             ", internalEventReceiverQueueSize=" + internalEventReceiverQueueSize +
+            ", internalEventReceiverCurrentProcessingEvent=" + internalEventReceiverCurrentProcessingEvent +
             ", instanceEventHandlerThreadAlive=" + instanceEventHandlerThreadAlive +
             ", instanceEventHandlerQueueSize=" + instanceEventHandlerQueueSize +
             ", instanceEventHandlerOrphanSize" + instanceEventHandlerOrphanSize +
