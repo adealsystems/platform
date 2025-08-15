@@ -591,7 +591,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             }
 
             if (isStartEvent) {
-                LOGGER.debug("Starting a new session");
+                LOGGER.debug("Starting session");
                 Optional<InternalEvent> optionalEvent = startSession(eventClassifier, clonedEvent);
                 if (optionalEvent.isPresent()) {
                     optionalEvent = deriveSessionStateEvent(optionalEvent.get());
@@ -814,6 +814,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         // don't use modifySession() here. It's not really possible to have a conflict
         // at this point, because the session is new and can't be referenced from another thread.
         Session session = sessionRepository.retrieveOrCreateSession(sessionId);
+        LOGGER.info("Session loaded for instance {}!", instanceId);
 
         Map<String, String> instanceConfiguration = instance.getConfiguration();
         if (instanceConfiguration != null && !instanceConfiguration.isEmpty()) {
@@ -949,16 +950,17 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         setMinimizedSourceEventAttribute(stopSessionEvent, triggerEvent);
 
-        sessionRepository.modifySession(sessionId, s -> {
-            setSessionStateAttribute(stopSessionEvent, s);
+        Session session = sessionRepository.modifySession(
+            sessionId,
+            InternalEventHandlerRunnable::terminateSessionProcessingState
+        );
 
-            registerInstanceEvent(
-                stopSessionEvent,
-                instanceEventSenderResolver,
-                eventHistory
-            );
-            terminateSessionProcessingState(s);
-        });
+        setSessionStateAttribute(stopSessionEvent, session);
+        registerInstanceEvent(
+            stopSessionEvent,
+            instanceEventSenderResolver,
+            eventHistory
+        );
 
         if (!activeSessionIdRepository.deleteActiveSessionId(dynamicId)) {
             LOGGER.error("Unable to delete active session for instance {}!", dynamicId);
@@ -996,14 +998,15 @@ public class InternalEventHandlerRunnable implements Runnable {
             return;
         }
 
-        sessionRepository.modifySession(sessionId, s -> {
-            LOGGER.info(
-                "Session {} will be closed due to one of termination flags, base event: {}",
-                sessionId,
-                sessionEvent
-            );
-            session.setStateFlag(TERMINATING_FLAG, true);
-        });
+        LOGGER.info(
+            "Session {} will be closed due to one of termination flags, base event: {}",
+            sessionId,
+            sessionEvent
+        );
+        session = sessionRepository.modifySession(
+            sessionId,
+            s -> s.setStateFlag(TERMINATING_FLAG, true)
+        );
 
         sessionEvent.setInstanceId(session.getInstanceId());
         sessionEvent.setSessionId(session.getId());

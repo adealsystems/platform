@@ -61,7 +61,6 @@ public class FileBasedSessionRepository implements SessionRepository {
     );
 
     private static final ObjectMapper OBJECT_MAPPER;
-
     static {
         OBJECT_MAPPER = new ObjectMapper();
         OBJECT_MAPPER.enable(SerializationFeature.INDENT_OUTPUT);
@@ -166,16 +165,15 @@ public class FileBasedSessionRepository implements SessionRepository {
     @Override
     public Session createSession(SessionId sessionId) {
         File sessionFile = getSessionFile(sessionId);
+        if (sessionFile.exists()) {
+            throw new IllegalArgumentException("Session with id '" + sessionId + "' already exists!");
+        }
 
         Session session = new Session(instanceId, sessionId);
 
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
         lock.lock();
         try {
-            if (sessionFile.exists()) {
-                throw new IllegalArgumentException("Session with id '" + sessionId + "' already exists!");
-            }
-
             writeSession(sessionFile, session);
         }
         finally {
