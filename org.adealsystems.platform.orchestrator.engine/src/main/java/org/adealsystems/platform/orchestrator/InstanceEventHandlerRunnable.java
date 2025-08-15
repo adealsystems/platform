@@ -123,6 +123,8 @@ public class InstanceEventHandlerRunnable implements Runnable {
                         if (!FINAL_UNSUCCESSFUL_STATES.contains(processingState.getState())) {
                             processingState.setState(State.DONE);
                         }
+                        
+                        s.setProcessingState(processingState);
                     });
 
                     // reset terminating flag

@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -66,35 +65,27 @@ import static org.adealsystems.platform.orchestrator.SessionEventConstants.TERMI
 public class InternalEventHandlerRunnable implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(InternalEventHandlerRunnable.class);
 
-    public static final Set<String> INTERNAL_SESSION_STATE_IDS = Collections.unmodifiableSet(
-        new HashSet<>(Arrays.asList(
-            SESSION_START,
-            SESSION_RESUME,
-            SESSION_STOP
-        ))
+    public static final Set<String> INTERNAL_SESSION_STATE_IDS = Set.of(
+        SESSION_START,
+        SESSION_RESUME,
+        SESSION_STOP
     );
 
-    private static final Set<String> LOOP_SANITY_CHECK_IDS = Collections.unmodifiableSet(
-        new HashSet<>(Collections.singletonList(
-            SESSION_LIFECYCLE
-        ))
+    private static final Set<String> LOOP_SANITY_CHECK_IDS = Set.of(
+        SESSION_LIFECYCLE
     );
 
-    public static final Set<State> FINAL_UNSUCCESSFUL_STATES = Collections.unmodifiableSet(
-        new HashSet<>(Arrays.asList(
-            State.FAILED,
-            State.CANCELLED,
-            State.ABORTED
-        ))
+    public static final Set<State> FINAL_UNSUCCESSFUL_STATES = Set.of(
+        State.FAILED,
+        State.CANCELLED,
+        State.ABORTED
     );
 
-    public static final Set<State> FINAL_STATES = Collections.unmodifiableSet(
-        new HashSet<>(Arrays.asList(
-            State.DONE,
-            State.FAILED,
-            State.CANCELLED,
-            State.ABORTED
-        ))
+    public static final Set<State> FINAL_STATES = Set.of(
+        State.DONE,
+        State.FAILED,
+        State.CANCELLED,
+        State.ABORTED
     );
 
     public static final String EVENT_ID_CREATE_RUN = "create-run";
@@ -296,8 +287,10 @@ public class InternalEventHandlerRunnable implements Runnable {
     }
 
     private void cleanupActiveRunningSessions(String runId) {
-        Set<String> activeSessionsInfo = cleanupRunningSessions(runId, (runSpecification, session) ->
-            runSpecification.getType() == RunType.ACTIVE);
+        Set<String> activeSessionsInfo = cleanupRunningSessions(
+            runId, (runSpecification, session) ->
+                runSpecification.getType() == RunType.ACTIVE
+        );
 
         if (activeSessionsInfo.isEmpty()) {
             LOGGER.info("No active running sessions available on start-run-event for '{}'", runId);
@@ -322,14 +315,16 @@ public class InternalEventHandlerRunnable implements Runnable {
     }
 
     private void cleanupAllRunningSessions(String runId) {
-        Set<String> activeSessionsInfo = cleanupRunningSessions(runId, (runSpecification, session) -> {
-            Optional<String> oSessionRunId = session.getStateValue(SessionEventConstants.RUN_ID_ATTRIBUTE_NAME);
-            if (oSessionRunId.isEmpty()) {
-                LOGGER.info("No run-id specified in the session {}", session);
-                return false;
+        Set<String> activeSessionsInfo = cleanupRunningSessions(
+            runId, (runSpecification, session) -> {
+                Optional<String> oSessionRunId = session.getStateValue(SessionEventConstants.RUN_ID_ATTRIBUTE_NAME);
+                if (oSessionRunId.isEmpty()) {
+                    LOGGER.info("No run-id specified in the session {}", session);
+                    return false;
+                }
+                return runId.equals(oSessionRunId.get());
             }
-            return runId.equals(oSessionRunId.get());
-        });
+        );
 
         if (activeSessionsInfo.isEmpty()) {
             LOGGER.info("No active sessions available on complete-run-event for '{}'", runId);
@@ -954,6 +949,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             sessionId,
             InternalEventHandlerRunnable::terminateSessionProcessingState
         );
+        LOGGER.info("Session stopped: {}", session);
 
         setSessionStateAttribute(stopSessionEvent, session);
         registerInstanceEvent(
@@ -1027,16 +1023,19 @@ public class InternalEventHandlerRunnable implements Runnable {
     }
 
     public static void terminateSessionProcessingState(Session session, State finalState) {
-        SessionProcessingState.update(session, processingState -> {
-            processingState.setTerminated(LocalDateTime.now(ZoneId.systemDefault()));
-            SessionProcessingState.buildTerminationMessage(session, processingState);
+        SessionProcessingState.update(
+            session, processingState -> {
+                LOGGER.debug("Modifying session's processing state for session {} to {}", session.getId(), finalState);
+                processingState.setTerminated(LocalDateTime.now(ZoneId.systemDefault()));
+                SessionProcessingState.buildTerminationMessage(session, processingState);
 
-            if (!FINAL_UNSUCCESSFUL_STATES.contains(processingState.getState())) {
-                processingState.setState(finalState);
+                if (!FINAL_UNSUCCESSFUL_STATES.contains(processingState.getState())) {
+                    processingState.setState(finalState);
+                }
+
+                session.setProcessingState(processingState);
             }
-
-            session.setProcessingState(processingState);
-        });
+        );
     }
 
     public static void terminateSessionProcessingState(Session session) {
