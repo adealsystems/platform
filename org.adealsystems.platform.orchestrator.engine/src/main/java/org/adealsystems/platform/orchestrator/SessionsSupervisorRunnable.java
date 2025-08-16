@@ -271,10 +271,10 @@ public class SessionsSupervisorRunnable implements Runnable {
         stopSessionEvent.setAttributeValue("timed-out", "true");
 
         SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(base);
-        sessionRepository.modifySession(sessionId, s -> {
-            setSessionStateAttribute(stopSessionEvent, s);
-            terminateSessionProcessingState(s, State.ABORTED);
-        });
+        Session session = sessionRepository.modifySession(
+            sessionId, s -> terminateSessionProcessingState(s, State.ABORTED)
+        );
+        setSessionStateAttribute(stopSessionEvent, session);
 
         if (instanceRef.dynamicContent != null) {
             setDynamicContentAttribute(stopSessionEvent, instanceRef.dynamicContent);

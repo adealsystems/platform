@@ -203,14 +203,16 @@ public class FileBasedSessionRepository implements SessionRepository {
 
     @Override
     public Session retrieveOrCreateSession(SessionId sessionId) {
-        ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
-        lock.lock();
-        try {
-            return internalRetrieveOrCreateSession(sessionId);
-        }
-        finally {
-            lock.unlock();
-        }
+        return internalRetrieveOrCreateSession(sessionId);
+
+        //ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        //lock.lock();
+        //try {
+        //    return internalRetrieveOrCreateSession(sessionId);
+        //}
+        //finally {
+        //    lock.unlock();
+        //}
     }
 
     private Session internalRetrieveOrCreateSession(SessionId id) {
@@ -228,15 +230,17 @@ public class FileBasedSessionRepository implements SessionRepository {
     public void updateSession(Session session) {
         Objects.requireNonNull(session, "session must not be null!");
 
-        SessionId sessionId = session.getId();
-        ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
-        lock.lock();
-        try {
-            internalUpdateSession(session);
-        }
-        finally {
-            lock.unlock();
-        }
+        internalUpdateSession(session);
+
+        //SessionId sessionId = session.getId();
+        //ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        //lock.lock();
+        //try {
+        //    internalUpdateSession(session);
+        //}
+        //finally {
+        //    lock.unlock();
+        //}
     }
 
     private void internalUpdateSession(Session session) {
