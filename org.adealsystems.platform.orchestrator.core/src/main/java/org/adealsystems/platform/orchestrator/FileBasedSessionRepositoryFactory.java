@@ -20,9 +20,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class FileBasedSessionRepositoryFactory implements SessionRepositoryFactory {
@@ -31,17 +31,17 @@ public class FileBasedSessionRepositoryFactory implements SessionRepositoryFacto
 
     private final ReentrantLock lock = new ReentrantLock();
 
-    private final Map<InstanceId, SessionRepository> cache = new HashMap<>();
+    private final ConcurrentMap<InstanceId, SessionRepository> cache = new ConcurrentHashMap<>();
 
     private final File baseDirectory;
 
     public FileBasedSessionRepositoryFactory(File baseDirectory) {
         Objects.requireNonNull(baseDirectory, "baseDirectory must not be null!");
         if (!baseDirectory.exists()) {
-            throw new IllegalArgumentException("Missing mandatory baseDirectory: '" + baseDirectory.getAbsolutePath() + "'!");
+            throw new IllegalArgumentException("Missing mandatory baseDirectory: '" + baseDirectory + "'!");
         }
         if (!baseDirectory.isDirectory()) {
-            throw new IllegalArgumentException("baseDirectory '" + baseDirectory.getAbsolutePath() + "' must be directory!");
+            throw new IllegalArgumentException("baseDirectory '" + baseDirectory + "' must be directory!");
         }
         this.baseDirectory = baseDirectory;
     }
@@ -69,11 +69,11 @@ public class FileBasedSessionRepositoryFactory implements SessionRepositoryFacto
         File instanceDirectory = new File(baseDirectory, id.getId());
         if (!instanceDirectory.mkdirs()) {
             if (!instanceDirectory.isDirectory()) {
-                throw new IllegalStateException("Failed to create base directory '" + instanceDirectory.getAbsolutePath() + "'!");
+                throw new IllegalStateException("Failed to create base directory '" + instanceDirectory + "'!");
             }
-            LOGGER.debug("Using existing base directory '" + instanceDirectory.getAbsolutePath() + "'");
+            LOGGER.debug("Using existing base directory '{}'", instanceDirectory);
         } else {
-            LOGGER.info("Created new base directory '" + instanceDirectory.getAbsolutePath() + "'");
+            LOGGER.info("Created new base directory '{}'", instanceDirectory);
         }
 
         return new FileBasedSessionRepository(id, instanceDirectory);

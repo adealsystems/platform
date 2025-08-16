@@ -316,7 +316,7 @@ public class FileBasedSessionRepository implements SessionRepository {
             modifier.accept(session);
             internalUpdateSession(session);
 
-            return session.clone();
+            return session;
         }
         finally {
             lock.unlock();
