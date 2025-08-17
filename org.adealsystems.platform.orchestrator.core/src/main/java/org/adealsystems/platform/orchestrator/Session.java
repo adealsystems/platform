@@ -114,11 +114,6 @@ public final class Session implements Cloneable, Serializable {
 
         updateGlobalFields(session, processingState);
         session.setProcessingState(processingState);
-
-        session.getSessionUpdateHistory().add(
-            session.getId(),
-            new SessionUpdateProcessingStateOperation(processingState)
-        );
     }
 
     public static void updateProcessingState(
@@ -224,6 +219,13 @@ public final class Session implements Cloneable, Serializable {
 
     public void setProcessingState(SessionProcessingState processingState) {
         this.processingState = processingState;
+
+        if (sessionUpdateHistory != null) {
+            sessionUpdateHistory.add(
+                id,
+                new SessionUpdateProcessingStateOperation(processingState)
+            );
+        }
     }
 
     public Optional<String> getStateValue(String key) {
@@ -254,7 +256,10 @@ public final class Session implements Cloneable, Serializable {
         }
 
         if (sessionUpdateHistory != null) {
-            sessionUpdateHistory.add(this.id, new SessionUpdateStateValueOperation(key, value));
+            sessionUpdateHistory.add(
+                id,
+                new SessionUpdateStateValueOperation(key, value)
+            );
         }
     }
 
