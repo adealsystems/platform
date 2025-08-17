@@ -96,17 +96,16 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
 
     File createFile(SessionId sessionId) {
         String id = sessionId.getId();
-        File sessionBaseDirectory = new File(baseDirectory, id);
-        if (!sessionBaseDirectory.mkdirs()) {
-            if (!sessionBaseDirectory.isDirectory()) {
-                throw new IllegalStateException("Failed to create sessionBaseDirectory '" + sessionBaseDirectory + "'!");
+        if (!baseDirectory.mkdirs()) {
+            if (!baseDirectory.isDirectory()) {
+                throw new IllegalStateException("Failed to create sessionBaseDirectory '" + baseDirectory + "'!");
             }
-            LOGGER.debug("Using existing sessionBaseDirectory '{}'", sessionBaseDirectory);
+            LOGGER.debug("Using existing sessionBaseDirectory '{}'", baseDirectory);
         } else {
-            LOGGER.debug("Created sessionBaseDirectory '{}'", sessionBaseDirectory);
+            LOGGER.debug("Created sessionBaseDirectory '{}'", baseDirectory);
         }
 
-        return new File(sessionBaseDirectory, id + FILE_EXTENSION);
+        return new File(baseDirectory, id + FILE_EXTENSION);
     }
 
     public static class HistoryEntry {

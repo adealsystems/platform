@@ -19,6 +19,7 @@ package org.adealsystems.platform.orchestrator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.adealsystems.platform.orchestrator.session.SessionUpdateOperationModule;
 import org.adealsystems.platform.orchestrator.status.mapping.SessionProcessingStateModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +68,7 @@ public class FileBasedSessionRepository implements SessionRepository {
         OBJECT_MAPPER.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
         OBJECT_MAPPER.registerModule(new JavaTimeModule());
         OBJECT_MAPPER.registerModule(new SessionProcessingStateModule());
+        OBJECT_MAPPER.registerModule(new SessionUpdateOperationModule());
     }
 
     private static final Pattern FILE_PATTERN
