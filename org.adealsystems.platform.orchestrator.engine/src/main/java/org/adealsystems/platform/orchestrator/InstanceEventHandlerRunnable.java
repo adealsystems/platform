@@ -21,14 +21,11 @@ import org.adealsystems.platform.orchestrator.status.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
 import static org.adealsystems.platform.orchestrator.InternalEvent.setSessionStateAttribute;
-import static org.adealsystems.platform.orchestrator.InternalEventHandlerRunnable.FINAL_UNSUCCESSFUL_STATES;
 import static org.adealsystems.platform.orchestrator.Session.REG_DEPENDENCIES;
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.INSTANCE_ID_ATTRIBUTE_NAME;
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSION_ID_ATTRIBUTE_NAME;
@@ -114,22 +111,22 @@ public class InstanceEventHandlerRunnable implements Runnable {
                     LOGGER.error("Exception while handling event {} with session {}!", event, s, ex);
                 }
 
-                if (instanceEventHandler.isTerminating(event)) {
-                    LOGGER.debug("Finalizing session {}", s);
-                    SessionProcessingState.update(s, processingState -> {
-                        processingState.setTerminated(LocalDateTime.now(ZoneId.systemDefault()));
-                        SessionProcessingState.buildTerminationMessage(s, processingState);
-
-                        if (!FINAL_UNSUCCESSFUL_STATES.contains(processingState.getState())) {
-                            processingState.setState(State.DONE);
-                        }
-                        
-                        s.setProcessingState(processingState);
-                    });
-
-                    // reset terminating flag
-                    instanceEventHandler.resetTerminatingFlag(event);
-                }
+                //if (instanceEventHandler.isTerminating(event)) {
+                //LOGGER.debug("Finalizing session {}", s);
+                //SessionProcessingState.update(s, processingState -> {
+                //    processingState.setTerminated(LocalDateTime.now(ZoneId.systemDefault()));
+                //    SessionProcessingState.buildTerminationMessage(s, processingState);
+                //
+                //    if (!FINAL_UNSUCCESSFUL_STATES.contains(processingState.getState())) {
+                //        processingState.setState(State.DONE);
+                //    }
+                //
+                //    s.setProcessingState(processingState);
+                //});
+                //
+                //// reset terminating flag
+                //instanceEventHandler.resetTerminatingFlag(event);
+                //}
             });
 
             InternalEvent changeSessionEvent = createSessionStateEvent(session);
