@@ -78,6 +78,7 @@ public final class Session implements Cloneable, Serializable {
     private SessionProcessingState processingState;
     private Map<String, String> state;
 
+    @JsonIgnore
     private SessionUpdateHistory sessionUpdateHistory;
 
     public Session(InstanceId instanceId, SessionId id) {

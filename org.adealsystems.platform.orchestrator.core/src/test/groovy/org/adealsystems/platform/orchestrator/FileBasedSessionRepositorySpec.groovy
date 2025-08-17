@@ -41,7 +41,7 @@ class FileBasedSessionRepositorySpec extends Specification {
             'ddd': '000',
         ]
 
-        FileBasedSessionRepository sessionRepository = new FileBasedSessionRepository(instanceId, baseDirectory)
+        FileBasedSessionRepository sessionRepository = new FileBasedSessionRepository(instanceId, baseDirectory, null)
         def id = 'SESSION-ID'
         SessionId sessionId = new SessionId(id)
 

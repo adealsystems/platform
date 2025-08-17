@@ -76,8 +76,13 @@ public class FileBasedSessionRepository implements SessionRepository {
     private final ConcurrentMap<String, ReentrantLock> lockMap = new ConcurrentHashMap<>();
     private final InstanceId instanceId;
     private final File baseDirectory;
+    private final SessionUpdateHistory sessionUpdateHistory;
 
-    public FileBasedSessionRepository(InstanceId instanceId, File baseDirectory) {
+    public FileBasedSessionRepository(
+        InstanceId instanceId,
+        File baseDirectory,
+        SessionUpdateHistory sessionUpdateHistory
+    ) {
         Objects.requireNonNull(instanceId, "instanceId must not be null!");
         Objects.requireNonNull(baseDirectory, "baseDirectory must not be null!");
         if (!baseDirectory.exists()) {
@@ -88,6 +93,8 @@ public class FileBasedSessionRepository implements SessionRepository {
         }
         this.instanceId = instanceId;
         this.baseDirectory = baseDirectory;
+
+        this.sessionUpdateHistory = sessionUpdateHistory;
     }
 
     @Override
@@ -170,6 +177,7 @@ public class FileBasedSessionRepository implements SessionRepository {
         }
 
         Session session = new Session(instanceId, sessionId);
+        session.setSessionUpdateHistory(sessionUpdateHistory);
 
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
         lock.lock();
@@ -222,6 +230,7 @@ public class FileBasedSessionRepository implements SessionRepository {
         }
 
         Session session = new Session(instanceId, id);
+        session.setSessionUpdateHistory(sessionUpdateHistory);
         writeSession(sessionFile, session);
         return session;
     }

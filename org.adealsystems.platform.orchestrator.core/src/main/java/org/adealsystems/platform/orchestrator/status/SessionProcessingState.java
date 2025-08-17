@@ -93,7 +93,7 @@ public class SessionProcessingState implements Cloneable, Serializable {
 
         state.setMessage(msg.toString());
     }
-    
+
     public SessionProcessingState(RunSpecification runSpec) {
         this.state = State.READY_TO_RUN;
         this.runSpec = runSpec;

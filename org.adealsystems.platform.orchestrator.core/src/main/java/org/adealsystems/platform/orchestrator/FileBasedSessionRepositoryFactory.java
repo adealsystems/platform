@@ -30,12 +30,12 @@ public class FileBasedSessionRepositoryFactory implements SessionRepositoryFacto
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedSessionRepositoryFactory.class);
 
     private final ReentrantLock lock = new ReentrantLock();
-
     private final ConcurrentMap<InstanceId, SessionRepository> cache = new ConcurrentHashMap<>();
 
     private final File baseDirectory;
+    private final SessionUpdateHistory sessionUpdateHistory;
 
-    public FileBasedSessionRepositoryFactory(File baseDirectory) {
+    public FileBasedSessionRepositoryFactory(File baseDirectory, SessionUpdateHistory sessionUpdateHistory) {
         Objects.requireNonNull(baseDirectory, "baseDirectory must not be null!");
         if (!baseDirectory.exists()) {
             throw new IllegalArgumentException("Missing mandatory baseDirectory: '" + baseDirectory + "'!");
@@ -44,6 +44,8 @@ public class FileBasedSessionRepositoryFactory implements SessionRepositoryFacto
             throw new IllegalArgumentException("baseDirectory '" + baseDirectory + "' must be directory!");
         }
         this.baseDirectory = baseDirectory;
+
+        this.sessionUpdateHistory = sessionUpdateHistory;
     }
 
     @Override
@@ -76,6 +78,6 @@ public class FileBasedSessionRepositoryFactory implements SessionRepositoryFacto
             LOGGER.info("Created new base directory '{}'", instanceDirectory);
         }
 
-        return new FileBasedSessionRepository(id, instanceDirectory);
+        return new FileBasedSessionRepository(id, instanceDirectory, sessionUpdateHistory);
     }
 }
