@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.adealsystems.platform.orchestrator.status.mapping.SessionProcessingStateModule;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -41,12 +42,12 @@ import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSI
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SOURCE_EVENT_ATTRIBUTE_NAME;
 
 
-public final class InternalEvent implements Cloneable {
+public final class InternalEvent implements Cloneable, Serializable {
+    private static final long serialVersionUID = -1958300486266138089L;
 
     public static final Comparator<InternalEvent> TIMESTAMP_COMPARATOR = new TimestampComparator();
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
     static {
         OBJECT_MAPPER.registerModule(new JavaTimeModule());
         OBJECT_MAPPER.registerModule(new SessionProcessingStateModule());

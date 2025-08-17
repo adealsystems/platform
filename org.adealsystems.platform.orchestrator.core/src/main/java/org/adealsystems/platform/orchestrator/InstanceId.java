@@ -19,10 +19,13 @@ package org.adealsystems.platform.orchestrator;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-public final class InstanceId implements Comparable<InstanceId> {
+public final class InstanceId implements Comparable<InstanceId>, Serializable {
+    private static final long serialVersionUID = 100467082338880506L;
+
     public static final String PATTERN_STRING = "[0-9]{4}([-_][0-9a-z/]+)*";
     private static final Pattern PATTERN = Pattern.compile(PATTERN_STRING);
 

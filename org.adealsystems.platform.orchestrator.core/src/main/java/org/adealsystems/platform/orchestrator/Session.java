@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.beans.ConstructorProperties;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
@@ -38,7 +39,9 @@ import java.util.Optional;
 import java.util.Set;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public final class Session implements Cloneable {
+public final class Session implements Cloneable, Serializable {
+    private static final long serialVersionUID = -4977538740085095596L;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(Session.class);
 
     public static final String FLAG_ERROR_OCCURRED = "ERROR_OCCURRED";

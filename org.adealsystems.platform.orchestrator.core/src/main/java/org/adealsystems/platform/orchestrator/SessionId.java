@@ -19,10 +19,12 @@ package org.adealsystems.platform.orchestrator;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-public final class SessionId implements Comparable<SessionId> {
+public final class SessionId implements Comparable<SessionId>, Serializable {
+    private static final long serialVersionUID = 5391905987810704814L;
 
     public static final String PATTERN_STRING = "[0-9A-Z]*(-[0-9A-Z]+)*";
     private static final Pattern PATTERN = Pattern.compile(PATTERN_STRING);

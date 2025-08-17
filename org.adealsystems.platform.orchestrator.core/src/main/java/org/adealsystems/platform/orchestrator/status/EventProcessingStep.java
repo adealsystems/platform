@@ -22,6 +22,8 @@ import org.adealsystems.platform.orchestrator.InternalEvent;
 import java.util.Objects;
 
 public class EventProcessingStep implements ProcessingStep {
+    private static final long serialVersionUID = 8583659551095886478L;
+
     private final boolean success; // NOPMD
     private final InternalEvent event;
     private final String message;

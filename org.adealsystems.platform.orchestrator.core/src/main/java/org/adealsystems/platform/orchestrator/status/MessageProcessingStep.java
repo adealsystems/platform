@@ -26,6 +26,8 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 
 public class MessageProcessingStep extends EventProcessingStep {
+    private static final long serialVersionUID = -5021237990561079026L;
+
     private final String instanceRef;
 
     public static MessageProcessingStep success(InternalEvent event, String instanceRef) {

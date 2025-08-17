@@ -22,6 +22,8 @@ import org.adealsystems.platform.orchestrator.InternalEvent;
 import java.util.Objects;
 
 public class CancelProcessingStep extends EventProcessingStep {
+    private static final long serialVersionUID = 804469633579132995L;
+
     private final String name;
 
     public static CancelProcessingStep success(InternalEvent event, String name) {

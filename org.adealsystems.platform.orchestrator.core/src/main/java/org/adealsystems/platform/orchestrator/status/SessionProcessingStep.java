@@ -23,6 +23,8 @@ import org.adealsystems.platform.orchestrator.SessionEventConstants;
 import java.util.Objects;
 
 public class SessionProcessingStep extends EventProcessingStep {
+    private static final long serialVersionUID = -2205103557789816206L;
+
     private final String instanceRef;
 
     public static SessionProcessingStep success(InternalEvent event, String instanceRef) {

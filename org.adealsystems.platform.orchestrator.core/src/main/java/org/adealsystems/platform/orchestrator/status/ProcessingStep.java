@@ -19,7 +19,9 @@ package org.adealsystems.platform.orchestrator.status;
 
 import org.adealsystems.platform.orchestrator.InternalEvent;
 
-public interface ProcessingStep {
+import java.io.Serializable;
+
+public interface ProcessingStep extends Serializable {
     boolean isSuccess();
     InternalEvent getEvent();
     String getMessage();
