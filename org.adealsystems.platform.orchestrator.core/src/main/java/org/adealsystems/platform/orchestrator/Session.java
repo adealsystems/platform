@@ -596,6 +596,7 @@ public final class Session implements Cloneable, Serializable {
         if (processingState != null) {
             clone.processingState = processingState.clone();
         }
+        clone.sessionUpdateHistory = sessionUpdateHistory;
         return clone;
     }
 }
