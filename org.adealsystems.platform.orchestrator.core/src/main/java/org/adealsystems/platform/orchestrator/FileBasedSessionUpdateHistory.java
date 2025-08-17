@@ -68,16 +68,14 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
     @Override
     public void add(SessionId id, SessionUpdateOperation operation) {
         lock.lock();
-        try {
-            try (Drain<HistoryEntry> drain = createDrain(id)) {
-                HistoryEntry entry = new HistoryEntry();
-                entry.setTimestamp(timestampFactory.createTimestamp());
-                entry.setOperation(operation);
-                drain.add(entry);
-                LOGGER.debug("Added session operation to history of {}: {}", id, operation);
-            } catch (Exception ex) {
-                LOGGER.error("Exception while draining session update for {}!", id, ex);
-            }
+        try (Drain<HistoryEntry> drain = createDrain(id)) {
+            HistoryEntry entry = new HistoryEntry();
+            entry.setTimestamp(timestampFactory.createTimestamp());
+            entry.setOperation(operation);
+            drain.add(entry);
+            LOGGER.debug("Added session operation to history of {}: {}", id, operation);
+        } catch (Exception ex) {
+            LOGGER.error("Exception while draining session update for {}!", id, ex);
         }
         finally {
             lock.unlock();
