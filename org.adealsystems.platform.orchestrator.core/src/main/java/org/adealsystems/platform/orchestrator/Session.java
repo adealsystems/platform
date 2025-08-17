@@ -104,16 +104,21 @@ public final class Session implements Cloneable, Serializable {
     }
 
     public static void updateProcessingState(Session session, Consumer<SessionProcessingState> consumer) {
-        SessionProcessingState processingState = session.getProcessingState();
-        if (processingState == null) {
-            LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
-            return;
+        try {
+            SessionProcessingState processingState = session.getProcessingState();
+            if (processingState == null) {
+                LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
+                return;
+            }
+
+            consumer.accept(processingState);
+
+            updateGlobalFields(session, processingState);
+            session.setProcessingState(processingState);
         }
-
-        consumer.accept(processingState);
-
-        updateGlobalFields(session, processingState);
-        session.setProcessingState(processingState);
+        catch (Exception ex) {
+            LOGGER.error("Error updating session processing state in {}!", session, ex);
+        }
     }
 
     public static void updateProcessingState(
@@ -121,64 +126,79 @@ public final class Session implements Cloneable, Serializable {
         InternalEvent event,
         BiConsumer<SessionProcessingState, InternalEvent> consumer
     ) {
-        SessionProcessingState processingState = session.getProcessingState();
-        if (processingState == null) {
-            LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
-            return;
-        }
+        try {
+            SessionProcessingState processingState = session.getProcessingState();
+            if (processingState == null) {
+                LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
+                return;
+            }
 
-        consumer.accept(processingState, event);
+            consumer.accept(processingState, event);
 
-        updateGlobalFields(session, processingState);
-        session.setProcessingState(processingState);
-
-        session.getSessionUpdateHistory().add(
-            session.getId(),
-            new SessionUpdateProcessingStateOperation(processingState)
-        );
-    }
-
-    public static void startProgress(Session session, int progressMaxValue) {
-        SessionProcessingState processingState = session.getProcessingState();
-        if (processingState == null) {
-            LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
-            return;
-        }
-
-        processingState.setProgressMaxValue(progressMaxValue);
-        session.setProcessingState(processingState);
-
-        session.getSessionUpdateHistory().add(
-            session.getId(),
-            new SessionSetProgressMaxValueOperation(progressMaxValue)
-        );
-    }
-
-    public static void updateProgress(Session session, boolean success) {
-        SessionProcessingState processingState = session.getProcessingState();
-        if (processingState == null) {
-            LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
-            return;
-        }
-
-        processingState.setProgressCurrentStep(processingState.getProgressCurrentStep() + 1);
-
-        session.getSessionUpdateHistory().add(
-            session.getId(),
-            new SessionUpdateProgressOperation()
-        );
-
-        if (!success) {
-            processingState.setProgressFailedSteps(processingState.getProgressFailedSteps() + 1);
+            updateGlobalFields(session, processingState);
+            session.setProcessingState(processingState);
 
             session.getSessionUpdateHistory().add(
                 session.getId(),
-                new SessionUpdateFailedProgressOperation()
+                new SessionUpdateProcessingStateOperation(processingState)
             );
         }
+        catch (Exception ex) {
+            LOGGER.error("Error updating session processing state in {}!", session, ex);
+        }
+    }
 
-        updateGlobalFields(session, processingState);
-        session.setProcessingState(processingState);
+    public static void startProgress(Session session, int progressMaxValue) {
+        try {
+            SessionProcessingState processingState = session.getProcessingState();
+            if (processingState == null) {
+                LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
+                return;
+            }
+
+            processingState.setProgressMaxValue(progressMaxValue);
+            session.setProcessingState(processingState);
+
+            session.getSessionUpdateHistory().add(
+                session.getId(),
+                new SessionSetProgressMaxValueOperation(progressMaxValue)
+            );
+        }
+        catch (Exception ex) {
+            LOGGER.error("Error starting session progress in {}!", session, ex);
+        }
+    }
+
+    public static void updateProgress(Session session, boolean success) {
+        try {
+            SessionProcessingState processingState = session.getProcessingState();
+            if (processingState == null) {
+                LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
+                return;
+            }
+
+            processingState.setProgressCurrentStep(processingState.getProgressCurrentStep() + 1);
+
+            session.getSessionUpdateHistory().add(
+                session.getId(),
+                new SessionUpdateProgressOperation()
+            );
+
+            if (!success) {
+                processingState.setProgressFailedSteps(processingState.getProgressFailedSteps() + 1);
+
+                session.getSessionUpdateHistory().add(
+                    session.getId(),
+                    new SessionUpdateFailedProgressOperation()
+                );
+            }
+
+            updateGlobalFields(session, processingState);
+            session.setProcessingState(processingState);
+        }
+        catch (Exception ex) {
+            LOGGER.error("Error updating session progress in {}!", session, ex);
+        }
     }
 
     private static void updateGlobalFields(Session session, SessionProcessingState state) {
