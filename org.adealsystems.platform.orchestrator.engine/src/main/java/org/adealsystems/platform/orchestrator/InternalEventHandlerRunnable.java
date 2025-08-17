@@ -1023,7 +1023,7 @@ public class InternalEventHandlerRunnable implements Runnable {
     }
 
     public static void terminateSessionProcessingState(Session session, State finalState) {
-        SessionProcessingState.update(
+        Session.updateProcessingState(
             session, processingState -> {
                 LOGGER.debug("Modifying session's processing state for session {} to {}", session.getId(), finalState);
                 processingState.setTerminated(LocalDateTime.now(ZoneId.systemDefault()));

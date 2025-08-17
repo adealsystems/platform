@@ -21,6 +21,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.adealsystems.platform.orchestrator.session.SessionSetProgressMaxValueOperation;
+import org.adealsystems.platform.orchestrator.session.SessionUpdateFailedProgressOperation;
+import org.adealsystems.platform.orchestrator.session.SessionUpdateProcessingStateOperation;
+import org.adealsystems.platform.orchestrator.session.SessionUpdateProgressOperation;
+import org.adealsystems.platform.orchestrator.session.SessionUpdateStateValueOperation;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +42,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class Session implements Cloneable, Serializable {
@@ -58,6 +65,12 @@ public final class Session implements Cloneable, Serializable {
     public static final String LOCKED_EVENTS = "locked-events";
     public static final String UPDATE_HISTORY = "update-history";
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    static {
+        OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        OBJECT_MAPPER.registerModule(new JavaTimeModule());
+    }
+
     private final InstanceId instanceId;
     private final SessionId id;
     private final LocalDateTime creationTimestamp;
@@ -65,11 +78,7 @@ public final class Session implements Cloneable, Serializable {
     private SessionProcessingState processingState;
     private Map<String, String> state;
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    static {
-        OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        OBJECT_MAPPER.registerModule(new JavaTimeModule());
-    }
+    private SessionUpdateHistory sessionUpdateHistory;
 
     public Session(InstanceId instanceId, SessionId id) {
         this(instanceId, id, LocalDateTime.now(ZoneId.systemDefault()), Collections.emptyMap());
@@ -83,6 +92,105 @@ public final class Session implements Cloneable, Serializable {
         this.id = Objects.requireNonNull(id, "id must be not null!");
         this.instanceConfiguration = Collections.unmodifiableMap(new HashMap<>(instanceConfiguration));
         this.creationTimestamp = creationTimestamp;
+    }
+
+    public SessionUpdateHistory getSessionUpdateHistory() {
+        return sessionUpdateHistory;
+    }
+
+    public void setSessionUpdateHistory(SessionUpdateHistory sessionUpdateHistory) {
+        this.sessionUpdateHistory = sessionUpdateHistory;
+    }
+
+    public static void updateProcessingState(Session session, Consumer<SessionProcessingState> consumer) {
+        SessionProcessingState processingState = session.getProcessingState();
+        if (processingState == null) {
+            LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
+            return;
+        }
+
+        consumer.accept(processingState);
+
+        updateGlobalFields(session, processingState);
+        session.setProcessingState(processingState);
+
+        session.getSessionUpdateHistory().add(
+            session.getId(),
+            new SessionUpdateProcessingStateOperation(processingState)
+        );
+    }
+
+    public static void updateProcessingState(
+        Session session,
+        InternalEvent event,
+        BiConsumer<SessionProcessingState, InternalEvent> consumer
+    ) {
+        SessionProcessingState processingState = session.getProcessingState();
+        if (processingState == null) {
+            LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
+            return;
+        }
+
+        consumer.accept(processingState, event);
+
+        updateGlobalFields(session, processingState);
+        session.setProcessingState(processingState);
+
+        session.getSessionUpdateHistory().add(
+            session.getId(),
+            new SessionUpdateProcessingStateOperation(processingState)
+        );
+    }
+
+    public static void startProgress(Session session, int progressMaxValue) {
+        SessionProcessingState processingState = session.getProcessingState();
+        if (processingState == null) {
+            LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
+            return;
+        }
+
+        processingState.setProgressMaxValue(progressMaxValue);
+        session.setProcessingState(processingState);
+
+        session.getSessionUpdateHistory().add(
+            session.getId(),
+            new SessionSetProgressMaxValueOperation(progressMaxValue)
+        );
+    }
+
+    public static void updateProgress(Session session, boolean success) {
+        SessionProcessingState processingState = session.getProcessingState();
+        if (processingState == null) {
+            LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
+            return;
+        }
+
+        processingState.setProgressCurrentStep(processingState.getProgressCurrentStep() + 1);
+
+        session.getSessionUpdateHistory().add(
+            session.getId(),
+            new SessionUpdateProgressOperation()
+        );
+
+        if (!success) {
+            processingState.setProgressFailedSteps(processingState.getProgressFailedSteps() + 1);
+
+            session.getSessionUpdateHistory().add(
+                session.getId(),
+                new SessionUpdateFailedProgressOperation()
+            );
+        }
+
+        updateGlobalFields(session, processingState);
+        session.setProcessingState(processingState);
+    }
+
+    private static void updateGlobalFields(Session session, SessionProcessingState state) {
+        state.setLastUpdated(LocalDateTime.now(ZoneId.systemDefault()));
+        state.getFlags().put(FLAG_ERROR_OCCURRED, session.hasFailedFlag());
+        state.getFlags().put(FLAG_SESSION_CANCELLED, session.hasCancelledFlag());
+        state.getFlags().put(FLAG_SESSION_FINISHED, session.hasFinishedFlag());
+        state.setStateAttributes(session.getState());
     }
 
     public InstanceId getInstanceId() {
@@ -142,6 +250,10 @@ public final class Session implements Cloneable, Serializable {
             state.remove(key);
         } else {
             state.put(key, value);
+        }
+
+        if (sessionUpdateHistory != null) {
+            sessionUpdateHistory.add(this.id, new SessionUpdateStateValueOperation(key, value));
         }
     }
 

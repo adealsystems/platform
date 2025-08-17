@@ -16,12 +16,10 @@
 
 package org.adealsystems.platform.orchestrator.status;
 
-import org.adealsystems.platform.orchestrator.InternalEvent;
 import org.adealsystems.platform.orchestrator.RunSpecification;
 import org.adealsystems.platform.orchestrator.Session;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -30,16 +28,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
-import static org.adealsystems.platform.orchestrator.Session.FLAG_ERROR_OCCURRED;
-import static org.adealsystems.platform.orchestrator.Session.FLAG_SESSION_CANCELLED;
-import static org.adealsystems.platform.orchestrator.Session.FLAG_SESSION_FINISHED;
 
 
-public class SessionProcessingState implements Cloneable {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SessionProcessingState.class);
+public class SessionProcessingState implements Cloneable, Serializable {
+    private static final long serialVersionUID = -4771183871755310172L;
 
     private final RunSpecification runSpec;
     private State state;
@@ -54,57 +46,6 @@ public class SessionProcessingState implements Cloneable {
     private int progressFailedSteps;
     private Map<String, Boolean> flags;
     private Map<String, String> stateAttributes;
-
-    public static void update(Session session, Consumer<SessionProcessingState> consumer) {
-        SessionProcessingState processingState = session.getProcessingState();
-        if (processingState == null) {
-            LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
-            return;
-        }
-
-        consumer.accept(processingState);
-        updateGlobalFields(session, processingState);
-        session.setProcessingState(processingState);
-    }
-
-    public static void update(Session session, InternalEvent event, BiConsumer<SessionProcessingState, InternalEvent> consumer) {
-        SessionProcessingState processingState = session.getProcessingState();
-        if (processingState == null) {
-            LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
-            return;
-        }
-
-        consumer.accept(processingState, event);
-        updateGlobalFields(session, processingState);
-        session.setProcessingState(processingState);
-    }
-
-    public static void startProgress(Session session, int progressMaxValue) {
-        SessionProcessingState processingState = session.getProcessingState();
-        if (processingState == null) {
-            LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
-            return;
-        }
-
-        processingState.progressMaxValue = progressMaxValue;
-        session.setProcessingState(processingState);
-    }
-
-    public static void updateProgress(Session session, boolean success) {
-        SessionProcessingState processingState = session.getProcessingState();
-        if (processingState == null) {
-            LOGGER.warn("Missing initialized SessionProcessingState in session {}!", session);
-            return;
-        }
-
-        processingState.progressCurrentStep++;
-        if (!success) {
-            processingState.progressFailedSteps++;
-        }
-
-        updateGlobalFields(session, processingState);
-        session.setProcessingState(processingState);
-    }
 
     public static void buildTerminationMessage(Session session, SessionProcessingState state) {
         StringBuilder msg = new StringBuilder(45);
@@ -152,15 +93,7 @@ public class SessionProcessingState implements Cloneable {
 
         state.setMessage(msg.toString());
     }
-
-    private static void updateGlobalFields(Session session, SessionProcessingState processingState) {
-        processingState.lastUpdated = LocalDateTime.now(ZoneId.systemDefault());
-        processingState.flags.put(FLAG_ERROR_OCCURRED, session.hasFailedFlag());
-        processingState.flags.put(FLAG_SESSION_CANCELLED, session.hasCancelledFlag());
-        processingState.flags.put(FLAG_SESSION_FINISHED, session.hasFinishedFlag());
-        processingState.stateAttributes = session.getState();
-    }
-
+    
     public SessionProcessingState(RunSpecification runSpec) {
         this.state = State.READY_TO_RUN;
         this.runSpec = runSpec;
