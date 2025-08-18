@@ -43,6 +43,14 @@ public class SessionUpdateStateValueOperation implements SessionUpdateOperation 
         return Objects.equals(key, that.key) && Objects.equals(value, that.value);
     }
 
+    public String getKey() {
+        return key;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(key, value);

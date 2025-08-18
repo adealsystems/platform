@@ -32,6 +32,10 @@ public class SessionUpdateMessageOperation implements SessionUpdateOperation {
         session.getProcessingState().setMessage(message);
     }
 
+    public String getMessage() {
+        return message;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;

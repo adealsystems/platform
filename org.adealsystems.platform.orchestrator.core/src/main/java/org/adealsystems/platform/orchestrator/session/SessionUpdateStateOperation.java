@@ -35,6 +35,10 @@ public class SessionUpdateStateOperation implements SessionUpdateOperation {
         session.getProcessingState().setState(state);
     }
 
+    public State getState() {
+        return state;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;

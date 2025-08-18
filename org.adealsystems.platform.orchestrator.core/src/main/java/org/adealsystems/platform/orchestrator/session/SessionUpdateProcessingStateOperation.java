@@ -35,6 +35,10 @@ public class SessionUpdateProcessingStateOperation implements SessionUpdateOpera
         session.setProcessingState(processingState);
     }
 
+    public SessionProcessingState getProcessingState() {
+        return processingState;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;

@@ -32,6 +32,10 @@ public class SessionSetProgressMaxValueOperation implements SessionUpdateOperati
         session.getProcessingState().setProgressMaxValue(progressMaxValue);
     }
 
+    public int getProgressMaxValue() {
+        return progressMaxValue;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;

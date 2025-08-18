@@ -33,6 +33,10 @@ public class SessionAddStepOperation implements SessionUpdateOperation {
         session.getProcessingState().addStep(step);
     }
 
+    public EventProcessingStep getStep() {
+        return step;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
