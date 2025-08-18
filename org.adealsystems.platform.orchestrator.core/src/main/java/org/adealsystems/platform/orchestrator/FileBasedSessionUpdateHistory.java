@@ -106,9 +106,9 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
         return new File(baseDirectory, id + FILE_EXTENSION);
     }
 
-    public static class HistoryEntry {
+    public static class HistoryEntry<T extends SessionUpdateOperation> {
         private LocalDateTime timestamp;
-        private SessionUpdateOperation operation;
+        private T operation;
 
         public LocalDateTime getTimestamp() {
             return timestamp;
@@ -118,18 +118,18 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
             this.timestamp = timestamp;
         }
 
-        public SessionUpdateOperation getOperation() {
+        public T getOperation() {
             return operation;
         }
 
-        public void setOperation(SessionUpdateOperation operation) {
+        public void setOperation(T operation) {
             this.operation = operation;
         }
 
         @Override
         public boolean equals(Object o) {
             if (o == null || getClass() != o.getClass()) return false;
-            HistoryEntry that = (HistoryEntry) o;
+            HistoryEntry<?> that = (HistoryEntry<?>) o;
             return Objects.equals(timestamp, that.timestamp) && Objects.equals(operation, that.operation);
         }
 
