@@ -19,5 +19,5 @@ package org.adealsystems.platform.orchestrator;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateOperation;
 
 public interface SessionUpdateHistory {
-    void add(SessionId id, SessionUpdateOperation operation);
+    <T extends SessionUpdateOperation> void add(SessionId id, T operation);
 }

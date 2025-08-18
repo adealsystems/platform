@@ -66,10 +66,10 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
     }
 
     @Override
-    public void add(SessionId id, SessionUpdateOperation operation) {
+    public <T extends SessionUpdateOperation> void add(SessionId id, T operation) {
         lock.lock();
-        try (Drain<HistoryEntry> drain = createDrain(id)) {
-            HistoryEntry entry = new HistoryEntry();
+        try (Drain<HistoryEntry<T>> drain = createDrain(id)) {
+            HistoryEntry<T> entry = new HistoryEntry<>();
             entry.setTimestamp(timestampFactory.createTimestamp());
             entry.setOperation(operation);
             drain.add(entry);
@@ -82,13 +82,13 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
         }
     }
 
-    private Drain<HistoryEntry> createDrain(SessionId sessionId) throws IOException {
+    private <T extends SessionUpdateOperation> Drain<HistoryEntry<T>> createDrain(SessionId sessionId) throws IOException {
         File file = createFile(sessionId);
         LOGGER.debug("Creating file drain '{}' for {}.", file, sessionId);
         return createDrain(file, objectMapper);
     }
 
-    private static Drain<HistoryEntry> createDrain(File file, ObjectMapper objectMapper) throws IOException {
+    private static <T extends SessionUpdateOperation> Drain<HistoryEntry<T>> createDrain(File file, ObjectMapper objectMapper) throws IOException {
         return new JsonlDrain<>(Files.newOutputStream(file.toPath(), CREATE, APPEND), objectMapper);
     }
 

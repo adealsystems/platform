@@ -95,8 +95,8 @@ public final class Session implements Cloneable, Serializable {
         this.creationTimestamp = creationTimestamp;
     }
 
-    public SessionUpdateHistory getSessionUpdateHistory() {
-        return sessionUpdateHistory;
+    public Optional<SessionUpdateHistory> getSessionUpdateHistory() {
+        return sessionUpdateHistory == null ? Optional.empty() : Optional.of(sessionUpdateHistory);
     }
 
     public void setSessionUpdateHistory(SessionUpdateHistory sessionUpdateHistory) {
@@ -138,10 +138,10 @@ public final class Session implements Cloneable, Serializable {
             updateGlobalFields(session, processingState);
             session.setProcessingState(processingState);
 
-            session.getSessionUpdateHistory().add(
+            session.getSessionUpdateHistory().ifPresent(it -> it.add(
                 session.getId(),
                 new SessionUpdateProcessingStateOperation(processingState)
-            );
+            ));
         }
         catch (Exception ex) {
             LOGGER.error("Error updating session processing state in {}!", session, ex);
@@ -159,10 +159,10 @@ public final class Session implements Cloneable, Serializable {
             processingState.setProgressMaxValue(progressMaxValue);
             session.setProcessingState(processingState);
 
-            session.getSessionUpdateHistory().add(
+            session.getSessionUpdateHistory().ifPresent(it -> it.add(
                 session.getId(),
                 new SessionSetProgressMaxValueOperation(progressMaxValue)
-            );
+            ));
         }
         catch (Exception ex) {
             LOGGER.error("Error starting session progress in {}!", session, ex);
@@ -179,18 +179,18 @@ public final class Session implements Cloneable, Serializable {
 
             processingState.setProgressCurrentStep(processingState.getProgressCurrentStep() + 1);
 
-            session.getSessionUpdateHistory().add(
+            session.getSessionUpdateHistory().ifPresent(it -> it.add(
                 session.getId(),
                 new SessionUpdateProgressOperation()
-            );
+            ));
 
             if (!success) {
                 processingState.setProgressFailedSteps(processingState.getProgressFailedSteps() + 1);
 
-                session.getSessionUpdateHistory().add(
+                session.getSessionUpdateHistory().ifPresent(it -> it.add(
                     session.getId(),
                     new SessionUpdateFailedProgressOperation()
-                );
+                ));
             }
 
             updateGlobalFields(session, processingState);

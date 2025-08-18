@@ -813,7 +813,7 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         Map<String, String> instanceConfiguration = instance.getConfiguration();
         if (instanceConfiguration != null && !instanceConfiguration.isEmpty()) {
-            SessionUpdateHistory updateHistory = session.getSessionUpdateHistory();
+            Optional<SessionUpdateHistory> updateHistory = session.getSessionUpdateHistory();
 
             Map<String, String> state = session.getState();
             SessionProcessingState processingState = session.getProcessingState();
@@ -825,7 +825,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             );
             session.setState(state);
             session.setProcessingState(processingState);
-            session.setSessionUpdateHistory(updateHistory);
+            session.setSessionUpdateHistory(updateHistory.orElse(null));
         }
 
         SessionProcessingState processingState = session.getProcessingState();
