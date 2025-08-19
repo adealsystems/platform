@@ -92,45 +92,61 @@ public class InstanceEventHandlerRunnable implements Runnable {
 
             LOGGER.debug("Processing the event {} for {}", event, instanceId);
 
-            Session session = sessionRepository.modifySession(sessionId, s -> {
-                // Get current session processing state
-                Session.updateProcessingState(s, processingState -> {
-                    Set<String> deps = s.getStateRegistry(REG_DEPENDENCIES);
-                    if (deps.isEmpty()) {
-                        processingState.setState(State.RUNNING);
-                    }
-                    else {
-                        processingState.setState(State.WAITING_FOR_DEPENDENCIES);
-                    }
-                    s.setProcessingState(processingState);
-                });
+            Optional<Session> oSession = sessionRepository.retrieveSession(sessionId);
+            if (oSession.isEmpty()) {
+                LOGGER.warn("No session available for instanceId {} and sessionId {}!", instanceId, sessionId);
+                continue;
+            }
 
-                try {
-                    LOGGER.debug("Handling event {} with {} (session: {})", event, instanceId, sessionId);
-                    InternalEvent returnedEvent = instanceEventHandler.handle(event, s);
-                    InternalEvent processedEvent = InternalEvent.deriveProcessedInstance(returnedEvent);
-                    eventHistory.add(processedEvent);
-                } catch (Exception ex) {
-                    LOGGER.error("Exception while handling event {} with session {}!", event, s, ex);
+            Session session = oSession.get();
+            Session previousSession = session.clone();
+
+            // Get current session processing state
+            Session.updateProcessingState(session, processingState -> {
+                Set<String> deps = session.getStateRegistry(REG_DEPENDENCIES);
+                if (deps.isEmpty()) {
+                    processingState.setState(State.RUNNING);
                 }
+                else {
+                    processingState.setState(State.WAITING_FOR_DEPENDENCIES);
+                }
+                session.setProcessingState(processingState);
+            });
 
-                if (instanceEventHandler.isTerminating(event)) {
-                LOGGER.debug("Finalizing session {}", s);
-                Session.updateProcessingState(s, processingState -> {
+            try {
+                LOGGER.debug("Handling event {} with {} (session: {})", event, instanceId, sessionId);
+                InternalEvent returnedEvent = instanceEventHandler.handle(event, session);
+                InternalEvent processedEvent = InternalEvent.deriveProcessedInstance(returnedEvent);
+                eventHistory.add(processedEvent);
+            }
+            catch (Exception ex) {
+                LOGGER.error("Exception while handling event {} with session {}!", event, session, ex);
+            }
+
+            if (instanceEventHandler.isTerminating(event)) {
+                LOGGER.debug("Finalizing session {}", session);
+                Session.updateProcessingState(session, processingState -> {
                     processingState.setTerminated(LocalDateTime.now(ZoneId.systemDefault()));
-                    SessionProcessingState.buildTerminationMessage(s, processingState);
+                    SessionProcessingState.buildTerminationMessage(session, processingState);
 
                     if (!FINAL_UNSUCCESSFUL_STATES.contains(processingState.getState())) {
                         processingState.setState(State.DONE);
                     }
 
-                    s.setProcessingState(processingState);
+                    session.setProcessingState(processingState);
                 });
 
                 // reset terminating flag
                 instanceEventHandler.resetTerminatingFlag(event);
-                }
-            });
+            }
+
+            if (session.equals(previousSession)) {
+                LOGGER.debug("Session wasn't changed by event handler {}", session);
+                continue;
+            }
+
+            LOGGER.debug("Updating session from {} to {}.", previousSession, session);
+            sessionRepository.updateSession(session);
 
             InternalEvent changeSessionEvent = createSessionStateEvent(session);
             LOGGER.debug("Sending change session event {} to handler for {}", event, instanceId);
