@@ -67,11 +67,17 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
 
     @Override
     public <T extends SessionUpdateOperation> void add(SessionId id, T operation) {
+        this.add(id, operation, null);
+    }
+
+    @Override
+    public <T extends SessionUpdateOperation> void add(SessionId id, T operation, String comment) {
         lock.lock();
         try (Drain<HistoryEntry<T>> drain = createDrain(id)) {
             HistoryEntry<T> entry = new HistoryEntry<>();
             entry.setTimestamp(timestampFactory.createTimestamp());
             entry.setOperation(operation);
+            entry.setComment(comment);
             drain.add(entry);
             LOGGER.debug("Added session operation to history of {}: {}", id, operation);
         } catch (Exception ex) {
@@ -109,6 +115,7 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
     public static class HistoryEntry<T extends SessionUpdateOperation> {
         private LocalDateTime timestamp;
         private T operation;
+        private String comment;
 
         public LocalDateTime getTimestamp() {
             return timestamp;
@@ -126,16 +133,26 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
             this.operation = operation;
         }
 
+        public String getComment() {
+            return comment;
+        }
+
+        public void setComment(String comment) {
+            this.comment = comment;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (o == null || getClass() != o.getClass()) return false;
             HistoryEntry<?> that = (HistoryEntry<?>) o;
-            return Objects.equals(timestamp, that.timestamp) && Objects.equals(operation, that.operation);
+            return Objects.equals(timestamp, that.timestamp)
+                && Objects.equals(operation, that.operation)
+                && Objects.equals(comment, that.comment);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(timestamp, operation);
+            return Objects.hash(timestamp, operation, comment);
         }
 
         @Override
@@ -143,6 +160,7 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
             return "HistoryEntry{" +
                 "timestamp=" + timestamp +
                 ", operation=" + operation +
+                ", comment='" + comment + '\'' +
                 '}';
         }
     }
