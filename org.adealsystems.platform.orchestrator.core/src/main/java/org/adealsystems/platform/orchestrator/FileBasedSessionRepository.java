@@ -217,15 +217,22 @@ public class FileBasedSessionRepository implements SessionRepository {
     }
 
     private Session internalRetrieveOrCreateSession(SessionId id) {
-        File sessionFile = findOrCreateSessionFile(id);
-        if (sessionFile.exists()) {
-            return readSession(sessionFile);
-        }
+        ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
+        writeLock.lock();
+        try {
+            File sessionFile = findOrCreateSessionFile(id);
+            if (sessionFile.exists()) {
+                return readSession(sessionFile);
+            }
 
-        Session session = new Session(instanceId, id);
-        session.setSessionUpdateHistory(sessionUpdateHistory);
-        writeSession(sessionFile, session);
-        return session;
+            Session session = new Session(instanceId, id);
+            session.setSessionUpdateHistory(sessionUpdateHistory);
+            writeSession(sessionFile, session);
+            return session;
+        }
+        finally {
+            writeLock.unlock();
+        }
     }
 
     @Override
@@ -282,7 +289,14 @@ public class FileBasedSessionRepository implements SessionRepository {
             throw new IllegalArgumentException("Session '" + id + "' does not exist!");
         }
 
-        writeSession(sessionFile, session);
+        ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
+        writeLock.lock();
+        try {
+            writeSession(sessionFile, session);
+        }
+        finally {
+            writeLock.unlock();
+        }
     }
 
     @Override
