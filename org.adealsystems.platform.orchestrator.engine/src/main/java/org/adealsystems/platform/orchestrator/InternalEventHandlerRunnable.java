@@ -608,15 +608,10 @@ public class InternalEventHandlerRunnable implements Runnable {
                 else {
                     SessionId sessionId = oSessionId.get();
                     SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
-                    Optional<Session> oSession = sessionRepository.retrieveSession(sessionId);
-                    if (oSession.isEmpty()) {
-                        isStopEvent = false;
-                        LOGGER.error("Missing active session {} for instance {}!", sessionId, instanceId);
-                    }
-                    else {
-                        Session session = oSession.get();
-                        isStopEvent = eventClassifier.isSessionStopEvent(clonedEvent, session);
-                    }
+                    BooleanResultContainer container = new BooleanResultContainer();
+                    sessionRepository.modifySession(sessionId, s
+                        -> container.value = eventClassifier.isSessionStopEvent(clonedEvent, s));
+                    isStopEvent = container.getValue();
                 }
             }
             catch (Exception ex) {
@@ -1082,6 +1077,18 @@ public class InternalEventHandlerRunnable implements Runnable {
         @Override
         public void close() {
             // empty
+        }
+    }
+
+    private static class BooleanResultContainer {
+        private boolean value;
+
+        public void setValue(boolean value) {
+            this.value = value;
+        }
+
+        public boolean getValue() {
+            return value;
         }
     }
 }

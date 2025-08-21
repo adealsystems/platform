@@ -239,7 +239,14 @@ public class FileBasedSessionRepository implements SessionRepository {
     public void updateSession(Session session) {
         Objects.requireNonNull(session, "session must not be null!");
 
-        internalUpdateSession(session);
+        ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
+        writeLock.lock();
+        try {
+            internalUpdateSession(session);
+        }
+        finally {
+            writeLock.unlock();
+        }
     }
 
     private void internalUpdateSession(Session session) {
@@ -289,14 +296,7 @@ public class FileBasedSessionRepository implements SessionRepository {
             throw new IllegalArgumentException("Session '" + id + "' does not exist!");
         }
 
-        ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
-        writeLock.lock();
-        try {
-            writeSession(sessionFile, session);
-        }
-        finally {
-            writeLock.unlock();
-        }
+        writeSession(sessionFile, session);
     }
 
     @Override

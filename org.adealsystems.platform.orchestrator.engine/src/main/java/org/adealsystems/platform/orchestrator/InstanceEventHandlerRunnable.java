@@ -116,6 +116,7 @@ public class InstanceEventHandlerRunnable implements Runnable {
             try {
                 LOGGER.debug("Handling event {} with {} (session: {})", event, instanceId, sessionId);
                 InternalEvent returnedEvent = instanceEventHandler.handle(event, session);
+                LOGGER.debug("Session of {} after handling event {}: {}", instanceId, event, session);
                 InternalEvent processedEvent = InternalEvent.deriveProcessedInstance(returnedEvent);
                 eventHistory.add(processedEvent);
             }
