@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -74,7 +73,6 @@ public class FileBasedSessionRepository implements SessionRepository {
     private static final Pattern FILE_PATTERN
         = Pattern.compile("(?<timestamp>[0-9]{14}_)?(?<id>" + SessionId.PATTERN_STRING + ")\\.json");
 
-    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private final ConcurrentMap<String, ReentrantLock> lockMap = new ConcurrentHashMap<>();
     private final InstanceId instanceId;
     private final File baseDirectory;
@@ -101,8 +99,8 @@ public class FileBasedSessionRepository implements SessionRepository {
 
     @Override
     public Set<SessionId> retrieveSessionIds() {
-        ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
-        readLock.lock();
+        ReentrantLock lock = lockMap.computeIfAbsent("session-ids", id -> new ReentrantLock());
+        lock.lock();
         try {
             File[] allFiles = baseDirectory.listFiles();
             if (allFiles == null) {
@@ -121,7 +119,7 @@ public class FileBasedSessionRepository implements SessionRepository {
                 .collect(Collectors.toSet());
         }
         finally {
-            readLock.unlock();
+            lock.unlock();
         }
     }
 
@@ -129,8 +127,8 @@ public class FileBasedSessionRepository implements SessionRepository {
     public Set<SessionId> retrieveSessionIds(LocalDate createdOn) {
         Objects.requireNonNull(createdOn, "createdOn must not be null!");
 
-        ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
-        readLock.lock();
+        ReentrantLock lock = lockMap.computeIfAbsent("session-ids", id -> new ReentrantLock());
+        lock.lock();
         try {
             File[] allFiles = baseDirectory.listFiles();
             if (allFiles == null) {
@@ -167,7 +165,7 @@ public class FileBasedSessionRepository implements SessionRepository {
                 .collect(Collectors.toSet());
         }
         finally {
-            readLock.unlock();
+            lock.unlock();
         }
     }
 
@@ -194,11 +192,11 @@ public class FileBasedSessionRepository implements SessionRepository {
     }
 
     @Override
-    public Optional<Session> retrieveSession(SessionId id) {
-        File sessionFile = findOrCreateSessionFile(id);
+    public Optional<Session> retrieveSession(SessionId sessionId) {
+        File sessionFile = findOrCreateSessionFile(sessionId);
 
-        ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
-        readLock.lock();
+        ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        lock.lock();
         try {
             if (!sessionFile.exists()) {
                 return Optional.empty();
@@ -207,7 +205,7 @@ public class FileBasedSessionRepository implements SessionRepository {
             return Optional.of(readSession(sessionFile));
         }
         finally {
-            readLock.unlock();
+            lock.unlock();
         }
     }
 
@@ -216,22 +214,22 @@ public class FileBasedSessionRepository implements SessionRepository {
         return internalRetrieveOrCreateSession(sessionId);
     }
 
-    private Session internalRetrieveOrCreateSession(SessionId id) {
-        ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
-        writeLock.lock();
+    private Session internalRetrieveOrCreateSession(SessionId sessionId) {
+        ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        lock.lock();
         try {
-            File sessionFile = findOrCreateSessionFile(id);
+            File sessionFile = findOrCreateSessionFile(sessionId);
             if (sessionFile.exists()) {
                 return readSession(sessionFile);
             }
 
-            Session session = new Session(instanceId, id);
+            Session session = new Session(instanceId, sessionId);
             session.setSessionUpdateHistory(sessionUpdateHistory);
             writeSession(sessionFile, session);
             return session;
         }
         finally {
-            writeLock.unlock();
+            lock.unlock();
         }
     }
 
@@ -239,13 +237,13 @@ public class FileBasedSessionRepository implements SessionRepository {
     public void updateSession(Session session) {
         Objects.requireNonNull(session, "session must not be null!");
 
-        ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
-        writeLock.lock();
+        ReentrantLock lock = lockMap.computeIfAbsent(session.getId().getId(), id -> new ReentrantLock());
+        lock.lock();
         try {
             internalUpdateSession(session);
         }
         finally {
-            writeLock.unlock();
+            lock.unlock();
         }
     }
 
