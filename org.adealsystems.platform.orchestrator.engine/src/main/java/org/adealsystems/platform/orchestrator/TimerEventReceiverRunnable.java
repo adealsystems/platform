@@ -57,7 +57,7 @@ public class TimerEventReceiverRunnable implements Runnable {
 
             if (lastTimestamp == null) {
                 LOGGER.debug("Initializing timer with {} ...", timestamp);
-                lastTimestamp = timestamp;
+                lastTimestamp = timestamp.withSecond(1).withNano(0);
             }
             else {
                 Duration duration = Duration.between(lastTimestamp, timestamp);
@@ -65,7 +65,7 @@ public class TimerEventReceiverRunnable implements Runnable {
                 if (duration.compareTo(TIMER_STEP) >= 0) {
                     String eventId = TIMER_FORMATTER.format(timestamp);
                     String date = DATE_FORMATTER.format(timestamp);
-                    String dayOfMonth = String.valueOf(timestamp.get(ChronoField.DAY_OF_MONTH));
+                    String dayOfMonth = String.valueOf(timestamp.getDayOfMonth());
                     String dayOfWeek = String.valueOf(timestamp.get(ChronoField.DAY_OF_WEEK));
 
                     // send the next event
@@ -99,14 +99,10 @@ public class TimerEventReceiverRunnable implements Runnable {
             }
 
             try {
-                sleep(10_000);
+                Thread.sleep(10_000);
             } catch (InterruptedException ex) {
                 break;
             }
         }
-    }
-
-    private void sleep(long value) throws InterruptedException {
-        Thread.sleep(value);
     }
 }
