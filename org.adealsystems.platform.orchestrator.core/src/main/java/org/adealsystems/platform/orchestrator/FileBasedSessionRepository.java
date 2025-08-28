@@ -61,6 +61,7 @@ public class FileBasedSessionRepository implements SessionRepository {
     );
 
     private static final ObjectMapper OBJECT_MAPPER;
+
     static {
         OBJECT_MAPPER = new ObjectMapper();
         OBJECT_MAPPER.enable(SerializationFeature.INDENT_OUTPUT);
@@ -100,6 +101,10 @@ public class FileBasedSessionRepository implements SessionRepository {
     @Override
     public Set<SessionId> retrieveSessionIds() {
         ReentrantLock lock = lockMap.computeIfAbsent("session-ids", id -> new ReentrantLock());
+        if (lock.isLocked()) {
+            LOGGER.warn("session-ids lock is already locked, waiting ...");
+        }
+
         lock.lock();
         try {
             File[] allFiles = baseDirectory.listFiles();
@@ -128,6 +133,10 @@ public class FileBasedSessionRepository implements SessionRepository {
         Objects.requireNonNull(createdOn, "createdOn must not be null!");
 
         ReentrantLock lock = lockMap.computeIfAbsent("session-ids", id -> new ReentrantLock());
+        if (lock.isLocked()) {
+            LOGGER.warn("session-ids lock is already locked, waiting ...");
+        }
+
         lock.lock();
         try {
             File[] allFiles = baseDirectory.listFiles();
@@ -180,6 +189,10 @@ public class FileBasedSessionRepository implements SessionRepository {
         session.setSessionUpdateHistory(sessionUpdateHistory);
 
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        if (lock.isLocked()) {
+            LOGGER.warn("Session with id '{}' already locked, waiting (createSession) ...", sessionId);
+        }
+
         lock.lock();
         try {
             writeSession(sessionFile, session);
@@ -196,6 +209,10 @@ public class FileBasedSessionRepository implements SessionRepository {
         File sessionFile = findOrCreateSessionFile(sessionId);
 
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        if (lock.isLocked()) {
+            LOGGER.warn("Session with id '{}' already locked, waiting (retrieveSession) ...", sessionId);
+        }
+
         lock.lock();
         try {
             if (!sessionFile.exists()) {
@@ -211,33 +228,42 @@ public class FileBasedSessionRepository implements SessionRepository {
 
     @Override
     public Session retrieveOrCreateSession(SessionId sessionId) {
-        return internalRetrieveOrCreateSession(sessionId);
-    }
-
-    private Session internalRetrieveOrCreateSession(SessionId sessionId) {
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        if (lock.isLocked()) {
+            LOGGER.warn("Session with id '{}' already locked, waiting (retrieveOrCreateSession) ...", sessionId);
+        }
+
         lock.lock();
         try {
-            File sessionFile = findOrCreateSessionFile(sessionId);
-            if (sessionFile.exists()) {
-                return readSession(sessionFile);
-            }
-
-            Session session = new Session(instanceId, sessionId);
-            session.setSessionUpdateHistory(sessionUpdateHistory);
-            writeSession(sessionFile, session);
-            return session;
+            return internalRetrieveOrCreateSession(sessionId);
         }
         finally {
             lock.unlock();
         }
     }
 
+    private Session internalRetrieveOrCreateSession(SessionId sessionId) {
+        File sessionFile = findOrCreateSessionFile(sessionId);
+        if (sessionFile.exists()) {
+            return readSession(sessionFile);
+        }
+
+        Session session = new Session(instanceId, sessionId);
+        session.setSessionUpdateHistory(sessionUpdateHistory);
+        writeSession(sessionFile, session);
+        return session;
+    }
+
     @Override
     public void updateSession(Session session) {
         Objects.requireNonNull(session, "session must not be null!");
 
-        ReentrantLock lock = lockMap.computeIfAbsent(session.getId().getId(), id -> new ReentrantLock());
+        SessionId sessionId = session.getId();
+        ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        if (lock.isLocked()) {
+            LOGGER.warn("Session with id '{}' already locked, waiting (updateSession) ...", sessionId);
+        }
+
         lock.lock();
         try {
             internalUpdateSession(session);
@@ -302,6 +328,10 @@ public class FileBasedSessionRepository implements SessionRepository {
         File sessionFile = findOrCreateSessionFile(sessionId);
 
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        if (lock.isLocked()) {
+            LOGGER.warn("Session with id '{}' already locked, waiting (deleteSession) ...", sessionId);
+        }
+
         lock.lock();
         try {
             return sessionFile.delete();
@@ -314,6 +344,10 @@ public class FileBasedSessionRepository implements SessionRepository {
     @Override
     public Session modifySession(SessionId sessionId, Consumer<Session> modifier) {
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
+        if (lock.isLocked()) {
+            LOGGER.warn("Session with id '{}' already locked, waiting (modifySession) ...", sessionId);
+        }
+
         lock.lock();
         try {
             Session session = internalRetrieveOrCreateSession(sessionId);
