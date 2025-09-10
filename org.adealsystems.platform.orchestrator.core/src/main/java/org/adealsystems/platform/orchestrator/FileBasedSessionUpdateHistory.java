@@ -18,8 +18,11 @@ package org.adealsystems.platform.orchestrator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.adealsystems.platform.io.Drain;
+import org.adealsystems.platform.io.Well;
 import org.adealsystems.platform.io.json.JsonlDrain;
+import org.adealsystems.platform.io.json.JsonlWell;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateOperation;
+import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +35,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static java.nio.file.StandardOpenOption.APPEND;
 import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.READ;
 
 public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedSessionUpdateHistory.class);
@@ -88,14 +92,67 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
         }
     }
 
+    @Override
+    public <T extends SessionUpdateOperation> Session update(Session session) {
+        if (session == null) {
+            return null;
+        }
+
+        SessionId id = session.getId();
+
+        LocalDateTime lastUpdate;
+        SessionProcessingState processingState = session.getProcessingState();
+        if (processingState == null) {
+            lastUpdate = null;
+            LOGGER.debug("No session processing state available for session {}", id);
+        }
+        else {
+            lastUpdate = processingState.getLastUpdated();
+            LOGGER.debug("Applying session updates for session {} after {}", id, lastUpdate);
+        }
+
+        lock.lock();
+        try (Well<HistoryEntry<T>> well = createWell(id)){
+            for (HistoryEntry<T> entry : well) {
+                LocalDateTime timestamp = entry.getTimestamp();
+                if (lastUpdate == null || timestamp.isAfter(lastUpdate)) {
+                    LOGGER.debug("Applying session update for {}: {}", id, entry);
+                    entry.getOperation().apply(session);
+                }
+                else {
+                    LOGGER.debug("Skipping session update for {}: {}", id, entry);
+                }
+            }
+        }
+        catch (Exception ex) {
+            LOGGER.error("Exception while reading session updates for {}!", id, ex);
+        }
+        finally {
+            lock.unlock();
+        }
+
+        return session;
+    }
+
     private <T extends SessionUpdateOperation> Drain<HistoryEntry<T>> createDrain(SessionId sessionId) throws IOException {
         File file = createFile(sessionId);
         LOGGER.debug("Creating file drain '{}' for {}.", file, sessionId);
         return createDrain(file, objectMapper);
     }
 
-    private static <T extends SessionUpdateOperation> Drain<HistoryEntry<T>> createDrain(File file, ObjectMapper objectMapper) throws IOException {
+    private <T extends SessionUpdateOperation> Drain<HistoryEntry<T>> createDrain(File file, ObjectMapper objectMapper) throws IOException {
         return new JsonlDrain<>(Files.newOutputStream(file.toPath(), CREATE, APPEND), objectMapper);
+    }
+
+    private <T extends SessionUpdateOperation> Well<HistoryEntry<T>> createWell(SessionId sessionId) throws IOException {
+        File file = createFile(sessionId);
+        LOGGER.debug("Creating file well '{}' for {}.", file, sessionId);
+        return createWell(file, objectMapper);
+    }
+
+    private <T extends SessionUpdateOperation> Well<HistoryEntry<T>> createWell(File file, ObjectMapper objectMapper) throws IOException {
+        Class<HistoryEntry<T>> entryClass = (Class<HistoryEntry<T>>) new HistoryEntry<>().getClass();
+        return new JsonlWell<>(entryClass, Files.newInputStream(file.toPath(), READ), objectMapper);
     }
 
     File createFile(SessionId sessionId) {

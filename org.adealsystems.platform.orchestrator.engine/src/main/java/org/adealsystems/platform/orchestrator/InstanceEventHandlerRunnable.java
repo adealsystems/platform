@@ -147,7 +147,13 @@ public class InstanceEventHandlerRunnable implements Runnable {
             }
 
             LOGGER.debug("Updating session from {} to {}.", previousSession, session);
-            sessionRepository.updateSession(session);
+            sessionRepository.modifySession(
+                sessionId,
+                s ->
+                    s.getSessionUpdateHistory().ifPresent(
+                        updateHistory -> updateHistory.update(s)
+                    )
+            );
 
             InternalEvent changeSessionEvent = createSessionStateEvent(session);
             LOGGER.debug("Sending change session event {} to handler for {}", event, instanceId);
