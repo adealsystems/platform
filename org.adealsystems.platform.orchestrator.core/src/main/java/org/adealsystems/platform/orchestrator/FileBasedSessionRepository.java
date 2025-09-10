@@ -395,6 +395,7 @@ public class FileBasedSessionRepository implements SessionRepository {
         try {
             Session session = OBJECT_MAPPER.readValue(sessionFile, Session.class);
             if (instanceId.equals(session.getInstanceId())) {
+                session.setSessionUpdateHistory(sessionUpdateHistory);
                 return session;
             }
 
