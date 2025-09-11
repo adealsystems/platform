@@ -248,6 +248,7 @@ public class FileBasedSessionRepository implements SessionRepository {
             return readSession(sessionFile);
         }
 
+        LOGGER.debug("Creating new session for {} with id '{}'", instanceId, sessionId);
         Session session = new Session(instanceId, sessionId);
         session.setSessionUpdateHistory(sessionUpdateHistory);
         writeSession(sessionFile, session);
@@ -395,11 +396,12 @@ public class FileBasedSessionRepository implements SessionRepository {
         try {
             Session session = OBJECT_MAPPER.readValue(sessionFile, Session.class);
             if (instanceId.equals(session.getInstanceId())) {
+                LOGGER.debug("Returning original loaded session for {}", instanceId);
                 session.setSessionUpdateHistory(sessionUpdateHistory);
                 return session;
             }
 
-            LOGGER.warn("Correcting InstanceId of {} to {}", session, instanceId);
+            LOGGER.warn("Correcting InstanceId of {} to {}", session.getId(), instanceId);
             Session newSession = new Session(
                 instanceId,
                 session.getId(),

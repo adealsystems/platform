@@ -26,7 +26,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class FileBasedSessionRepositoryFactory implements SessionRepositoryFactory {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedSessionRepositoryFactory.class);
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -73,7 +72,6 @@ public class FileBasedSessionRepositoryFactory implements SessionRepositoryFacto
             if (!instanceDirectory.isDirectory()) {
                 throw new IllegalStateException("Failed to create base directory '" + instanceDirectory + "'!");
             }
-            LOGGER.debug("Using existing base directory '{}'", instanceDirectory);
         } else {
             LOGGER.info("Created new base directory '{}'", instanceDirectory);
         }
