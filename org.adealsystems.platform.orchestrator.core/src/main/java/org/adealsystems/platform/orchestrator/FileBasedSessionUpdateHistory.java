@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static java.nio.file.StandardOpenOption.APPEND;
@@ -112,6 +113,11 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
         }
 
         lock.lock();
+
+        // remove session update history to avoid circular applying of operations!
+        Optional<SessionUpdateHistory> updateHistory = session.getSessionUpdateHistory();
+        session.setSessionUpdateHistory(null);
+
         try (Well<HistoryEntry<T>> well = createWell(id)){
             for (HistoryEntry<T> entry : well) {
                 LocalDateTime timestamp = entry.getTimestamp();
@@ -129,6 +135,8 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
         }
         finally {
             lock.unlock();
+            // re-set the update history
+            session.setSessionUpdateHistory(updateHistory.orElse(null));
         }
 
         return session;
