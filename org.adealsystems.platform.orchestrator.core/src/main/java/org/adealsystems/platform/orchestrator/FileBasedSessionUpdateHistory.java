@@ -136,7 +136,7 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
 
     private <T extends SessionUpdateOperation> Drain<HistoryEntry<T>> createDrain(SessionId sessionId) throws IOException {
         File file = createFile(sessionId);
-        LOGGER.debug("Creating file drain '{}' for {}.", file, sessionId);
+        LOGGER.debug("Creating file drain '{}'.", file);
         return createDrain(file, objectMapper);
     }
 
@@ -146,7 +146,7 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
 
     private <T extends SessionUpdateOperation> Well<HistoryEntry<T>> createWell(SessionId sessionId) throws IOException {
         File file = createFile(sessionId);
-        LOGGER.debug("Creating file well '{}' for {}.", file, sessionId);
+        LOGGER.debug("Creating file well '{}'.", file);
         return createWell(file, objectMapper);
     }
 
@@ -161,7 +161,6 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
             if (!baseDirectory.isDirectory()) {
                 throw new IllegalStateException("Failed to create sessionBaseDirectory '" + baseDirectory + "'!");
             }
-            LOGGER.debug("Using existing sessionBaseDirectory '{}'", baseDirectory);
         } else {
             LOGGER.debug("Created sessionBaseDirectory '{}'", baseDirectory);
         }
