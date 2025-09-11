@@ -96,7 +96,12 @@ public final class Session implements Cloneable, Serializable {
     }
 
     public Optional<SessionUpdateHistory> getSessionUpdateHistory() {
-        return sessionUpdateHistory == null ? Optional.empty() : Optional.of(sessionUpdateHistory);
+        if (sessionUpdateHistory == null) {
+            LOGGER.warn("No updateHistory found in session {} (instance: {})!", id, instanceId);
+            return Optional.empty();
+        }
+
+        return Optional.of(sessionUpdateHistory);
     }
 
     public void setSessionUpdateHistory(SessionUpdateHistory sessionUpdateHistory) {
@@ -116,17 +121,13 @@ public final class Session implements Cloneable, Serializable {
             updateGlobalFields(session, processingState);
             session.setProcessingState(processingState);
 
-            Optional<SessionUpdateHistory> updateHistory = session.getSessionUpdateHistory();
-            if (updateHistory.isPresent()) {
-                updateHistory.get().add(
+            session.getSessionUpdateHistory().ifPresent(
+                updateHistory -> updateHistory.add(
                     session.getId(),
                     new SessionUpdateProcessingStateOperation(processingState),
                     "updateProcessingState()"
-                );
-            }
-            else {
-                LOGGER.warn("No updateHistory found in session {}!", session);
-            }
+                )
+            );
         }
         catch (Exception ex) {
             LOGGER.error("Error updating session processing state in {}!", session, ex);
@@ -150,17 +151,13 @@ public final class Session implements Cloneable, Serializable {
             updateGlobalFields(session, processingState);
             session.setProcessingState(processingState);
 
-            Optional<SessionUpdateHistory> updateHistory = session.getSessionUpdateHistory();
-            if (updateHistory.isPresent()) {
-                updateHistory.get().add(
+            session.getSessionUpdateHistory().ifPresent(
+                updateHistory -> updateHistory.add(
                     session.getId(),
                     new SessionUpdateProcessingStateOperation(processingState),
                     "updateProcessingState() for event " + event.getId()
-                );
-            }
-            else {
-                LOGGER.warn("No updateHistory found in session {}!", session);
-            }
+                )
+            );
         }
         catch (Exception ex) {
             LOGGER.error("Error updating session processing state in {}!", session, ex);
@@ -178,16 +175,12 @@ public final class Session implements Cloneable, Serializable {
             processingState.setProgressMaxValue(progressMaxValue);
             session.setProcessingState(processingState);
 
-            Optional<SessionUpdateHistory> updateHistory = session.getSessionUpdateHistory();
-            if (updateHistory.isPresent()) {
-                updateHistory.get().add(
+            session.getSessionUpdateHistory().ifPresent(
+                updateHistory -> updateHistory.add(
                     session.getId(),
                     new SessionSetProgressMaxValueOperation(progressMaxValue)
-                );
-            }
-            else {
-                LOGGER.warn("No updateHistory found in session {}!", session);
-            }
+                )
+            );
         }
         catch (Exception ex) {
             LOGGER.error("Error starting session progress in {}!", session, ex);
@@ -204,16 +197,12 @@ public final class Session implements Cloneable, Serializable {
 
             processingState.setProgressCurrentStep(processingState.getProgressCurrentStep() + 1);
 
-            Optional<SessionUpdateHistory> updateHistory = session.getSessionUpdateHistory();
-            if (updateHistory.isPresent()) {
-                updateHistory.get().add(
+            session.getSessionUpdateHistory().ifPresent(
+                updateHistory -> updateHistory.add(
                     session.getId(),
                     new SessionUpdateProgressOperation()
-                );
-            }
-            else {
-                LOGGER.warn("No updateHistory found in session {}!", session);
-            }
+                )
+            );
 
             if (!success) {
                 processingState.setProgressFailedSteps(processingState.getProgressFailedSteps() + 1);
@@ -271,17 +260,13 @@ public final class Session implements Cloneable, Serializable {
     public void setProcessingState(SessionProcessingState processingState) {
         this.processingState = processingState;
 
-        Optional<SessionUpdateHistory> updateHistory = getSessionUpdateHistory();
-        if (updateHistory.isPresent()) {
-            updateHistory.get().add(
+        getSessionUpdateHistory().ifPresent(
+            updateHistory -> updateHistory.add(
                 id,
                 new SessionUpdateProcessingStateOperation(processingState),
                 "setProcessingState()"
-            );
-        }
-        else {
-            LOGGER.warn("No updateHistory found in session {}!", id);
-        }
+            )
+        );
     }
 
     public Optional<String> getStateValue(String key) {
