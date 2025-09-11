@@ -16,6 +16,8 @@
 
 package org.adealsystems.platform.orchestrator.session;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.adealsystems.platform.orchestrator.Session;
 
 import java.util.Objects;
@@ -23,7 +25,10 @@ import java.util.Objects;
 public class SessionUpdateMessageOperation implements SessionUpdateOperation {
     private final String message;
 
-    public SessionUpdateMessageOperation(String message) {
+    @JsonCreator
+    public SessionUpdateMessageOperation(
+        @JsonProperty("message") String message
+    ) {
         this.message = message;
     }
 

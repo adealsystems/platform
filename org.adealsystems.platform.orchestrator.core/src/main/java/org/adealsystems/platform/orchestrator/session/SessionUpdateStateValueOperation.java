@@ -16,6 +16,8 @@
 
 package org.adealsystems.platform.orchestrator.session;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.adealsystems.platform.orchestrator.Session;
 
 import java.util.Objects;
@@ -24,7 +26,11 @@ public class SessionUpdateStateValueOperation implements SessionUpdateOperation 
     private final String key;
     private final String value;
 
-    public SessionUpdateStateValueOperation(String key, String value) {
+    @JsonCreator
+    public SessionUpdateStateValueOperation(
+        @JsonProperty("key") String key,
+        @JsonProperty("value") String value
+    ) {
         this.key = key;
         this.value = value;
     }

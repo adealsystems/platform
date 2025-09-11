@@ -16,6 +16,8 @@
 
 package org.adealsystems.platform.orchestrator.session;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.adealsystems.platform.orchestrator.Session;
 import org.adealsystems.platform.orchestrator.status.State;
 
@@ -24,7 +26,10 @@ import java.util.Objects;
 public class SessionUpdateStateOperation implements SessionUpdateOperation {
     private final State state;
 
-    public SessionUpdateStateOperation(State state) {
+    @JsonCreator
+    public SessionUpdateStateOperation(
+        @JsonProperty("state") State state
+    ) {
         this.state = state;
     }
 

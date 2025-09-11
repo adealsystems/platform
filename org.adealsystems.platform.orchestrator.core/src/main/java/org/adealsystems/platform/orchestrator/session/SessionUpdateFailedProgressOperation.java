@@ -16,10 +16,16 @@
 
 package org.adealsystems.platform.orchestrator.session;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import org.adealsystems.platform.orchestrator.Session;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 
 public class SessionUpdateFailedProgressOperation implements SessionUpdateOperation {
+
+    @JsonCreator
+    public SessionUpdateFailedProgressOperation() {
+        // nothing to do here!
+    }
 
     @Override
     public void apply(Session session) {

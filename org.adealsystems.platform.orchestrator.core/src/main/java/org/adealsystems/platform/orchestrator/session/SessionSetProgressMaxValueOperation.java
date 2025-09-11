@@ -16,6 +16,8 @@
 
 package org.adealsystems.platform.orchestrator.session;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.adealsystems.platform.orchestrator.Session;
 
 import java.util.Objects;
@@ -23,7 +25,10 @@ import java.util.Objects;
 public class SessionSetProgressMaxValueOperation implements SessionUpdateOperation {
     private final int progressMaxValue;
 
-    public SessionSetProgressMaxValueOperation(int progressMaxValue) {
+    @JsonCreator
+    public SessionSetProgressMaxValueOperation(
+        @JsonProperty("progressMaxValue") int progressMaxValue
+    ) {
         this.progressMaxValue = progressMaxValue;
     }
 

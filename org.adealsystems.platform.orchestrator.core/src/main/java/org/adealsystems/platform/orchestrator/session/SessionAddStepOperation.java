@@ -16,6 +16,8 @@
 
 package org.adealsystems.platform.orchestrator.session;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.adealsystems.platform.orchestrator.Session;
 import org.adealsystems.platform.orchestrator.status.EventProcessingStep;
 
@@ -24,7 +26,10 @@ import java.util.Objects;
 public class SessionAddStepOperation implements SessionUpdateOperation {
     private final EventProcessingStep step;
 
-    public SessionAddStepOperation(EventProcessingStep step) {
+    @JsonCreator
+    public SessionAddStepOperation(
+        @JsonProperty("step") EventProcessingStep step
+    ) {
         this.step = step;
     }
 
