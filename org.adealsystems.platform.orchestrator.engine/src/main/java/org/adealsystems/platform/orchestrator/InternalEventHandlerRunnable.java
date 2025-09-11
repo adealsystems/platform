@@ -608,10 +608,8 @@ public class InternalEventHandlerRunnable implements Runnable {
                 else {
                     SessionId sessionId = oSessionId.get();
                     SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
-                    BooleanResultContainer container = new BooleanResultContainer();
-                    sessionRepository.modifySession(sessionId, s
-                        -> container.value = eventClassifier.isSessionStopEvent(clonedEvent, s));
-                    isStopEvent = container.getValue();
+                    Session session = sessionRepository.retrieveOrCreateSession(sessionId);
+                    isStopEvent = eventClassifier.isSessionStopEvent(clonedEvent, session);
                 }
             }
             catch (Exception ex) {
