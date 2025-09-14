@@ -129,6 +129,12 @@ public class FileBasedSessionUpdateHistory implements SessionUpdateHistory {
                     LOGGER.debug("Skipping session update for {}: {}", id, entry);
                 }
             }
+
+            File file = createFile(id);
+            LOGGER.debug("Deleting session-history file {}", file);
+            if (!file.delete()) {
+                LOGGER.warn("Could not delete session-history file {} after applying all entries", file);
+            }
         }
         catch (Exception ex) {
             LOGGER.error("Exception while reading session updates for {}!", id, ex);
