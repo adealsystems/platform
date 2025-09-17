@@ -25,6 +25,8 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -315,6 +317,8 @@ public class DatasetLogger {
     private final Context context;
     private final JavaSparkContext sparkContext;
 
+    private final DecimalFormat df;
+
     private final Map<String, AnalyserSession> analyserSessions = new HashMap<>();
     private final Set<String> activeSessions = new HashSet<>();
     private final Map<String, BiConsumer<AnalyserSession, String>> analysers = new HashMap<>();
@@ -329,6 +333,13 @@ public class DatasetLogger {
             context = Context.getDefaultContext();
         }
         this.context = context;
+
+        DecimalFormatSymbols dfs = new DecimalFormatSymbols();
+        dfs.setDecimalSeparator(',');
+        dfs.setGroupingSeparator('.');
+
+        df = new DecimalFormat();
+        df.setDecimalFormatSymbols(dfs);
     }
 
     public static boolean isDisabledGlobally() {
@@ -537,14 +548,7 @@ public class DatasetLogger {
 
         StringBuilder builder = new StringBuilder();
 
-        // message
-        builder.append(message).append(" [size: ").append(dataset == null ? "N/A" : dataset.count()).append("]:\n");
-
-        // source link
-        String sourceLink = buildSourceOutput("showInfo");
-        if (sourceLink != null) {
-            builder.append(sourceLink).append('\n');
-        }
+        Long totalCount = dataset == null ? null : dataset.count();
 
         // columns (filters)
         List<Column> currentColumns = new ArrayList<>();
@@ -561,19 +565,23 @@ public class DatasetLogger {
         StringBuilder contextBuilder = new StringBuilder();
         if (!currentColumns.isEmpty()) {
             for (Column column : currentColumns) {
+                boolean applied = true;
                 if (dataset != null) {
                     try {
                         dataset = dataset.where(column);
                     }
                     catch (Exception ex) {
+                        applied = false;
                         LOGGER.warn("Error applying column condition ({}), ignoring it.", column);
                     }
                 }
 
-                if (contextBuilder.length() > 0) {
-                    contextBuilder.append(", ");
+                if (applied) {
+                    if (contextBuilder.length() > 0) {
+                        contextBuilder.append(", ");
+                    }
+                    contextBuilder.append(column);
                 }
-                contextBuilder.append(column);
             }
         }
         if (numberOfRows != Context.DEFAULT_NUMBER_OF_ROWS) {
@@ -583,6 +591,26 @@ public class DatasetLogger {
             contextBuilder.append("numberOfRows = ").append(numberOfRows);
         }
 
+        // message
+        if (contextBuilder.length() > 0) {
+            builder.append(message)
+                .append(" [total-size: ").append(totalCount == null ? "N/A" : df.format(totalCount))
+                .append(", filtered-size: ").append(dataset == null ? "N/A" : df.format(dataset.count())).append("]:")
+                .append('\n');
+        }
+        else {
+            builder.append(message)
+                .append(" [size: ").append(totalCount == null ? "N/A" : df.format(totalCount)).append("]:")
+                .append('\n');
+        }
+
+        // source link
+        String sourceLink = buildSourceOutput("showInfo");
+        if (sourceLink != null) {
+            builder.append(sourceLink).append('\n');
+        }
+
+        // context
         if (contextBuilder.length() > 0) {
             builder.append("\tcontext: ").append(contextBuilder).append('\n');
         }
