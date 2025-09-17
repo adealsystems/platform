@@ -572,7 +572,7 @@ public class DatasetLogger {
                     }
                     catch (Exception ex) {
                         applied = false;
-                        LOGGER.warn("Error applying column condition ({}), ignoring it.", column);
+                        LOGGER.warn("Error applying column condition {}, ignoring it.", column);
                     }
                 }
 
