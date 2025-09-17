@@ -566,7 +566,7 @@ public class DatasetLogger {
                         dataset = dataset.where(column);
                     }
                     catch (Exception ex) {
-                        LOGGER.warn("Error applying column condition, ignoring", ex);
+                        LOGGER.warn("Error applying column condition ({}), ignoring it.", column);
                     }
                 }
 
