@@ -562,7 +562,12 @@ public class DatasetLogger {
         if (!currentColumns.isEmpty()) {
             for (Column column : currentColumns) {
                 if (dataset != null) {
-                    dataset = dataset.where(column);
+                    try {
+                        dataset = dataset.where(column);
+                    }
+                    catch (Exception ex) {
+                        LOGGER.warn("Error applying column condition, ignoring", ex);
+                    }
                 }
 
                 if (contextBuilder.length() > 0) {
@@ -600,7 +605,7 @@ public class DatasetLogger {
         Objects.requireNonNull(analyser, "analyser must not be null!");
 
         if (JavaSparkContextAware.class.isAssignableFrom(analyser.getClass())) {
-            ((JavaSparkContextAware)analyser).setSparkContext(sparkContext);
+            ((JavaSparkContextAware) analyser).setSparkContext(sparkContext);
         }
         this.analysers.put(sessionCode, analyser);
     }
