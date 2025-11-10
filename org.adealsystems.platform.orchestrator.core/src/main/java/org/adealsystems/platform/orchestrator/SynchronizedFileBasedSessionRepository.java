@@ -205,12 +205,13 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
 
         lock.lock();
-        LOGGER.debug("Session '{}' locked (createSession)", sessionId);
+        LOGGER.debug("Locked '{}' (createSession)", sessionId);
         try {
             writeSession(sessionFile, session);
         }
         finally {
             lock.unlock();
+            LOGGER.debug("Unlocked '{}' (createSession)", sessionId);
         }
 
         return session;
@@ -226,7 +227,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
 
         lock.lock();
-        LOGGER.debug("Session '{}' locked (retrieveSession)", sessionId);
+        LOGGER.debug("Locked '{}' (retrieveSession)", sessionId);
         try {
             if (!sessionFile.exists()) {
                 return Optional.empty();
@@ -236,6 +237,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
         finally {
             lock.unlock();
+            LOGGER.debug("Unlocked '{}' (retrieveSession)", sessionId);
         }
     }
 
@@ -247,12 +249,13 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
 
         lock.lock();
-        LOGGER.debug("Session '{}' locked (retrieveOrCreateSession)", sessionId);
+        LOGGER.debug("Locked '{}' (retrieveOrCreateSession)", sessionId);
         try {
             return internalRetrieveOrCreateSession(sessionId);
         }
         finally {
             lock.unlock();
+            LOGGER.debug("Unlocked '{}' (retrieveOrCreateSession)", sessionId);
         }
     }
 
@@ -279,7 +282,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
 
         lock.lock();
-        LOGGER.debug("Session '{}' locked (updateSession)", sessionId);
+        LOGGER.debug("Locked '{}' (updateSession)", sessionId);
         try {
             Session currentActiveSession = retrieveSession(sessionId).orElseThrow(IllegalStateException::new);
 
@@ -301,6 +304,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
         finally {
             lock.unlock();
+            LOGGER.debug("Unlocked '{}' (updateSession)", sessionId);
         }
     }
 
@@ -364,12 +368,13 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
 
         lock.lock();
-        LOGGER.debug("Session '{}' locked (deleteSession)", sessionId);
+        LOGGER.debug("Locked '{}' (deleteSession)", sessionId);
         try {
             return sessionFile.delete();
         }
         finally {
             lock.unlock();
+            LOGGER.debug("Unlocked '{}' (deleteSession)", sessionId);
         }
     }
 
@@ -385,7 +390,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
 
         lock.lock();
-        LOGGER.debug("Session '{}' locked (modifySession)", sessionId);
+        LOGGER.debug("Locked '{}' (modifySession)", sessionId);
         try {
             Session currentActiveSession = internalRetrieveOrCreateSession(sessionId);
 
@@ -407,6 +412,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
         finally {
             lock.unlock();
+            LOGGER.debug("Unlocked '{}' (modifySession)", sessionId);
         }
 
         return session;
