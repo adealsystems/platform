@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,7 +48,9 @@ public class FileBasedSessionResolverFactory implements SessionResolverFactory, 
 
     @Override
     public Map<String, ReentrantLock> getLocks() {
-        return Map.of("lock", lock);
+        Map<String, ReentrantLock> result = new HashMap<>();
+        result.put("factory-lock", lock);
+        return result;
     }
 
     @Override
