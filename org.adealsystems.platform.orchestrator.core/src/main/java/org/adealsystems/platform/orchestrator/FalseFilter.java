@@ -19,7 +19,13 @@ package org.adealsystems.platform.orchestrator;
 @SuppressWarnings({"EqualsHashCode", "PMD.OverrideBothEqualsAndHashcode"})
 public class FalseFilter {
     @Override
+    @SuppressWarnings("EqualsDoesntCheckParameterClass")
     public boolean equals(Object value) {
-        return Boolean.valueOf(false).equals(value);
+        if (value == null) {
+            return false;
+        }
+
+        Boolean v = Boolean.valueOf(value.toString());
+        return Boolean.valueOf(false).equals(v);
     }
 }

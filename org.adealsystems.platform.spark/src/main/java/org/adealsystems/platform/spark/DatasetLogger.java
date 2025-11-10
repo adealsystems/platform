@@ -334,12 +334,11 @@ public class DatasetLogger {
         }
         this.context = context;
 
-        DecimalFormatSymbols dfs = new DecimalFormatSymbols();
+        DecimalFormatSymbols dfs = new DecimalFormatSymbols(Locale.ROOT);
         dfs.setDecimalSeparator(',');
         dfs.setGroupingSeparator('.');
 
-        df = new DecimalFormat();
-        df.setDecimalFormatSymbols(dfs);
+        df = new DecimalFormat("#,##0.00", dfs);
     }
 
     public static boolean isDisabledGlobally() {
@@ -595,13 +594,11 @@ public class DatasetLogger {
         if (contextBuilder.length() > 0) {
             builder.append(message)
                 .append(" [total-size: ").append(totalCount == null ? "N/A" : df.format(totalCount))
-                .append(", filtered-size: ").append(dataset == null ? "N/A" : df.format(dataset.count())).append("]:")
-                .append('\n');
+                .append(", filtered-size: ").append(dataset == null ? "N/A" : df.format(dataset.count())).append("]:\n");
         }
         else {
             builder.append(message)
-                .append(" [size: ").append(totalCount == null ? "N/A" : df.format(totalCount)).append("]:")
-                .append('\n');
+                .append(" [size: ").append(totalCount == null ? "N/A" : df.format(totalCount)).append("]:\n");
         }
 
         // source link
