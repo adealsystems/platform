@@ -51,7 +51,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class SynchronizedFileBasedSessionRepository implements SessionRepository {
+public class SynchronizedFileBasedSessionRepository implements SessionRepository, ReentrantLockAware {
     private static final Logger LOGGER = LoggerFactory.getLogger(SynchronizedFileBasedSessionRepository.class);
 
     private static final DateTimeFormatter DATE_FORMATTER
@@ -92,6 +92,11 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
 
         this.instanceId = instanceId;
         this.baseDirectory = baseDirectory;
+    }
+
+    @Override
+    public Map<String, ReentrantLock> getLocks() {
+        return lockMap;
     }
 
     @Override

@@ -20,12 +20,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class FileBasedSessionResolverFactory implements SessionResolverFactory {
+public class FileBasedSessionResolverFactory implements SessionResolverFactory, ReentrantLockAware {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedSessionResolverFactory.class);
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -42,6 +43,11 @@ public class FileBasedSessionResolverFactory implements SessionResolverFactory {
             throw new IllegalArgumentException("baseDirectory '" + baseDirectory + "' must be directory!");
         }
         this.baseDirectory = baseDirectory;
+    }
+
+    @Override
+    public Map<String, ReentrantLock> getLocks() {
+        return Map.of("lock", lock);
     }
 
     @Override

@@ -49,7 +49,7 @@ import static java.nio.file.StandardOpenOption.CREATE;
 import static org.adealsystems.platform.orchestrator.InternalEvent.ATTR_RUN_ID;
 import static org.adealsystems.platform.orchestrator.InternalEvent.normalizeDynamicContent;
 
-public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
+public class FileBasedEventHistory implements EventHistory, OrphanEventSource, ReentrantLockAware {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedEventHistory.class);
 
     public static final String RAW_FILE_NAME = "_raw";
@@ -88,6 +88,11 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource {
             throw new IllegalArgumentException("baseDirectory '" + baseDirectory + "' must be directory!");
         }
         this.baseDirectory = baseDirectory;
+    }
+
+    @Override
+    public Map<String, ReentrantLock> getLocks() {
+        return Map.of("lock", lock);
     }
 
     @Override

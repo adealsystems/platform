@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
@@ -33,7 +34,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class FileBasedActiveSessionIdRepository implements ActiveSessionIdRepository {
+public class FileBasedActiveSessionIdRepository implements ActiveSessionIdRepository, ReentrantLockAware {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedActiveSessionIdRepository.class);
 
@@ -57,6 +58,11 @@ public class FileBasedActiveSessionIdRepository implements ActiveSessionIdReposi
         if (!baseDirectory.isDirectory()) {
             throw new IllegalArgumentException("baseDirectory '" + baseDirectory + "' must be directory!");
         }
+    }
+
+    @Override
+    public Map<String, ReentrantLock> getLocks() {
+        return Map.of("active", lock);
     }
 
     @Override
