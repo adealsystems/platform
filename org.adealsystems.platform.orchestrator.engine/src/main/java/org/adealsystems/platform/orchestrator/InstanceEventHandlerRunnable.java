@@ -98,8 +98,7 @@ public class InstanceEventHandlerRunnable implements Runnable {
                 continue;
             }
 
-            Session session = oSession.get();
-            Session previousSession = session.clone();
+            final Session session = oSession.get();
 
             // Get current session processing state
             Session.updateProcessingState(session, processingState -> {
@@ -141,21 +140,10 @@ public class InstanceEventHandlerRunnable implements Runnable {
                 instanceEventHandler.resetTerminatingFlag(event);
             }
 
-            if (session.equals(previousSession)) {
-                LOGGER.debug("Session wasn't changed by event handler {}", session);
-                continue;
-            }
+            LOGGER.debug("Updating session to {}.", session);
+            Session updatedSession = sessionRepository.updateSession(session);
 
-            LOGGER.debug("Updating session from {} to {}.", previousSession, session);
-            sessionRepository.modifySession(
-                sessionId,
-                s ->
-                    s.getSessionUpdateHistory().ifPresent(
-                        updateHistory -> updateHistory.update(s)
-                    )
-            );
-
-            InternalEvent changeSessionEvent = createSessionStateEvent(session);
+            InternalEvent changeSessionEvent = createSessionStateEvent(updatedSession);
             LOGGER.debug("Sending change session event {} to handler for {}", event, instanceId);
             rawEventSender.sendEvent(changeSessionEvent);
         }

@@ -608,7 +608,8 @@ public class InternalEventHandlerRunnable implements Runnable {
                 else {
                     SessionId sessionId = oSessionId.get();
                     SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
-                    Session session = sessionRepository.retrieveOrCreateSession(sessionId);
+                    Session session = sessionRepository.retrieveSession(sessionId)
+                        .orElseThrow(IllegalStateException::new);
                     isStopEvent = eventClassifier.isSessionStopEvent(clonedEvent, session);
                 }
             }
@@ -806,8 +807,6 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         Map<String, String> instanceConfiguration = instance.getConfiguration();
         if (instanceConfiguration != null && !instanceConfiguration.isEmpty()) {
-            Optional<SessionUpdateHistory> updateHistory = session.getSessionUpdateHistory();
-
             Map<String, String> state = session.getState();
             SessionProcessingState processingState = session.getProcessingState();
             session = new Session(
@@ -818,7 +817,6 @@ public class InternalEventHandlerRunnable implements Runnable {
             );
             session.setState(state);
             session.setProcessingState(processingState);
-            session.setSessionUpdateHistory(updateHistory.orElse(null));
         }
 
         SessionProcessingState processingState = session.getProcessingState();
@@ -881,7 +879,7 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         setSessionStateAttribute(startSessionEvent, session);
 
-        LOGGER.debug("Updating a session repository");
+        LOGGER.debug("Updating a session");
         sessionRepository.updateSession(session);
 
         LOGGER.debug("Resolving session's dynamic content from {}", triggerEvent);
@@ -1085,7 +1083,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             this.value = value;
         }
 
-        public boolean getValue() {
+        public boolean getValue() { // NOPMD
             return value;
         }
     }

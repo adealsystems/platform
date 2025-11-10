@@ -25,15 +25,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class FileBasedSessionRepositoryFactory implements SessionRepositoryFactory {
-    private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedSessionRepositoryFactory.class);
+public class FileBasedSessionResolverFactory implements SessionResolverFactory {
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedSessionResolverFactory.class);
 
     private final ReentrantLock lock = new ReentrantLock();
-    private final ConcurrentMap<InstanceId, SessionRepository> cache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<InstanceId, SessionResolver> cache = new ConcurrentHashMap<>();
 
     private final File baseDirectory;
 
-    public FileBasedSessionRepositoryFactory(File baseDirectory) {
+    public FileBasedSessionResolverFactory(File baseDirectory) {
         Objects.requireNonNull(baseDirectory, "baseDirectory must not be null!");
         if (!baseDirectory.exists()) {
             throw new IllegalArgumentException("Missing mandatory baseDirectory: '" + baseDirectory + "'!");
@@ -45,12 +45,12 @@ public class FileBasedSessionRepositoryFactory implements SessionRepositoryFacto
     }
 
     @Override
-    public SessionRepository retrieveSessionRepository(InstanceId instanceId) {
+    public SessionResolver retrieveSessionResolver(InstanceId instanceId) {
         Objects.requireNonNull(instanceId, "instanceId must not be null!");
 
         lock.lock();
         try {
-            SessionRepository repo = cache.get(instanceId);
+            SessionResolver repo = cache.get(instanceId);
             if (repo != null) {
                 return repo;
             }
@@ -63,7 +63,7 @@ public class FileBasedSessionRepositoryFactory implements SessionRepositoryFacto
         }
     }
 
-    private SessionRepository createRepository(InstanceId id) {
+    private SessionResolver createRepository(InstanceId id) {
         File instanceDirectory = new File(baseDirectory, id.getId());
         if (!instanceDirectory.mkdirs()) {
             if (!instanceDirectory.isDirectory()) {

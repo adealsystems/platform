@@ -19,6 +19,8 @@ package org.adealsystems.platform.orchestrator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.adealsystems.platform.orchestrator.session.SessionUpdateMessageOperation;
+import org.adealsystems.platform.orchestrator.session.SessionUpdateOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateOperationModule;
 import org.adealsystems.platform.orchestrator.status.mapping.SessionProcessingStateModule;
 import org.slf4j.Logger;
@@ -30,9 +32,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -44,21 +51,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class FileBasedSessionRepository implements SessionRepository {
-    private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedSessionRepository.class);
+public class SynchronizedFileBasedSessionRepository implements SessionRepository {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SynchronizedFileBasedSessionRepository.class);
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern(
-        "yyyyMMdd",
-        Locale.ROOT
-    );
-    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern(
-        "yyyyMMddHHmmss",
-        Locale.ROOT
-    );
-    private static final DateTimeFormatter SESSION_UPDATE_FORMATTER = DateTimeFormatter.ofPattern(
-        "HH:mm:ss.SSS",
-        Locale.ROOT
-    );
+    private static final DateTimeFormatter DATE_FORMATTER
+        = DateTimeFormatter.ofPattern("yyyyMMdd", Locale.ROOT);
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER
+        = DateTimeFormatter.ofPattern("yyyyMMddHHmmss", Locale.ROOT);
+    private static final DateTimeFormatter SESSION_UPDATE_FORMATTER
+        = DateTimeFormatter.ofPattern("HH:mm:ss.SSS", Locale.ROOT);
 
     private static final ObjectMapper OBJECT_MAPPER;
 
@@ -77,25 +78,21 @@ public class FileBasedSessionRepository implements SessionRepository {
     private final ConcurrentMap<String, ReentrantLock> lockMap = new ConcurrentHashMap<>();
     private final InstanceId instanceId;
     private final File baseDirectory;
-    private final SessionUpdateHistory sessionUpdateHistory;
+    private Session currentActiveSession;
 
-    public FileBasedSessionRepository(
-        InstanceId instanceId,
-        File baseDirectory,
-        SessionUpdateHistory sessionUpdateHistory
-    ) {
+    public SynchronizedFileBasedSessionRepository(InstanceId instanceId, File baseDirectory) {
         Objects.requireNonNull(instanceId, "instanceId must not be null!");
         Objects.requireNonNull(baseDirectory, "baseDirectory must not be null!");
+
         if (!baseDirectory.exists()) {
             throw new IllegalArgumentException("Missing mandatory baseDirectory: '" + baseDirectory + "'!");
         }
         if (!baseDirectory.isDirectory()) {
             throw new IllegalArgumentException("baseDirectory '" + baseDirectory + "' must be directory!");
         }
+
         this.instanceId = instanceId;
         this.baseDirectory = baseDirectory;
-
-        this.sessionUpdateHistory = sessionUpdateHistory;
     }
 
     @Override
@@ -180,13 +177,25 @@ public class FileBasedSessionRepository implements SessionRepository {
 
     @Override
     public Session createSession(SessionId sessionId) {
+        Session session = new Session(instanceId, sessionId);
+        return internalCreateSession(session);
+    }
+
+    @Override
+    public Session createSession(SessionId sessionId, LocalDateTime createdOn, Map<String, String> config) {
+        Session session = new Session(instanceId, sessionId, createdOn, config);
+        return internalCreateSession(session);
+    }
+
+    private Session internalCreateSession(Session session) {
+        SessionId sessionId = session.getId();
+
         File sessionFile = getSessionFile(sessionId);
         if (sessionFile.exists()) {
             throw new IllegalArgumentException("Session with id '" + sessionId + "' already exists!");
         }
 
-        Session session = new Session(instanceId, sessionId);
-        session.setSessionUpdateHistory(sessionUpdateHistory);
+        this.currentActiveSession = session;
 
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
         if (lock.isLocked()) {
@@ -250,13 +259,12 @@ public class FileBasedSessionRepository implements SessionRepository {
 
         LOGGER.debug("Creating new session for {} with id '{}'", instanceId, sessionId);
         Session session = new Session(instanceId, sessionId);
-        session.setSessionUpdateHistory(sessionUpdateHistory);
         writeSession(sessionFile, session);
         return session;
     }
 
     @Override
-    public void updateSession(Session session) {
+    public Session updateSession(Session session) {
         Objects.requireNonNull(session, "session must not be null!");
 
         SessionId sessionId = session.getId();
@@ -267,7 +275,22 @@ public class FileBasedSessionRepository implements SessionRepository {
 
         lock.lock();
         try {
+            String updateVersionChecksum = session.getChecksum();
+            if (!updateVersionChecksum.equals(currentActiveSession.getChecksum())) {
+                LOGGER.info(
+                    "Detected a concurrent session modification on update between {} and {}",
+                    updateVersionChecksum,
+                    currentActiveSession.getChecksum()
+                );
+                session = internalMergeActiveSession(session);
+            }
+
+            // re-calculate the checksum
+            session.updateChecksum();
+
             internalUpdateSession(session);
+            currentActiveSession = session;
+            return session;
         }
         finally {
             lock.unlock();
@@ -344,21 +367,147 @@ public class FileBasedSessionRepository implements SessionRepository {
 
     @Override
     public Session modifySession(SessionId sessionId, Consumer<Session> modifier) {
+        Session session = internalRetrieveOrCreateSession(sessionId);
+        this.currentActiveSession = session;
+
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
         if (lock.isLocked()) {
             LOGGER.warn("Session with id '{}' already locked, waiting (modifySession) ...", sessionId);
         }
 
+        modifier.accept(session);
+
         lock.lock();
         try {
-            Session session = internalRetrieveOrCreateSession(sessionId);
-            modifier.accept(session);
-            internalUpdateSession(session);
+            String updateVersionChecksum = session.getChecksum();
+            if (!updateVersionChecksum.equals(currentActiveSession.getChecksum())) {
+                LOGGER.info(
+                    "Detected a concurrent session modification between {} and {}",
+                    updateVersionChecksum,
+                    currentActiveSession.getChecksum()
+                );
+                session = internalMergeActiveSession(session);
+            }
 
-            return session;
+            // re-calculate the checksum
+            session.updateChecksum();
+
+            internalUpdateSession(session);
+            currentActiveSession = session;
         }
         finally {
             lock.unlock();
+        }
+
+        return session;
+    }
+
+    private Session internalMergeActiveSession(Session session) {
+        Session.SessionUpdates updates = session.getSessionUpdates();
+        Session.SessionUpdates baseUpdates = currentActiveSession.getSessionUpdates();
+        LOGGER.debug(
+            "Found {} updates for the new and {} - for the base session, searching for differences",
+            updates,
+            baseUpdates
+        );
+
+        Session merged = new Session(
+            session.getInstanceId(),
+            session.getId(),
+            session.getCreationTimestamp(),
+            session.getInstanceConfiguration()
+        );
+        merged.setState(session.getState());
+
+        Session.SessionUpdates mergedUpdates = applyMissingUpdates(merged, updates, baseUpdates);
+
+        // set full updates sequence to the session
+        merged.setSessionUpdates(mergedUpdates);
+
+        return merged;
+    }
+
+    private Session.SessionUpdates applyMissingUpdates(
+        Session session,
+        Session.SessionUpdates updates,
+        Session.SessionUpdates baseUpdates
+    ) {
+        List<SessionUpdateOperation> result = new ArrayList<>();
+        List<SessionUpdateOperation> baseUpdateOperations = baseUpdates.getUpdates();
+        List<SessionUpdateOperation> newUpdateOperations = updates.getUpdates();
+        int lastSharedIndex = 0;
+        for (int i = 0; i < baseUpdateOperations.size(); i++) {
+            SessionUpdateOperation baseOp = baseUpdateOperations.get(i);
+            if (i >= newUpdateOperations.size()) {
+                lastSharedIndex = i;
+                break;
+            }
+
+            SessionUpdateOperation newOp = newUpdateOperations.get(i);
+            if (!baseOp.equals(newOp)) {
+                lastSharedIndex = i;
+                break;
+            }
+
+            result.add(baseOp);
+        }
+
+        // cluster update operations by its types
+        Map<Class<? extends SessionUpdateOperation>, Set<SessionUpdateOperation>> ops = new HashMap<>();
+        clusterUpdates(baseUpdateOperations, lastSharedIndex, ops);
+        clusterUpdates(newUpdateOperations, lastSharedIndex, ops);
+
+        // merge clustered updates
+        List<SessionUpdateOperation> mergedOps = new ArrayList<>();
+        for (Map.Entry<Class<? extends SessionUpdateOperation>, Set<SessionUpdateOperation>> entry : ops.entrySet()) {
+            Class<? extends SessionUpdateOperation> type = entry.getKey();
+            Set<SessionUpdateOperation> typeUpdates = entry.getValue();
+            if (SessionUpdateMessageOperation.class.isAssignableFrom(type)) {
+                if (typeUpdates.size() == 1) {
+                    mergedOps.add(typeUpdates.iterator().next());
+                    continue;
+                }
+
+                StringBuilder message = new StringBuilder("Merged message: "); // NOPMD
+                for (SessionUpdateOperation op : typeUpdates) {
+                    SessionUpdateMessageOperation messageOp = (SessionUpdateMessageOperation) op;
+                    String msg = messageOp.getMessage();
+                    message.append(", ").append(msg);
+                }
+                mergedOps.add(new SessionUpdateMessageOperation(message.toString()));
+            }
+
+            // all other types shouldn't be merged, just collect all of them
+            mergedOps.addAll(typeUpdates);
+        }
+
+        // apply merged updates
+        for (SessionUpdateOperation op : mergedOps) {
+            op.apply(session);
+        }
+
+        result.addAll(mergedOps);
+
+        // build merged session update structure
+        Session.SessionUpdates resultUpdates = new Session.SessionUpdates();
+        resultUpdates.setUpdates(result);
+        return resultUpdates;
+    }
+
+    private void clusterUpdates(
+        List<SessionUpdateOperation> updates,
+        int startIndex,
+        Map<Class<? extends SessionUpdateOperation>, Set<SessionUpdateOperation>> clusters
+    ) {
+        for (int i = startIndex; i < updates.size(); i++) {
+            SessionUpdateOperation op = updates.get(i);
+            Class<? extends SessionUpdateOperation> opClass = op.getClass();
+            Set<SessionUpdateOperation> sameTypeUpdates = clusters.get(opClass);
+            if (sameTypeUpdates == null) {
+                sameTypeUpdates = new HashSet<>(); // NOPMD
+                clusters.put(opClass, sameTypeUpdates);
+            }
+            sameTypeUpdates.add(op);
         }
     }
 
@@ -397,7 +546,6 @@ public class FileBasedSessionRepository implements SessionRepository {
             Session session = OBJECT_MAPPER.readValue(sessionFile, Session.class);
             if (instanceId.equals(session.getInstanceId())) {
                 LOGGER.debug("Returning original loaded session for {}", instanceId);
-                session.setSessionUpdateHistory(sessionUpdateHistory);
                 return session;
             }
 
@@ -410,7 +558,6 @@ public class FileBasedSessionRepository implements SessionRepository {
             );
             newSession.setState(session.getState());
             newSession.setProcessingState(session.getProcessingState());
-            newSession.setSessionUpdateHistory(sessionUpdateHistory);
             return newSession;
         }
         catch (IOException ex) {

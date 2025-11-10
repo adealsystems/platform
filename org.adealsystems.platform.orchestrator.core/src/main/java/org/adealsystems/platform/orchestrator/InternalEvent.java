@@ -123,7 +123,7 @@ public final class InternalEvent implements Cloneable, Serializable {
 
     public String getMandatoryAttributeValue(String attributeName) {
         Optional<String> oValue = getAttributeValue(attributeName);
-        if (!oValue.isPresent()) {
+        if (oValue.isEmpty()) {
             throw new IllegalArgumentException("Missing mandatory attribute value '" + attributeName + "'!");
         }
         return oValue.get();
@@ -241,7 +241,7 @@ public final class InternalEvent implements Cloneable, Serializable {
     public static Optional<InternalEvent> getSourceEventAttribute(InternalEvent event) {
         Objects.requireNonNull(event, "event must not be null!");
         Optional<String> oSourceEvent = event.getAttributeValue(SOURCE_EVENT_ATTRIBUTE_NAME);
-        if (!oSourceEvent.isPresent()) {
+        if (oSourceEvent.isEmpty()) {
             return Optional.empty();
         }
 
@@ -255,7 +255,13 @@ public final class InternalEvent implements Cloneable, Serializable {
     public static void setSessionStateAttribute(InternalEvent event, Session session) {
         Objects.requireNonNull(event, "event must not be null!");
         Objects.requireNonNull(session, "session must not be null!");
-        Session sessionClone = session.clone();
+        Session sessionClone = new Session(
+            session.getInstanceId(),
+            session.getId(),
+            session.getCreationTimestamp(),
+            session.getInstanceConfiguration()
+        );
+        sessionClone.setState(session.getState());
         sessionClone.setProcessingState(null);
 
         try {
@@ -268,7 +274,7 @@ public final class InternalEvent implements Cloneable, Serializable {
     public static Optional<Session> getSessionStateAttribute(InternalEvent event) {
         Objects.requireNonNull(event, "event must not be null!");
         Optional<String> oSession = event.getAttributeValue(SESSION_STATE_ATTRIBUTE_NAME);
-        if (!oSession.isPresent()) {
+        if (oSession.isEmpty()) {
             return Optional.empty();
         }
 
@@ -281,7 +287,7 @@ public final class InternalEvent implements Cloneable, Serializable {
 
     public static Optional<String> getDynamicContentFromSessionStateAttribute(InternalEvent event) {
         Optional<Session> oSessionState = getSessionStateAttribute(event);
-        if (!oSessionState.isPresent()) {
+        if (oSessionState.isEmpty()) {
             return Optional.empty();
         }
 
@@ -292,7 +298,7 @@ public final class InternalEvent implements Cloneable, Serializable {
 
     public static Optional<String> getDynamicContentFromSourceEvent(InternalEvent event) {
         Optional<InternalEvent> oSourceEvent = getSourceEventAttribute(event);
-        if (!oSourceEvent.isPresent()) {
+        if (oSourceEvent.isEmpty()) {
             return Optional.empty();
         }
 
@@ -342,7 +348,7 @@ public final class InternalEvent implements Cloneable, Serializable {
         Objects.requireNonNull(instanceKey, "instanceKey must not be null!");
 
         Optional<String> oInstanceId = event.getAttributeValue(INSTANCE_ID_ATTRIBUTE_NAME);
-        if (!oInstanceId.isPresent()) {
+        if (oInstanceId.isEmpty()) {
             return false;
         }
 

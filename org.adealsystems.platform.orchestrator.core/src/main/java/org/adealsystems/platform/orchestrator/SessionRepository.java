@@ -16,18 +16,15 @@
 
 package org.adealsystems.platform.orchestrator;
 
-import java.time.LocalDate;
-import java.util.Optional;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.function.Consumer;
 
-public interface SessionRepository {
-    Set<SessionId> retrieveSessionIds();
-    Set<SessionId> retrieveSessionIds(LocalDate createdOn);
+public interface SessionRepository extends SessionResolver {
     Session createSession(SessionId id);
-    Optional<Session> retrieveSession(SessionId id);
+    Session createSession(SessionId sessionId, LocalDateTime createdOn, Map<String, String> config);
     Session retrieveOrCreateSession(SessionId id);
-    void updateSession(Session session);
+    Session updateSession(Session session);
     boolean deleteSession(SessionId id);
     Session modifySession(SessionId sessionId, Consumer<Session> modifier);
 }

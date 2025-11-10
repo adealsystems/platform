@@ -23,7 +23,7 @@ import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 public class SessionUpdateProgressOperation implements SessionUpdateOperation {
 
     @JsonCreator
-    public SessionUpdateProgressOperation() {
+    public SessionUpdateProgressOperation() { // NOPMD
         // nothing to do here!
     }
 

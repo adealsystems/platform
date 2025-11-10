@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.orchestrator.session;
+package org.adealsystems.platform.orchestrator;
 
-import com.fasterxml.jackson.core.Version;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import java.time.LocalDate;
+import java.util.Optional;
+import java.util.Set;
 
-public class SessionUpdateOperationModule extends SimpleModule {
-    private static final long serialVersionUID = 6958780006516683816L;
-
-    public SessionUpdateOperationModule() {
-        super("SessionUpdateOperationModule", Version.unknownVersion());
-
-        setMixInAnnotation(SessionUpdateOperation.class, SessionUpdateOperationMixin.class);
-    }
+public interface SessionResolver {
+    Set<SessionId> retrieveSessionIds();
+    Set<SessionId> retrieveSessionIds(LocalDate createdOn);
+    Optional<Session> retrieveSession(SessionId id);
 }

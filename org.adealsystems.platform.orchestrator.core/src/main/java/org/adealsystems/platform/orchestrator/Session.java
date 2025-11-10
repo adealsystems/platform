@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.adealsystems.platform.orchestrator.session.SessionSetProgressMaxValueOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateFailedProgressOperation;
+import org.adealsystems.platform.orchestrator.session.SessionUpdateOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateProcessingStateOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateProgressOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateStateValueOperation;
@@ -34,10 +35,12 @@ import java.beans.ConstructorProperties;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -46,7 +49,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public final class Session implements Cloneable, Serializable {
+public final class Session implements Serializable {
     private static final long serialVersionUID = -4977538740085095596L;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Session.class);
@@ -79,33 +82,31 @@ public final class Session implements Cloneable, Serializable {
     private Map<String, String> state;
 
     @JsonIgnore
-    private SessionUpdateHistory sessionUpdateHistory;
+    private String checksum;
+
+    @JsonIgnore
+    private SessionUpdates sessionUpdates;
 
     public Session(InstanceId instanceId, SessionId id) {
         this(instanceId, id, LocalDateTime.now(ZoneId.systemDefault()), Collections.emptyMap());
     }
 
     @ConstructorProperties({"instanceId", "id", "creationTimestamp", "instanceConfiguration"})
-    public Session(InstanceId instanceId, SessionId id, LocalDateTime creationTimestamp, Map<String, String> instanceConfiguration) {
+    public Session(
+        InstanceId instanceId,
+        SessionId id,
+        LocalDateTime creationTimestamp,
+        Map<String, String> instanceConfiguration
+    ) {
         Objects.requireNonNull(instanceConfiguration, "instanceConfiguration must be not null!");
 
         this.instanceId = Objects.requireNonNull(instanceId, "instanceId must be not null!");
         this.id = Objects.requireNonNull(id, "id must be not null!");
         this.instanceConfiguration = Map.copyOf(instanceConfiguration);
         this.creationTimestamp = creationTimestamp;
-    }
+        this.sessionUpdates = new SessionUpdates();
 
-    public Optional<SessionUpdateHistory> getSessionUpdateHistory() {
-        if (sessionUpdateHistory == null) {
-            LOGGER.warn("No updateHistory found in session {} (instance: {})!", id, instanceId);
-            return Optional.empty();
-        }
-
-        return Optional.of(sessionUpdateHistory);
-    }
-
-    public void setSessionUpdateHistory(SessionUpdateHistory sessionUpdateHistory) {
-        this.sessionUpdateHistory = sessionUpdateHistory;
+        updateChecksum();
     }
 
     public static void updateProcessingState(Session session, Consumer<SessionProcessingState> consumer) {
@@ -121,12 +122,8 @@ public final class Session implements Cloneable, Serializable {
             updateGlobalFields(session, processingState);
             session.setProcessingState(processingState);
 
-            session.getSessionUpdateHistory().ifPresent(
-                updateHistory -> updateHistory.add(
-                    session.getId(),
-                    new SessionUpdateProcessingStateOperation(processingState),
-                    "updateProcessingState()"
-                )
+            session.sessionUpdates.addUpdate(
+                new SessionUpdateProcessingStateOperation(processingState)
             );
         }
         catch (Exception ex) {
@@ -151,12 +148,8 @@ public final class Session implements Cloneable, Serializable {
             updateGlobalFields(session, processingState);
             session.setProcessingState(processingState);
 
-            session.getSessionUpdateHistory().ifPresent(
-                updateHistory -> updateHistory.add(
-                    session.getId(),
-                    new SessionUpdateProcessingStateOperation(processingState),
-                    "updateProcessingState() for event " + event.getId()
-                )
+            session.sessionUpdates.addUpdate(
+                new SessionUpdateProcessingStateOperation(processingState)
             );
         }
         catch (Exception ex) {
@@ -175,11 +168,8 @@ public final class Session implements Cloneable, Serializable {
             processingState.setProgressMaxValue(progressMaxValue);
             session.setProcessingState(processingState);
 
-            session.getSessionUpdateHistory().ifPresent(
-                updateHistory -> updateHistory.add(
-                    session.getId(),
-                    new SessionSetProgressMaxValueOperation(progressMaxValue)
-                )
+            session.sessionUpdates.addUpdate(
+                new SessionSetProgressMaxValueOperation(progressMaxValue)
             );
         }
         catch (Exception ex) {
@@ -197,20 +187,16 @@ public final class Session implements Cloneable, Serializable {
 
             processingState.setProgressCurrentStep(processingState.getProgressCurrentStep() + 1);
 
-            session.getSessionUpdateHistory().ifPresent(
-                updateHistory -> updateHistory.add(
-                    session.getId(),
-                    new SessionUpdateProgressOperation()
-                )
+            session.sessionUpdates.addUpdate(
+                new SessionUpdateProgressOperation()
             );
 
             if (!success) {
                 processingState.setProgressFailedSteps(processingState.getProgressFailedSteps() + 1);
 
-                session.getSessionUpdateHistory().ifPresent(it -> it.add(
-                    session.getId(),
+                session.sessionUpdates.addUpdate(
                     new SessionUpdateFailedProgressOperation()
-                ));
+                );
             }
 
             updateGlobalFields(session, processingState);
@@ -227,6 +213,27 @@ public final class Session implements Cloneable, Serializable {
         state.getFlags().put(FLAG_SESSION_CANCELLED, session.hasCancelledFlag());
         state.getFlags().put(FLAG_SESSION_FINISHED, session.hasFinishedFlag());
         state.setStateAttributes(session.getState());
+    }
+
+    public String getChecksum() {
+        return checksum;
+    }
+
+    public void updateChecksum() {
+        this.checksum = 'i' + ChecksumGenerator.getChecksum(instanceId)
+            + "-id" + ChecksumGenerator.getChecksum(id)
+            + "-ts" + ChecksumGenerator.getChecksum(creationTimestamp)
+            + "-c" + ChecksumGenerator.getChecksum((Serializable) instanceConfiguration)
+            + "-ps" + ChecksumGenerator.getChecksum(processingState)
+            + "-s" + ChecksumGenerator.getChecksum((Serializable) state);
+    }
+
+    public SessionUpdates getSessionUpdates() {
+        return sessionUpdates;
+    }
+
+    public void setSessionUpdates(SessionUpdates sessionUpdates) {
+        this.sessionUpdates = sessionUpdates;
     }
 
     public InstanceId getInstanceId() {
@@ -260,12 +267,8 @@ public final class Session implements Cloneable, Serializable {
     public void setProcessingState(SessionProcessingState processingState) {
         this.processingState = processingState;
 
-        getSessionUpdateHistory().ifPresent(
-            updateHistory -> updateHistory.add(
-                id,
-                new SessionUpdateProcessingStateOperation(processingState),
-                "setProcessingState()"
-            )
+        sessionUpdates.addUpdate(
+            new SessionUpdateProcessingStateOperation(processingState)
         );
     }
 
@@ -296,12 +299,9 @@ public final class Session implements Cloneable, Serializable {
             state.put(key, value);
         }
 
-        if (sessionUpdateHistory != null) {
-            sessionUpdateHistory.add(
-                id,
-                new SessionUpdateStateValueOperation(key, value)
-            );
-        }
+        sessionUpdates.addUpdate(
+            new SessionUpdateStateValueOperation(key, value)
+        );
     }
 
     public <T> T getStateMandatoryBean(String key, Class<T> beanClass) {
@@ -603,21 +603,40 @@ public final class Session implements Cloneable, Serializable {
             '}';
     }
 
-    @Override
-    @SuppressWarnings({"PMD.ProperCloneImplementation", "MethodDoesntCallSuperMethod"})
-    public Session clone() {
-        // instanceConfiguration is unmodifiable
-        Session clone = new Session(
-            instanceId, id, creationTimestamp, instanceConfiguration
-        );
+    public static class SessionUpdates implements Serializable {
+        private static final long serialVersionUID = 388199570473620237L;
 
-        if (state != null) {
-            clone.state = new HashMap<>(state);
+        private List<SessionUpdateOperation> updates = new ArrayList<>();
+
+        void addUpdate(SessionUpdateOperation update) {
+            updates.add(update);
         }
-        if (processingState != null) {
-            clone.processingState = processingState.clone();
+
+        public List<SessionUpdateOperation> getUpdates() {
+            return updates;
         }
-        clone.sessionUpdateHistory = sessionUpdateHistory;
-        return clone;
+
+        public void setUpdates(List<SessionUpdateOperation> updates) {
+            this.updates = updates;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+            SessionUpdates that = (SessionUpdates) o;
+            return Objects.equals(updates, that.updates);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(updates);
+        }
+
+        @Override
+        public String toString() {
+            return "SessionUpdates{" +
+                "updates=" + updates +
+                '}';
+        }
     }
 }
