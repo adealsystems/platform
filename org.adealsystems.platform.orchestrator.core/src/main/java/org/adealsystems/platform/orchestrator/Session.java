@@ -80,19 +80,18 @@ public final class Session implements Serializable {
     private final Map<String, String> instanceConfiguration;
     private SessionProcessingState processingState;
     private Map<String, String> state;
+    private SessionUpdates sessionUpdates;
 
     @JsonIgnore
     private String checksum;
-
-    @JsonIgnore
-    private SessionUpdates sessionUpdates;
 
     public static Session copyOf(Session session) {
         Session copy = new Session(
             session.getInstanceId(),
             session.getId(),
             session.getCreationTimestamp(),
-            session.getInstanceConfiguration()
+            session.getInstanceConfiguration(),
+            session.getSessionUpdates()
         );
         copy.setState(session.getState());
         copy.setProcessingState(session.getProcessingState());
@@ -100,15 +99,16 @@ public final class Session implements Serializable {
     }
 
     public Session(InstanceId instanceId, SessionId id) {
-        this(instanceId, id, LocalDateTime.now(ZoneId.systemDefault()), Collections.emptyMap());
+        this(instanceId, id, LocalDateTime.now(ZoneId.systemDefault()), Collections.emptyMap(), new SessionUpdates());
     }
 
-    @ConstructorProperties({"instanceId", "id", "creationTimestamp", "instanceConfiguration"})
+    @ConstructorProperties({"instanceId", "id", "creationTimestamp", "instanceConfiguration", "updates"})
     public Session(
         InstanceId instanceId,
         SessionId id,
         LocalDateTime creationTimestamp,
-        Map<String, String> instanceConfiguration
+        Map<String, String> instanceConfiguration,
+        SessionUpdates sessionUpdates
     ) {
         Objects.requireNonNull(instanceConfiguration, "instanceConfiguration must be not null!");
 
@@ -116,7 +116,7 @@ public final class Session implements Serializable {
         this.id = Objects.requireNonNull(id, "id must be not null!");
         this.instanceConfiguration = Map.copyOf(instanceConfiguration);
         this.creationTimestamp = creationTimestamp;
-        this.sessionUpdates = new SessionUpdates();
+        this.sessionUpdates = sessionUpdates;
 
         updateChecksum();
     }

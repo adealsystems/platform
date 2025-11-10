@@ -187,7 +187,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
 
     @Override
     public Session createSession(SessionId sessionId, LocalDateTime createdOn, Map<String, String> config) {
-        Session session = new Session(instanceId, sessionId, createdOn, config);
+        Session session = new Session(instanceId, sessionId, createdOn, config, new Session.SessionUpdates());
         return internalCreateSession(session);
     }
 
@@ -563,7 +563,8 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
                 instanceId,
                 session.getId(),
                 session.getCreationTimestamp(),
-                session.getInstanceConfiguration()
+                session.getInstanceConfiguration(),
+                session.getSessionUpdates()
             );
             newSession.setState(session.getState());
             newSession.setProcessingState(session.getProcessingState());
