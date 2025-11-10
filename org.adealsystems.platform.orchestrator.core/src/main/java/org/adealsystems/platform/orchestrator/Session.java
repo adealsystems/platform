@@ -87,6 +87,18 @@ public final class Session implements Serializable {
     @JsonIgnore
     private SessionUpdates sessionUpdates;
 
+    public static Session copyOf(Session session) {
+        Session copy = new Session(
+            session.getInstanceId(),
+            session.getId(),
+            session.getCreationTimestamp(),
+            session.getInstanceConfiguration()
+        );
+        copy.setState(session.getState());
+        copy.setProcessingState(session.getProcessingState());
+        return copy;
+    }
+
     public Session(InstanceId instanceId, SessionId id) {
         this(instanceId, id, LocalDateTime.now(ZoneId.systemDefault()), Collections.emptyMap());
     }

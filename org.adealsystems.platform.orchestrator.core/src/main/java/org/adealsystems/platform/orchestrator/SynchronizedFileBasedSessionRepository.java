@@ -78,7 +78,6 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
     private final ConcurrentMap<String, ReentrantLock> lockMap = new ConcurrentHashMap<>();
     private final InstanceId instanceId;
     private final File baseDirectory;
-    private Session currentActiveSession;
 
     public SynchronizedFileBasedSessionRepository(InstanceId instanceId, File baseDirectory) {
         Objects.requireNonNull(instanceId, "instanceId must not be null!");
@@ -195,14 +194,13 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
             throw new IllegalArgumentException("Session with id '" + sessionId + "' already exists!");
         }
 
-        this.currentActiveSession = session;
-
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
         if (lock.isLocked()) {
             LOGGER.warn("Session with id '{}' already locked, waiting (createSession) ...", sessionId);
         }
 
         lock.lock();
+        LOGGER.debug("Session '{}' locked (createSession)", sessionId);
         try {
             writeSession(sessionFile, session);
         }
@@ -223,6 +221,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
 
         lock.lock();
+        LOGGER.debug("Session '{}' locked (retrieveSession)", sessionId);
         try {
             if (!sessionFile.exists()) {
                 return Optional.empty();
@@ -243,6 +242,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
 
         lock.lock();
+        LOGGER.debug("Session '{}' locked (retrieveOrCreateSession)", sessionId);
         try {
             return internalRetrieveOrCreateSession(sessionId);
         }
@@ -274,7 +274,10 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
 
         lock.lock();
+        LOGGER.debug("Session '{}' locked (updateSession)", sessionId);
         try {
+            Session currentActiveSession = retrieveSession(sessionId).orElseThrow(IllegalStateException::new);
+
             String updateVersionChecksum = session.getChecksum();
             if (!updateVersionChecksum.equals(currentActiveSession.getChecksum())) {
                 LOGGER.info(
@@ -282,14 +285,13 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
                     updateVersionChecksum,
                     currentActiveSession.getChecksum()
                 );
-                session = internalMergeActiveSession(session);
+                session = internalMergeActiveSession(session, currentActiveSession);
             }
 
             // re-calculate the checksum
             session.updateChecksum();
 
             internalUpdateSession(session);
-            currentActiveSession = session;
             return session;
         }
         finally {
@@ -357,6 +359,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
 
         lock.lock();
+        LOGGER.debug("Session '{}' locked (deleteSession)", sessionId);
         try {
             return sessionFile.delete();
         }
@@ -368,32 +371,34 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
     @Override
     public Session modifySession(SessionId sessionId, Consumer<Session> modifier) {
         Session session = internalRetrieveOrCreateSession(sessionId);
-        this.currentActiveSession = session;
+
+        modifier.accept(session);
 
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
         if (lock.isLocked()) {
             LOGGER.warn("Session with id '{}' already locked, waiting (modifySession) ...", sessionId);
         }
 
-        modifier.accept(session);
-
         lock.lock();
+        LOGGER.debug("Session '{}' locked (modifySession)", sessionId);
         try {
+            Session currentActiveSession = internalRetrieveOrCreateSession(sessionId);
+
             String updateVersionChecksum = session.getChecksum();
             if (!updateVersionChecksum.equals(currentActiveSession.getChecksum())) {
                 LOGGER.info(
-                    "Detected a concurrent session modification between {} and {}",
+                    "Detected a concurrent session modification for {} between {} and {}",
+                    sessionId,
                     updateVersionChecksum,
                     currentActiveSession.getChecksum()
                 );
-                session = internalMergeActiveSession(session);
+                session = internalMergeActiveSession(session, currentActiveSession);
             }
 
             // re-calculate the checksum
             session.updateChecksum();
 
             internalUpdateSession(session);
-            currentActiveSession = session;
         }
         finally {
             lock.unlock();
@@ -402,7 +407,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         return session;
     }
 
-    private Session internalMergeActiveSession(Session session) {
+    private Session internalMergeActiveSession(Session session, Session currentActiveSession) {
         Session.SessionUpdates updates = session.getSessionUpdates();
         Session.SessionUpdates baseUpdates = currentActiveSession.getSessionUpdates();
         LOGGER.debug(
@@ -411,14 +416,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
             baseUpdates
         );
 
-        Session merged = new Session(
-            session.getInstanceId(),
-            session.getId(),
-            session.getCreationTimestamp(),
-            session.getInstanceConfiguration()
-        );
-        merged.setState(session.getState());
-
+        Session merged = Session.copyOf(session);
         Session.SessionUpdates mergedUpdates = applyMissingUpdates(merged, updates, baseUpdates);
 
         // set full updates sequence to the session
