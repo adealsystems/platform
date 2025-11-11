@@ -1075,7 +1075,8 @@ public class InternalEventHandlerRunnable implements Runnable {
                     Thread.sleep(ORPHAN_ADD_DELAY);
                 }
                 catch (InterruptedException ex) {
-                    throw new RuntimeException(ex);
+                    LOGGER.error("Thread interrupted while waiting for orphan event", ex);
+                    throw new IllegalStateException(ex);
                 }
             }
         }
