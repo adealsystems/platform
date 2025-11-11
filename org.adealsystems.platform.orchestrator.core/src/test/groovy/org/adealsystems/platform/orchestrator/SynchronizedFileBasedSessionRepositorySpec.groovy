@@ -133,6 +133,68 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
         freshSession.state == null
     }
 
+    def 'session updates are working as expected'() {
+        given:
+        InstanceId instanceId = new InstanceId('0001-instance-id')
+        def ts = LocalDateTime.of(2023, 3,24,0,0,0,0)
+        def instanceConfiguration = [
+            'aaa': 'xxx',
+            'bbb': 'yyy'
+        ]
+
+        SynchronizedFileBasedSessionRepository sessionRepository = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
+        def id = 'SESSION-ID'
+        def sessionId1 = new SessionId(id + '-1')
+
+        when:
+        def session = sessionRepository.createSession(sessionId1, ts, [:])
+        session.setStateValue("a", "AAA")
+        sessionRepository.updateSession(session)
+
+        then:
+        session != null
+        session.id == sessionId1
+        session.instanceConfiguration == [:]
+        session.state == ['a': 'AAA']
+        session.sessionUpdates != null
+        session.sessionUpdates.updates.size() == 1
+
+        when:
+        def sessionLoaded = sessionRepository.retrieveSession(sessionId1)
+
+        then:
+        sessionLoaded.present
+        sessionLoaded.get().id == sessionId1
+        sessionLoaded.get().instanceConfiguration == [:]
+        sessionLoaded.get().state == ['a': 'AAA']
+
+        when:
+        def lines = readLines(sessionRepository, sessionId1)
+
+        then:
+//        for (String line : lines) {
+//            println(line)
+//        }
+        lines == [
+            '{',
+            '  "instanceId" : "0001-instance-id",',
+            '  "id" : "SESSION-ID-1",',
+            '  "creationTimestamp" : [ 2023, 3, 24, 0, 0 ],',
+            '  "instanceConfiguration" : { },',
+            '  "state" : {',
+            '    "a" : "AAA"',
+            '  },',
+            '  "sessionUpdates" : {',
+            '    "updates" : [ {',
+            '      "type" : "update-state-value",',
+            '      "key" : "a",',
+            '      "value" : "AAA"',
+            '    } ]',
+            '  }',
+            '}'
+        ]
+    }
+
     def 'concurrent update modifications are working as expected'() {
         given:
         InstanceId instanceId = new InstanceId('0001-instance-id')

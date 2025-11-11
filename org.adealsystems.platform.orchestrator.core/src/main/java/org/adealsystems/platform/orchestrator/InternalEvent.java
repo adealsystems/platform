@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.adealsystems.platform.orchestrator.session.SessionUpdateOperationModule;
 import org.adealsystems.platform.orchestrator.status.mapping.SessionProcessingStateModule;
 
 import java.io.Serializable;
@@ -51,6 +52,7 @@ public final class InternalEvent implements Cloneable, Serializable {
     static {
         OBJECT_MAPPER.registerModule(new JavaTimeModule());
         OBJECT_MAPPER.registerModule(new SessionProcessingStateModule());
+        OBJECT_MAPPER.registerModule(new SessionUpdateOperationModule());
     }
 
     public static final String ATTR_RUN_ID = "run-id";
