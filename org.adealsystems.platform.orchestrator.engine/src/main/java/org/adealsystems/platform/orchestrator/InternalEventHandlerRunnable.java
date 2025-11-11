@@ -813,7 +813,8 @@ public class InternalEventHandlerRunnable implements Runnable {
                 session.getInstanceId(),
                 session.getId(),
                 session.getCreationTimestamp(),
-                instanceConfiguration
+                instanceConfiguration,
+                session.getSessionUpdates()
             );
             session.setState(state);
             session.setProcessingState(processingState);
