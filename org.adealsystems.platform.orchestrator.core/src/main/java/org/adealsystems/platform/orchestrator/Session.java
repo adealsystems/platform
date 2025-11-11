@@ -94,7 +94,7 @@ public final class Session implements Serializable {
             session.getSessionUpdates()
         );
         copy.setState(session.getState());
-        copy.setProcessingState(session.getProcessingState());
+        copy.setProcessingState(session.getProcessingState(), false);
         return copy;
     }
 
@@ -133,10 +133,6 @@ public final class Session implements Serializable {
 
             updateGlobalFields(session, processingState);
             session.setProcessingState(processingState);
-
-            session.sessionUpdates.addUpdate(
-                new SessionUpdateProcessingStateOperation(processingState)
-            );
         }
         catch (Exception ex) {
             LOGGER.error("Error updating session processing state in {}!", session, ex);
@@ -159,10 +155,6 @@ public final class Session implements Serializable {
 
             updateGlobalFields(session, processingState);
             session.setProcessingState(processingState);
-
-            session.sessionUpdates.addUpdate(
-                new SessionUpdateProcessingStateOperation(processingState)
-            );
         }
         catch (Exception ex) {
             LOGGER.error("Error updating session processing state in {}!", session, ex);
@@ -178,7 +170,7 @@ public final class Session implements Serializable {
             }
 
             processingState.setProgressMaxValue(progressMaxValue);
-            session.setProcessingState(processingState);
+            session.setProcessingState(processingState, false);
 
             session.sessionUpdates.addUpdate(
                 new SessionSetProgressMaxValueOperation(progressMaxValue)
@@ -212,7 +204,7 @@ public final class Session implements Serializable {
             }
 
             updateGlobalFields(session, processingState);
-            session.setProcessingState(processingState);
+            session.setProcessingState(processingState, false);
         }
         catch (Exception ex) {
             LOGGER.error("Error updating session progress in {}!", session, ex);
@@ -276,12 +268,18 @@ public final class Session implements Serializable {
         return processingState;
     }
 
-    public void setProcessingState(SessionProcessingState processingState) {
+    public void setProcessingState(SessionProcessingState processingState, boolean addUpdateOperation) {
         this.processingState = processingState;
 
-        sessionUpdates.addUpdate(
-            new SessionUpdateProcessingStateOperation(processingState)
-        );
+        if (addUpdateOperation) {
+            sessionUpdates.addUpdate(
+                new SessionUpdateProcessingStateOperation(processingState)
+            );
+        }
+    }
+
+    public void setProcessingState(SessionProcessingState processingState) {
+        setProcessingState(processingState, true);
     }
 
     public Optional<String> getStateValue(String key) {
@@ -305,15 +303,18 @@ public final class Session implements Serializable {
             state = new HashMap<>();
         }
 
+        boolean changed;
         if (value == null) {
-            state.remove(key);
+            changed = state.remove(key) != null;
         } else {
-            state.put(key, value);
+            changed = !value.equals(state.put(key, value));
         }
 
-        sessionUpdates.addUpdate(
-            new SessionUpdateStateValueOperation(key, value)
-        );
+        if (changed) {
+            sessionUpdates.addUpdate(
+                new SessionUpdateStateValueOperation(key, value)
+            );
+        }
     }
 
     public <T> T getStateMandatoryBean(String key, Class<T> beanClass) {

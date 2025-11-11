@@ -573,7 +573,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
                 session.getSessionUpdates()
             );
             newSession.setState(session.getState());
-            newSession.setProcessingState(session.getProcessingState());
+            newSession.setProcessingState(session.getProcessingState(), false);
             return newSession;
         }
         catch (IOException ex) {
