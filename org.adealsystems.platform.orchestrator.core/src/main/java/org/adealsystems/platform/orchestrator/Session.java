@@ -116,7 +116,7 @@ public final class Session implements Serializable {
         this.id = Objects.requireNonNull(id, "id must be not null!");
         this.instanceConfiguration = Map.copyOf(instanceConfiguration);
         this.creationTimestamp = creationTimestamp;
-        this.sessionUpdates = sessionUpdates;
+        this.sessionUpdates = sessionUpdates == null ? new SessionUpdates() : sessionUpdates;
 
         updateChecksum();
     }
