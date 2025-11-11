@@ -24,6 +24,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.adealsystems.platform.orchestrator.session.SessionAddStepOperation;
 import org.adealsystems.platform.orchestrator.session.SessionSetProgressMaxValueOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateFailedProgressOperation;
+import org.adealsystems.platform.orchestrator.session.SessionUpdateMessageOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateProcessingStateOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateProgressOperation;
@@ -278,6 +279,17 @@ public final class Session implements Serializable {
         this.processingState.addStep(step);
         sessionUpdates.addUpdate(
             new SessionAddStepOperation(step)
+        );
+    }
+
+    public void setMessage(String message) {
+        if (this.processingState == null) {
+            throw new IllegalStateException("Session is not started yet!");
+        }
+
+        this.processingState.setMessage(message);
+        sessionUpdates.addUpdate(
+            new SessionUpdateMessageOperation(message)
         );
     }
 
