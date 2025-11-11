@@ -21,12 +21,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.adealsystems.platform.orchestrator.session.SessionAddStepOperation;
 import org.adealsystems.platform.orchestrator.session.SessionSetProgressMaxValueOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateFailedProgressOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateProcessingStateOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateProgressOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateStateValueOperation;
+import org.adealsystems.platform.orchestrator.status.EventProcessingStep;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -268,10 +270,22 @@ public final class Session implements Serializable {
         return processingState;
     }
 
+    public void addProcessingStep(EventProcessingStep step) {
+        if (this.processingState == null) {
+            throw new IllegalStateException("Session is not started yet!");
+        }
+
+        this.processingState.addStep(step);
+        sessionUpdates.addUpdate(
+            new SessionAddStepOperation(step)
+        );
+    }
+
     public void setProcessingState(SessionProcessingState processingState, boolean addUpdateOperation) {
+        boolean changed = this.processingState != null && !this.processingState.equals(processingState);
         this.processingState = processingState;
 
-        if (addUpdateOperation) {
+        if (changed && addUpdateOperation) {
             sessionUpdates.addUpdate(
                 new SessionUpdateProcessingStateOperation(processingState)
             );
