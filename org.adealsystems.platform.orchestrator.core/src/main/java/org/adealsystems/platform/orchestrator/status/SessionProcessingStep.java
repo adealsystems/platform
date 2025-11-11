@@ -22,12 +22,18 @@ import org.adealsystems.platform.orchestrator.SessionEventConstants;
 
 import java.util.Objects;
 
+import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSION_STATE_ATTRIBUTE_NAME;
+import static org.adealsystems.platform.orchestrator.SessionEventConstants.SOURCE_EVENT_ATTRIBUTE_NAME;
+
 public class SessionProcessingStep extends EventProcessingStep {
     private static final long serialVersionUID = -2205103557789816206L;
 
     private final String instanceRef;
 
     public static SessionProcessingStep success(InternalEvent event, String instanceRef) {
+        InternalEvent sessionEvent = event.clone();
+        sessionEvent.setAttributeValue(SESSION_STATE_ATTRIBUTE_NAME, null);
+        sessionEvent.setAttributeValue(SOURCE_EVENT_ATTRIBUTE_NAME, null);
         return new SessionProcessingStep(true, event, instanceRef, buildDefaultMessage(event));
     }
 
