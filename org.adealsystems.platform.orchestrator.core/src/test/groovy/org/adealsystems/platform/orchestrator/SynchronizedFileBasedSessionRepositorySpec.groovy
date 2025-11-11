@@ -97,6 +97,9 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
             '  "state" : {',
             '    "ccc" : "zzz",',
             '    "ddd" : "000"',
+            '  },',
+            '  "sessionUpdates" : {',
+            '    "updates" : [ ]',
             '  }',
             '}'
         ]
