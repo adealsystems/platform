@@ -294,6 +294,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
                     currentActiveSession.getChecksum()
                 );
                 session = internalMergeActiveSession(session, currentActiveSession);
+                session.extendStateRegistry("merged", String.valueOf(LocalDateTime.now(ZoneId.systemDefault())));
             }
 
             // re-calculate the checksum
@@ -324,6 +325,8 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
             }
 
             String me = this.getClass().getName();
+            String myPackage = me.getClass().getPackage().getName();
+            String threadName = Thread.currentThread().getName();
             String timestamp = SESSION_UPDATE_FORMATTER.format(LocalDateTime.now(ZoneId.systemDefault()));
             boolean found = false;
             for (int i = 0; i < stackTrace.length; i++) {
@@ -343,7 +346,10 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
 
                 if (!found && !value.startsWith(me)) {
                     found = true;
-                    history += timestamp + ": " + value;
+                    if (value.startsWith(myPackage)) {
+                        value = value.substring(myPackage.length());
+                    }
+                    history += '[' + threadName + "] " + timestamp + ": " + value;
                     session.setStateValue(Session.UPDATE_HISTORY, history);
                 }
             }

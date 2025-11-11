@@ -21,16 +21,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.adealsystems.platform.orchestrator.Session;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Objects;
 
 public class SessionUpdateProcessingStateOperation implements SessionUpdateOperation {
+    private final LocalDateTime timestamp;
+
     private final SessionProcessingState processingState;
+
+    public SessionUpdateProcessingStateOperation(SessionProcessingState processingState) {
+        this(LocalDateTime.now(ZoneId.systemDefault()), processingState);
+    }
 
     @JsonCreator
     public SessionUpdateProcessingStateOperation(
+        @JsonProperty("timestamp") LocalDateTime timestamp,
         @JsonProperty("processingState") SessionProcessingState processingState
     ) {
+        this.timestamp = timestamp;
         this.processingState = processingState;
+    }
+
+    @Override
+    public LocalDateTime getTimestamp() {
+        return timestamp;
     }
 
     @Override
@@ -48,18 +63,22 @@ public class SessionUpdateProcessingStateOperation implements SessionUpdateOpera
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         SessionUpdateProcessingStateOperation that = (SessionUpdateProcessingStateOperation) o;
-        return Objects.equals(processingState, that.processingState);
+        return Objects.equals(timestamp, that.timestamp) && Objects.equals(
+            processingState,
+            that.processingState
+        );
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(processingState);
+        return Objects.hash(timestamp, processingState);
     }
 
     @Override
     public String toString() {
         return "SessionUpdateProcessingStateOperation{" +
-            "processingState=" + processingState +
+            "timestamp=" + timestamp +
+            ", processingState=" + processingState +
             '}';
     }
 }

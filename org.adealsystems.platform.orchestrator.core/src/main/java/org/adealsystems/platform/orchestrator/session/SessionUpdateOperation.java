@@ -18,6 +18,9 @@ package org.adealsystems.platform.orchestrator.session;
 
 import org.adealsystems.platform.orchestrator.Session;
 
+import java.time.LocalDateTime;
+
 public interface SessionUpdateOperation {
+    LocalDateTime getTimestamp();
     void apply(Session session);
 }

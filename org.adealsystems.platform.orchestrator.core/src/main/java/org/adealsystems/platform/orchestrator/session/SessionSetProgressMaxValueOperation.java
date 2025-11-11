@@ -20,16 +20,31 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.adealsystems.platform.orchestrator.Session;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Objects;
 
 public class SessionSetProgressMaxValueOperation implements SessionUpdateOperation {
+    private final LocalDateTime timestamp;
+
     private final int progressMaxValue;
+
+    public SessionSetProgressMaxValueOperation(int progressMaxValue) {
+        this(LocalDateTime.now(ZoneId.systemDefault()), progressMaxValue);
+    }
 
     @JsonCreator
     public SessionSetProgressMaxValueOperation(
+        @JsonProperty("timestamp") LocalDateTime timestamp,
         @JsonProperty("progressMaxValue") int progressMaxValue
     ) {
+        this.timestamp = timestamp;
         this.progressMaxValue = progressMaxValue;
+    }
+
+    @Override
+    public LocalDateTime getTimestamp() {
+        return timestamp;
     }
 
     @Override
@@ -45,18 +60,19 @@ public class SessionSetProgressMaxValueOperation implements SessionUpdateOperati
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         SessionSetProgressMaxValueOperation that = (SessionSetProgressMaxValueOperation) o;
-        return progressMaxValue == that.progressMaxValue;
+        return progressMaxValue == that.progressMaxValue && Objects.equals(timestamp, that.timestamp);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(progressMaxValue);
+        return Objects.hash(timestamp, progressMaxValue);
     }
 
     @Override
     public String toString() {
         return "SessionProcessingStateSetProgressMaxValueOperation{" +
-            "progressMaxValue=" + progressMaxValue +
+            "timestamp=" + timestamp +
+            ", progressMaxValue=" + progressMaxValue +
             '}';
     }
 }

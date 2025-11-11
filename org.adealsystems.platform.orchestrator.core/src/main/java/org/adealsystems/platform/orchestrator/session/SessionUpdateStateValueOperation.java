@@ -20,19 +20,33 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.adealsystems.platform.orchestrator.Session;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Objects;
 
 public class SessionUpdateStateValueOperation implements SessionUpdateOperation {
+    private final LocalDateTime timestamp;
     private final String key;
     private final String value;
 
+    public SessionUpdateStateValueOperation(String key, String value) {
+        this(LocalDateTime.now(ZoneId.systemDefault()), key, value);
+    }
+
     @JsonCreator
     public SessionUpdateStateValueOperation(
+        @JsonProperty("timestamp") LocalDateTime timestamp,
         @JsonProperty("key") String key,
         @JsonProperty("value") String value
     ) {
+        this.timestamp = timestamp;
         this.key = key;
         this.value = value;
+    }
+
+    @Override
+    public LocalDateTime getTimestamp() {
+        return timestamp;
     }
 
     @Override
@@ -40,13 +54,6 @@ public class SessionUpdateStateValueOperation implements SessionUpdateOperation 
         Objects.requireNonNull(session, "session must not be null!");
 
         session.setStateValue(key, value);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        SessionUpdateStateValueOperation that = (SessionUpdateStateValueOperation) o;
-        return Objects.equals(key, that.key) && Objects.equals(value, that.value);
     }
 
     public String getKey() {
@@ -58,6 +65,15 @@ public class SessionUpdateStateValueOperation implements SessionUpdateOperation 
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        SessionUpdateStateValueOperation that = (SessionUpdateStateValueOperation) o;
+        return Objects.equals(timestamp, that.timestamp)
+            && Objects.equals(key, that.key)
+            && Objects.equals(value, that.value);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hash(key, value);
     }
@@ -65,7 +81,8 @@ public class SessionUpdateStateValueOperation implements SessionUpdateOperation 
     @Override
     public String toString() {
         return "SessionUpdateStateValueOperation{" +
-            "key='" + key + '\'' +
+            "timestamp=" + timestamp +
+            ", key='" + key + '\'' +
             ", value='" + value + '\'' +
             '}';
     }

@@ -17,14 +17,31 @@
 package org.adealsystems.platform.orchestrator.session;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.adealsystems.platform.orchestrator.Session;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Objects;
+
 public class SessionUpdateFailedProgressOperation implements SessionUpdateOperation {
+    private final LocalDateTime timestamp;
+
+    public SessionUpdateFailedProgressOperation() {
+        this(LocalDateTime.now(ZoneId.systemDefault()));
+    }
 
     @JsonCreator
-    public SessionUpdateFailedProgressOperation() { // NOPMD
-        // nothing to do here!
+    public SessionUpdateFailedProgressOperation(
+        @JsonProperty("timestamp") LocalDateTime timestamp
+    ) {
+        this.timestamp = timestamp;
+    }
+
+    @Override
+    public LocalDateTime getTimestamp() {
+        return timestamp;
     }
 
     @Override
@@ -34,7 +51,21 @@ public class SessionUpdateFailedProgressOperation implements SessionUpdateOperat
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        SessionUpdateFailedProgressOperation that = (SessionUpdateFailedProgressOperation) o;
+        return Objects.equals(timestamp, that.timestamp);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(timestamp);
+    }
+
+    @Override
     public String toString() {
-        return "SessionProcessingStateUpdateFailedProgressOperation{}";
+        return "SessionUpdateFailedProgressOperation{" +
+            "timestamp=" + timestamp +
+            '}';
     }
 }

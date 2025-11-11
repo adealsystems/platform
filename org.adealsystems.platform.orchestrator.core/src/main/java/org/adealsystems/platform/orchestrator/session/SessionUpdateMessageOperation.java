@@ -20,16 +20,31 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.adealsystems.platform.orchestrator.Session;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Objects;
 
 public class SessionUpdateMessageOperation implements SessionUpdateOperation {
+    private final LocalDateTime timestamp;
+
     private final String message;
+
+    public SessionUpdateMessageOperation(String message) {
+        this(LocalDateTime.now(ZoneId.systemDefault()), message);
+    }
 
     @JsonCreator
     public SessionUpdateMessageOperation(
+        @JsonProperty("timestamp") LocalDateTime timestamp,
         @JsonProperty("message") String message
     ) {
+        this.timestamp = timestamp;
         this.message = message;
+    }
+
+    @Override
+    public LocalDateTime getTimestamp() {
+        return timestamp;
     }
 
     @Override
@@ -45,18 +60,19 @@ public class SessionUpdateMessageOperation implements SessionUpdateOperation {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         SessionUpdateMessageOperation that = (SessionUpdateMessageOperation) o;
-        return Objects.equals(message, that.message);
+        return Objects.equals(timestamp, that.timestamp) && Objects.equals(message, that.message);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(message);
+        return Objects.hash(timestamp, message);
     }
 
     @Override
     public String toString() {
         return "SessionProcessingStateUpdateMessageOperation{" +
-            "message='" + message + '\'' +
+            "timestamp=" + timestamp +
+            ", message='" + message + '\'' +
             '}';
     }
 }

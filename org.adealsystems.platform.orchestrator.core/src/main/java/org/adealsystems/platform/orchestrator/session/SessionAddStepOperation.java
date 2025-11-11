@@ -21,16 +21,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.adealsystems.platform.orchestrator.Session;
 import org.adealsystems.platform.orchestrator.status.EventProcessingStep;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Objects;
 
 public class SessionAddStepOperation implements SessionUpdateOperation {
+    private final LocalDateTime timestamp;
+
     private final EventProcessingStep step;
+
+    public SessionAddStepOperation(EventProcessingStep step) {
+        this(LocalDateTime.now(ZoneId.systemDefault()), step);
+    }
 
     @JsonCreator
     public SessionAddStepOperation(
+        @JsonProperty("timestamp") LocalDateTime timestamp,
         @JsonProperty("step") EventProcessingStep step
     ) {
+        this.timestamp = timestamp;
         this.step = step;
+    }
+
+    @Override
+    public LocalDateTime getTimestamp() {
+        return timestamp;
     }
 
     @Override
@@ -46,18 +61,19 @@ public class SessionAddStepOperation implements SessionUpdateOperation {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         SessionAddStepOperation that = (SessionAddStepOperation) o;
-        return Objects.equals(step, that.step);
+        return Objects.equals(timestamp, that.timestamp) && Objects.equals(step, that.step);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(step);
+        return Objects.hash(timestamp, step);
     }
 
     @Override
     public String toString() {
         return "SessionProcessingStateAddStepOperation{" +
-            "step=" + step +
+            "timestamp=" + timestamp +
+            ", step=" + step +
             '}';
     }
 }

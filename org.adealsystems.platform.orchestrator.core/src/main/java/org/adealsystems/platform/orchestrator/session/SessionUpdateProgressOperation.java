@@ -17,14 +17,31 @@
 package org.adealsystems.platform.orchestrator.session;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.adealsystems.platform.orchestrator.Session;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Objects;
+
 public class SessionUpdateProgressOperation implements SessionUpdateOperation {
+    private final LocalDateTime timestamp;
+
+    public SessionUpdateProgressOperation() {
+        this(LocalDateTime.now(ZoneId.systemDefault()));
+    }
 
     @JsonCreator
-    public SessionUpdateProgressOperation() { // NOPMD
-        // nothing to do here!
+    public SessionUpdateProgressOperation(
+        @JsonProperty("timestamp") LocalDateTime timestamp
+    ) {
+        this.timestamp = timestamp;
+    }
+
+    @Override
+    public LocalDateTime getTimestamp() {
+        return timestamp;
     }
 
     @Override
@@ -34,7 +51,21 @@ public class SessionUpdateProgressOperation implements SessionUpdateOperation {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        SessionUpdateProgressOperation that = (SessionUpdateProgressOperation) o;
+        return Objects.equals(timestamp, that.timestamp);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(timestamp);
+    }
+
+    @Override
     public String toString() {
-        return "SessionProcessingStateUpdateProgressOperation{}";
+        return "SessionUpdateProgressOperation{" +
+            "timestamp=" + timestamp +
+            '}';
     }
 }

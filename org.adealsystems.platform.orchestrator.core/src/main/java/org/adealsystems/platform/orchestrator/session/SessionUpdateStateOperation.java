@@ -21,16 +21,30 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.adealsystems.platform.orchestrator.Session;
 import org.adealsystems.platform.orchestrator.status.State;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Objects;
 
 public class SessionUpdateStateOperation implements SessionUpdateOperation {
+    private final LocalDateTime timestamp;
     private final State state;
+
+    public SessionUpdateStateOperation(State state) {
+        this(LocalDateTime.now(ZoneId.systemDefault()), state);
+    }
 
     @JsonCreator
     public SessionUpdateStateOperation(
+        @JsonProperty("timestamp") LocalDateTime timestamp,
         @JsonProperty("state") State state
     ) {
+        this.timestamp = timestamp;
         this.state = state;
+    }
+
+    @Override
+    public LocalDateTime getTimestamp() {
+        return timestamp;
     }
 
     @Override
@@ -48,18 +62,19 @@ public class SessionUpdateStateOperation implements SessionUpdateOperation {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         SessionUpdateStateOperation that = (SessionUpdateStateOperation) o;
-        return state == that.state;
+        return Objects.equals(timestamp, that.timestamp) && state == that.state;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(state);
+        return Objects.hash(timestamp, state);
     }
 
     @Override
     public String toString() {
         return "SessionUpdateStateOperation{" +
-            "state=" + state +
+            "timestamp=" + timestamp +
+            ", state=" + state +
             '}';
     }
 }
