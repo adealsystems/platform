@@ -293,7 +293,8 @@ public final class Session implements Serializable {
             throw new IllegalStateException("Session is not started yet!");
         }
 
-        boolean changed = !processingState.getMessage().equals(message);
+        String current = processingState.getMessage();
+        boolean changed = current != null && !current.equals(message);
         if (changed) {
             processingState.setMessage(message);
             sessionUpdates.addUpdate(
@@ -307,7 +308,8 @@ public final class Session implements Serializable {
             throw new IllegalStateException("Session is not started yet!");
         }
 
-        boolean changed = processingState.getState() != state;
+        State current = processingState.getState();
+        boolean changed = current != null && current != state;
         if (changed) {
             processingState.setState(state);
             sessionUpdates.addUpdate(
