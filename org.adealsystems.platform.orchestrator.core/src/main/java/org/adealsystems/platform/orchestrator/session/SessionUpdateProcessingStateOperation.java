@@ -28,21 +28,34 @@ import java.util.Objects;
 public class SessionUpdateProcessingStateOperation implements SessionUpdateOperation {
     private final LocalDateTime timestamp;
     private final String producer;
+    private final String cause;
 
     private final SessionProcessingState processingState;
 
     public SessionUpdateProcessingStateOperation(SessionProcessingState processingState) {
-        this(LocalDateTime.now(ZoneId.systemDefault()), Thread.currentThread().getName(), processingState);
+        this(
+            LocalDateTime.now(ZoneId.systemDefault()),
+            Thread.currentThread().getName(),
+            buildCause(),
+            processingState
+        );
+    }
+
+    private static String buildCause() {
+        Throwable cause = new Throwable();
+        return cause.toString();
     }
 
     @JsonCreator
     public SessionUpdateProcessingStateOperation(
         @JsonProperty("timestamp") LocalDateTime timestamp,
         @JsonProperty("producer") String producer,
+        @JsonProperty("cause") String cause,
         @JsonProperty("processingState") SessionProcessingState processingState
     ) {
         this.timestamp = timestamp;
         this.producer = producer;
+        this.cause = cause;
         this.processingState = processingState;
     }
 
@@ -61,6 +74,10 @@ public class SessionUpdateProcessingStateOperation implements SessionUpdateOpera
         Objects.requireNonNull(session, "session must not be null!");
 
         session.setProcessingState(processingState, false);
+    }
+
+    public String getCause() {
+        return cause;
     }
 
     public SessionProcessingState getProcessingState() {
