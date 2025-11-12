@@ -101,7 +101,7 @@ public final class Session implements Serializable {
             session.getSessionUpdates()
         );
         copy.setState(session.getState());
-        copy.setProcessingState(session.getProcessingState(), false);
+        copy.setProcessingState(session.getProcessingState());
         return copy;
     }
 
@@ -140,7 +140,7 @@ public final class Session implements Serializable {
             consumer.accept(processingState);
 
             updateGlobalFields(session, processingState);
-            session.setProcessingState(processingState);
+            session.updateProcessingState(processingState);
         }
         catch (Exception ex) {
             LOGGER.error("Error updating session processing state in {}!", session, ex);
@@ -163,7 +163,7 @@ public final class Session implements Serializable {
             consumer.accept(processingState, event);
 
             updateGlobalFields(session, processingState);
-            session.setProcessingState(processingState);
+            session.updateProcessingState(processingState);
         }
         catch (Exception ex) {
             LOGGER.error("Error updating session processing state in {}!", session, ex);
@@ -179,7 +179,7 @@ public final class Session implements Serializable {
             }
 
             processingState.setProgressMaxValue(progressMaxValue);
-            session.setProcessingState(processingState, false);
+            session.setProcessingState(processingState);
 
             session.sessionUpdates.addUpdate(
                 new SessionSetProgressMaxValueOperation(progressMaxValue)
@@ -213,7 +213,7 @@ public final class Session implements Serializable {
             }
 
             updateGlobalFields(session, processingState);
-            session.setProcessingState(processingState, false);
+            session.setProcessingState(processingState);
         }
         catch (Exception ex) {
             LOGGER.error("Error updating session progress in {}!", session, ex);
@@ -339,19 +339,19 @@ public final class Session implements Serializable {
         );
     }
 
-    public void setProcessingState(SessionProcessingState processingState, boolean addUpdateOperation) {
-        boolean changed = this.processingState == null || !this.processingState.equals(processingState);
+    public void updateProcessingState(SessionProcessingState state) {
+        boolean changed = this.processingState == null || !this.processingState.equals(state);
 
-        if (changed && addUpdateOperation) {
-            this.processingState = processingState;
+        if (changed) {
+            this.processingState = state;
             sessionUpdates.addUpdate(
-                new SessionUpdateProcessingStateOperation(processingState)
+                new SessionUpdateProcessingStateOperation(state)
             );
         }
     }
 
     public void setProcessingState(SessionProcessingState processingState) {
-        setProcessingState(processingState, true);
+        this.processingState = processingState;
     }
 
     public Optional<String> getStateValue(String key) {

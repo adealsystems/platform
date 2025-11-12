@@ -83,7 +83,7 @@ public class SessionUpdateProcessingStateOperation implements SessionUpdateOpera
     public void apply(Session session) {
         Objects.requireNonNull(session, "session must not be null!");
 
-        session.setProcessingState(processingState, false);
+        session.setProcessingState(processingState);
     }
 
     public String getCause() {

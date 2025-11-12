@@ -819,7 +819,7 @@ public class InternalEventHandlerRunnable implements Runnable {
                 session.getSessionUpdates()
             );
             session.setState(state);
-            session.setProcessingState(processingState, false);
+            session.setProcessingState(processingState);
         }
 
         SessionProcessingState processingState = session.getProcessingState();
