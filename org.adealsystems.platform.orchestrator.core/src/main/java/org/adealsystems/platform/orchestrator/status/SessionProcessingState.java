@@ -47,6 +47,24 @@ public class SessionProcessingState implements Cloneable, Serializable {
     private Map<String, Boolean> flags;
     private Map<String, String> stateAttributes;
 
+    public static SessionProcessingState clone(SessionProcessingState state) {
+        return new SessionProcessingState(
+            state.getRunSpec(),
+            state.getConfiguration(),
+            state.getState(),
+            state.getMessage(),
+            state.getStarted(),
+            state.getTerminated(),
+            state.getLastUpdated(),
+            state.getProgressMaxValue(),
+            state.getProgressCurrentStep(),
+            state.getProgressFailedSteps(),
+            state.getFlags(),
+            null,
+            state.getStateAttributes()
+        );
+    }
+
     public static String buildTerminationMessage(Session session) {
         StringBuilder msg = new StringBuilder(45);
 

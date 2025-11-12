@@ -43,7 +43,17 @@ public class SessionUpdateProcessingStateOperation implements SessionUpdateOpera
 
     private static String buildCause() {
         Throwable cause = new Throwable();
-        return cause.toString();
+        StringBuilder builder = new StringBuilder();
+        StackTraceElement[] stackTrace = cause.getStackTrace();
+        if (stackTrace != null) {
+            for (StackTraceElement element : stackTrace) {
+                if (builder.length() > 0) {
+                    builder.append(" -> ");
+                }
+                builder.append(element.toString());
+            }
+        }
+        return builder.toString();
     }
 
     @JsonCreator
@@ -56,7 +66,7 @@ public class SessionUpdateProcessingStateOperation implements SessionUpdateOpera
         this.timestamp = timestamp;
         this.producer = producer;
         this.cause = cause;
-        this.processingState = processingState;
+        this.processingState = processingState == null ? null : SessionProcessingState.clone(processingState);
     }
 
     @Override
