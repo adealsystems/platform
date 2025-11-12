@@ -27,21 +27,29 @@ import java.util.Objects;
 
 public class SessionUpdateFailedProgressOperation implements SessionUpdateOperation {
     private final LocalDateTime timestamp;
+    private final String producer;
 
     public SessionUpdateFailedProgressOperation() {
-        this(LocalDateTime.now(ZoneId.systemDefault()));
+        this(LocalDateTime.now(ZoneId.systemDefault()), Thread.currentThread().getName());
     }
 
     @JsonCreator
     public SessionUpdateFailedProgressOperation(
-        @JsonProperty("timestamp") LocalDateTime timestamp
+        @JsonProperty("timestamp") LocalDateTime timestamp,
+        @JsonProperty("producer") String producer
     ) {
         this.timestamp = timestamp;
+        this.producer = producer;
     }
 
     @Override
     public LocalDateTime getTimestamp() {
         return timestamp;
+    }
+
+    @Override
+    public String getProducer() {
+        return producer;
     }
 
     @Override
@@ -54,18 +62,19 @@ public class SessionUpdateFailedProgressOperation implements SessionUpdateOperat
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         SessionUpdateFailedProgressOperation that = (SessionUpdateFailedProgressOperation) o;
-        return Objects.equals(timestamp, that.timestamp);
+        return Objects.equals(timestamp, that.timestamp) && Objects.equals(producer, that.producer);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(timestamp);
+        return Objects.hash(timestamp, producer);
     }
 
     @Override
     public String toString() {
         return "SessionUpdateFailedProgressOperation{" +
             "timestamp=" + timestamp +
+            ", producer='" + producer + '\'' +
             '}';
     }
 }

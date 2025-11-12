@@ -27,25 +27,33 @@ import java.util.Objects;
 
 public class SessionUpdateProcessingStateOperation implements SessionUpdateOperation {
     private final LocalDateTime timestamp;
+    private final String producer;
 
     private final SessionProcessingState processingState;
 
     public SessionUpdateProcessingStateOperation(SessionProcessingState processingState) {
-        this(LocalDateTime.now(ZoneId.systemDefault()), processingState);
+        this(LocalDateTime.now(ZoneId.systemDefault()), Thread.currentThread().getName(), processingState);
     }
 
     @JsonCreator
     public SessionUpdateProcessingStateOperation(
         @JsonProperty("timestamp") LocalDateTime timestamp,
+        @JsonProperty("producer") String producer,
         @JsonProperty("processingState") SessionProcessingState processingState
     ) {
         this.timestamp = timestamp;
+        this.producer = producer;
         this.processingState = processingState;
     }
 
     @Override
     public LocalDateTime getTimestamp() {
         return timestamp;
+    }
+
+    @Override
+    public String getProducer() {
+        return producer;
     }
 
     @Override
@@ -63,21 +71,21 @@ public class SessionUpdateProcessingStateOperation implements SessionUpdateOpera
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         SessionUpdateProcessingStateOperation that = (SessionUpdateProcessingStateOperation) o;
-        return Objects.equals(timestamp, that.timestamp) && Objects.equals(
-            processingState,
-            that.processingState
-        );
+        return Objects.equals(timestamp, that.timestamp)
+            && Objects.equals(producer, that.producer)
+            && Objects.equals(processingState, that.processingState);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(timestamp, processingState);
+        return Objects.hash(timestamp, producer, processingState);
     }
 
     @Override
     public String toString() {
         return "SessionUpdateProcessingStateOperation{" +
             "timestamp=" + timestamp +
+            ", producer='" + producer + '\'' +
             ", processingState=" + processingState +
             '}';
     }

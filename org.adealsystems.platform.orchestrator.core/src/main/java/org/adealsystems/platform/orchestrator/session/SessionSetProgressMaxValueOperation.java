@@ -26,25 +26,33 @@ import java.util.Objects;
 
 public class SessionSetProgressMaxValueOperation implements SessionUpdateOperation {
     private final LocalDateTime timestamp;
+    private final String producer;
 
     private final int progressMaxValue;
 
     public SessionSetProgressMaxValueOperation(int progressMaxValue) {
-        this(LocalDateTime.now(ZoneId.systemDefault()), progressMaxValue);
+        this(LocalDateTime.now(ZoneId.systemDefault()), Thread.currentThread().getName(), progressMaxValue);
     }
 
     @JsonCreator
     public SessionSetProgressMaxValueOperation(
         @JsonProperty("timestamp") LocalDateTime timestamp,
+        @JsonProperty("producer") String producer,
         @JsonProperty("progressMaxValue") int progressMaxValue
     ) {
         this.timestamp = timestamp;
+        this.producer = producer;
         this.progressMaxValue = progressMaxValue;
     }
 
     @Override
     public LocalDateTime getTimestamp() {
         return timestamp;
+    }
+
+    @Override
+    public String getProducer() {
+        return producer;
     }
 
     @Override
@@ -60,18 +68,21 @@ public class SessionSetProgressMaxValueOperation implements SessionUpdateOperati
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         SessionSetProgressMaxValueOperation that = (SessionSetProgressMaxValueOperation) o;
-        return progressMaxValue == that.progressMaxValue && Objects.equals(timestamp, that.timestamp);
+        return progressMaxValue == that.progressMaxValue
+            && Objects.equals(timestamp, that.timestamp)
+            && Objects.equals(producer, that.producer);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(timestamp, progressMaxValue);
+        return Objects.hash(timestamp, producer, progressMaxValue);
     }
 
     @Override
     public String toString() {
         return "SessionProcessingStateSetProgressMaxValueOperation{" +
             "timestamp=" + timestamp +
+            ", producer='" + producer + '\'' +
             ", progressMaxValue=" + progressMaxValue +
             '}';
     }

@@ -22,5 +22,6 @@ import java.time.LocalDateTime;
 
 public interface SessionUpdateOperation {
     LocalDateTime getTimestamp();
+    String getProducer();
     void apply(Session session);
 }

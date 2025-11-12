@@ -26,21 +26,24 @@ import java.util.Objects;
 
 public class SessionUpdateTimestampOperation implements SessionUpdateOperation {
     private final LocalDateTime timestamp;
+    private final String producer;
 
     private final SessionTimestamp timestampType;
     private final LocalDateTime value;
 
     public SessionUpdateTimestampOperation(SessionTimestamp timestampType, LocalDateTime value) {
-        this(LocalDateTime.now(ZoneId.systemDefault()), timestampType, value);
+        this(LocalDateTime.now(ZoneId.systemDefault()), Thread.currentThread().getName(), timestampType, value);
     }
 
     @JsonCreator
     public SessionUpdateTimestampOperation(
         @JsonProperty("timestamp") LocalDateTime timestamp,
+        @JsonProperty("producer") String producer,
         @JsonProperty("ts-type") SessionTimestamp timestampType,
         @JsonProperty("value") LocalDateTime value
     ) {
         this.timestamp = timestamp;
+        this.producer = producer;
         this.timestampType = timestampType;
         this.value = value;
     }
@@ -48,6 +51,11 @@ public class SessionUpdateTimestampOperation implements SessionUpdateOperation {
     @Override
     public LocalDateTime getTimestamp() {
         return timestamp;
+    }
+
+    @Override
+    public String getProducer() {
+        return producer;
     }
 
     @Override
@@ -78,19 +86,21 @@ public class SessionUpdateTimestampOperation implements SessionUpdateOperation {
         if (o == null || getClass() != o.getClass()) return false;
         SessionUpdateTimestampOperation that = (SessionUpdateTimestampOperation) o;
         return Objects.equals(timestamp, that.timestamp)
+            && Objects.equals(producer, that.producer)
             && timestampType == that.timestampType
             && Objects.equals(value, that.value);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(timestamp, timestampType, value);
+        return Objects.hash(timestamp, producer, timestampType, value);
     }
 
     @Override
     public String toString() {
         return "SessionUpdateTimestampOperation{" +
             "timestamp=" + timestamp +
+            ", producer='" + producer + '\'' +
             ", timestampType=" + timestampType +
             ", value=" + value +
             '}';

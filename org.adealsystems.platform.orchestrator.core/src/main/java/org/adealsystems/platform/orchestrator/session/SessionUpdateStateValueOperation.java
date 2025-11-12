@@ -26,20 +26,24 @@ import java.util.Objects;
 
 public class SessionUpdateStateValueOperation implements SessionUpdateOperation {
     private final LocalDateTime timestamp;
+    private final String producer;
+
     private final String key;
     private final String value;
 
     public SessionUpdateStateValueOperation(String key, String value) {
-        this(LocalDateTime.now(ZoneId.systemDefault()), key, value);
+        this(LocalDateTime.now(ZoneId.systemDefault()), Thread.currentThread().getName(), key, value);
     }
 
     @JsonCreator
     public SessionUpdateStateValueOperation(
         @JsonProperty("timestamp") LocalDateTime timestamp,
+        @JsonProperty("producer") String producer,
         @JsonProperty("key") String key,
         @JsonProperty("value") String value
     ) {
         this.timestamp = timestamp;
+        this.producer = producer;
         this.key = key;
         this.value = value;
     }
@@ -47,6 +51,11 @@ public class SessionUpdateStateValueOperation implements SessionUpdateOperation 
     @Override
     public LocalDateTime getTimestamp() {
         return timestamp;
+    }
+
+    @Override
+    public String getProducer() {
+        return producer;
     }
 
     @Override
@@ -69,19 +78,21 @@ public class SessionUpdateStateValueOperation implements SessionUpdateOperation 
         if (o == null || getClass() != o.getClass()) return false;
         SessionUpdateStateValueOperation that = (SessionUpdateStateValueOperation) o;
         return Objects.equals(timestamp, that.timestamp)
+            && Objects.equals(producer, that.producer)
             && Objects.equals(key, that.key)
             && Objects.equals(value, that.value);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key, value);
+        return Objects.hash(timestamp, producer, key, value);
     }
 
     @Override
     public String toString() {
         return "SessionUpdateStateValueOperation{" +
             "timestamp=" + timestamp +
+            ", producer='" + producer + '\'' +
             ", key='" + key + '\'' +
             ", value='" + value + '\'' +
             '}';

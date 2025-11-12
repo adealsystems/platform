@@ -27,24 +27,32 @@ import java.util.Objects;
 
 public class SessionUpdateStateOperation implements SessionUpdateOperation {
     private final LocalDateTime timestamp;
+    private final String producer;
     private final State state;
 
     public SessionUpdateStateOperation(State state) {
-        this(LocalDateTime.now(ZoneId.systemDefault()), state);
+        this(LocalDateTime.now(ZoneId.systemDefault()), Thread.currentThread().getName(), state);
     }
 
     @JsonCreator
     public SessionUpdateStateOperation(
         @JsonProperty("timestamp") LocalDateTime timestamp,
+        @JsonProperty("producer") String producer,
         @JsonProperty("state") State state
     ) {
         this.timestamp = timestamp;
+        this.producer = producer;
         this.state = state;
     }
 
     @Override
     public LocalDateTime getTimestamp() {
         return timestamp;
+    }
+
+    @Override
+    public String getProducer() {
+        return producer;
     }
 
     @Override
@@ -62,18 +70,21 @@ public class SessionUpdateStateOperation implements SessionUpdateOperation {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         SessionUpdateStateOperation that = (SessionUpdateStateOperation) o;
-        return Objects.equals(timestamp, that.timestamp) && state == that.state;
+        return Objects.equals(timestamp, that.timestamp)
+            && Objects.equals(producer, that.producer)
+            && state == that.state;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(timestamp, state);
+        return Objects.hash(timestamp, producer, state);
     }
 
     @Override
     public String toString() {
         return "SessionUpdateStateOperation{" +
             "timestamp=" + timestamp +
+            ", producer='" + producer + '\'' +
             ", state=" + state +
             '}';
     }

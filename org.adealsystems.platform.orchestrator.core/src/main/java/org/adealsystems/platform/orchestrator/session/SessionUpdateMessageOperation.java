@@ -26,25 +26,33 @@ import java.util.Objects;
 
 public class SessionUpdateMessageOperation implements SessionUpdateOperation {
     private final LocalDateTime timestamp;
+    private final String producer;
 
     private final String message;
 
     public SessionUpdateMessageOperation(String message) {
-        this(LocalDateTime.now(ZoneId.systemDefault()), message);
+        this(LocalDateTime.now(ZoneId.systemDefault()), Thread.currentThread().getName(), message);
     }
 
     @JsonCreator
     public SessionUpdateMessageOperation(
         @JsonProperty("timestamp") LocalDateTime timestamp,
+        @JsonProperty("producer") String producer,
         @JsonProperty("message") String message
     ) {
         this.timestamp = timestamp;
+        this.producer = producer;
         this.message = message;
     }
 
     @Override
     public LocalDateTime getTimestamp() {
         return timestamp;
+    }
+
+    @Override
+    public String getProducer() {
+        return producer;
     }
 
     @Override
@@ -60,18 +68,21 @@ public class SessionUpdateMessageOperation implements SessionUpdateOperation {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         SessionUpdateMessageOperation that = (SessionUpdateMessageOperation) o;
-        return Objects.equals(timestamp, that.timestamp) && Objects.equals(message, that.message);
+        return Objects.equals(timestamp, that.timestamp)
+            && Objects.equals(producer, that.producer)
+            && Objects.equals(message, that.message);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(timestamp, message);
+        return Objects.hash(timestamp, producer, message);
     }
 
     @Override
     public String toString() {
         return "SessionProcessingStateUpdateMessageOperation{" +
             "timestamp=" + timestamp +
+            ", producer='" + producer + '\'' +
             ", message='" + message + '\'' +
             '}';
     }
