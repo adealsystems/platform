@@ -16,6 +16,7 @@
 
 package org.adealsystems.platform.orchestrator;
 
+import org.adealsystems.platform.orchestrator.session.SessionTimestamp;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 import org.adealsystems.platform.orchestrator.status.State;
 import org.slf4j.Logger;
@@ -98,19 +99,16 @@ public class InstanceEventHandlerRunnable implements Runnable {
                 continue;
             }
 
-            final Session session = oSession.get();
+            Session session = oSession.get();
 
             // Get current session processing state
-            Session.updateProcessingState(session, processingState -> {
-                Set<String> deps = session.getStateRegistry(REG_DEPENDENCIES);
-                if (deps.isEmpty()) {
-                    processingState.setState(State.RUNNING);
-                }
-                else {
-                    processingState.setState(State.WAITING_FOR_DEPENDENCIES);
-                }
-                session.setProcessingState(processingState);
-            });
+            Set<String> deps = session.getStateRegistry(REG_DEPENDENCIES);
+            if (deps.isEmpty()) {
+                session.updateState(State.RUNNING);
+            }
+            else {
+                session.updateState(State.WAITING_FOR_DEPENDENCIES);
+            }
 
             try {
                 LOGGER.debug("Handling event {} with {} (session: {})", event, instanceId, sessionId);
@@ -125,16 +123,13 @@ public class InstanceEventHandlerRunnable implements Runnable {
 
             if (instanceEventHandler.isTerminating(event)) {
                 LOGGER.debug("Finalizing session {}", session);
-                Session.updateProcessingState(session, processingState -> {
-                    processingState.setTerminated(LocalDateTime.now(ZoneId.systemDefault()));
-                    SessionProcessingState.buildTerminationMessage(session, processingState);
+                session.updateTimestamp(SessionTimestamp.TERMINATED, LocalDateTime.now(ZoneId.systemDefault()));
+                session.updateMessage(SessionProcessingState.buildTerminationMessage(session));
 
-                    if (!FINAL_UNSUCCESSFUL_STATES.contains(processingState.getState())) {
-                        processingState.setState(State.DONE);
-                    }
-
-                    session.setProcessingState(processingState);
-                });
+                SessionProcessingState state = session.getProcessingState();
+                if (!FINAL_UNSUCCESSFUL_STATES.contains(state.getState())) {
+                    session.updateState(State.DONE);
+                }
 
                 // reset terminating flag
                 instanceEventHandler.resetTerminatingFlag(event);

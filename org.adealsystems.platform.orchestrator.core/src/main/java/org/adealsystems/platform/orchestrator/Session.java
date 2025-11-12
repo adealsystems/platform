@@ -23,14 +23,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.adealsystems.platform.orchestrator.session.SessionAddStepOperation;
 import org.adealsystems.platform.orchestrator.session.SessionSetProgressMaxValueOperation;
+import org.adealsystems.platform.orchestrator.session.SessionTimestamp;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateFailedProgressOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateMessageOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateProcessingStateOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateProgressOperation;
+import org.adealsystems.platform.orchestrator.session.SessionUpdateStateOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateStateValueOperation;
+import org.adealsystems.platform.orchestrator.session.SessionUpdateTimestampOperation;
 import org.adealsystems.platform.orchestrator.status.EventProcessingStep;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
+import org.adealsystems.platform.orchestrator.status.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,6 +128,7 @@ public final class Session implements Serializable {
         updateChecksum();
     }
 
+    @Deprecated
     public static void updateProcessingState(Session session, Consumer<SessionProcessingState> consumer) {
         try {
             SessionProcessingState processingState = session.getProcessingState();
@@ -142,6 +147,7 @@ public final class Session implements Serializable {
         }
     }
 
+    @Deprecated
     public static void updateProcessingState(
         Session session,
         InternalEvent event,
@@ -282,14 +288,52 @@ public final class Session implements Serializable {
         );
     }
 
-    public void setMessage(String message) {
+    public void updateMessage(String message) {
         if (this.processingState == null) {
             throw new IllegalStateException("Session is not started yet!");
         }
 
-        this.processingState.setMessage(message);
+        boolean changed = !processingState.getMessage().equals(message);
+        if (changed) {
+            processingState.setMessage(message);
+            sessionUpdates.addUpdate(
+                new SessionUpdateMessageOperation(message)
+            );
+        }
+    }
+
+    public void updateState(State state) {
+        if (processingState == null) {
+            throw new IllegalStateException("Session is not started yet!");
+        }
+
+        boolean changed = processingState.getState() != state;
+        if (changed) {
+            processingState.setState(state);
+            sessionUpdates.addUpdate(
+                new SessionUpdateStateOperation(state)
+            );
+        }
+    }
+
+    public void updateTimestamp(SessionTimestamp type, LocalDateTime timestamp) {
+        if (processingState == null) {
+            throw new IllegalStateException("Session is not started yet!");
+        }
+
+        switch (type) {
+            case STARTED:
+                processingState.setStarted(timestamp);
+                break;
+            case UPDATED:
+                processingState.setLastUpdated(timestamp);
+                break;
+            case TERMINATED:
+                processingState.setTerminated(timestamp);
+                break;
+        }
         sessionUpdates.addUpdate(
-            new SessionUpdateMessageOperation(message)
+            new SessionUpdateTimestampOperation(type, timestamp)
         );
     }
 

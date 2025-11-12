@@ -30,6 +30,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     @JsonSubTypes.Type(value = SessionUpdateProcessingStateOperation.class, name = "update-processing-state"),
     @JsonSubTypes.Type(value = SessionUpdateProgressOperation.class, name = "update-progress"),
     @JsonSubTypes.Type(value = SessionUpdateStateValueOperation.class, name = "update-state-value"),
+    @JsonSubTypes.Type(value = SessionUpdateTimestampOperation.class, name = "update-timestamp"),
 })
 @SuppressWarnings({
     "PMD.AbstractClassWithoutAnyMethod",

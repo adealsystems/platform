@@ -22,6 +22,7 @@ import org.adealsystems.platform.orchestrator.executor.email.EmailSender;
 import org.adealsystems.platform.orchestrator.executor.email.EmailSenderFactory;
 import org.adealsystems.platform.orchestrator.executor.email.EmailType;
 import org.adealsystems.platform.orchestrator.executor.email.RecipientsCluster;
+import org.adealsystems.platform.orchestrator.session.SessionTimestamp;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 import org.adealsystems.platform.orchestrator.status.State;
 import org.slf4j.Logger;
@@ -818,7 +819,7 @@ public class InternalEventHandlerRunnable implements Runnable {
                 session.getSessionUpdates()
             );
             session.setState(state);
-            session.setProcessingState(processingState);
+            session.setProcessingState(processingState, false);
         }
 
         SessionProcessingState processingState = session.getProcessingState();
@@ -1019,19 +1020,14 @@ public class InternalEventHandlerRunnable implements Runnable {
     }
 
     public static void terminateSessionProcessingState(Session session, State finalState) {
-        Session.updateProcessingState(
-            session, processingState -> {
-                LOGGER.debug("Modifying session's processing state for session {} to {}", session.getId(), finalState);
-                processingState.setTerminated(LocalDateTime.now(ZoneId.systemDefault()));
-                SessionProcessingState.buildTerminationMessage(session, processingState);
+        LOGGER.debug("Modifying session's processing state for session {} to {}", session.getId(), finalState);
+        session.updateTimestamp(SessionTimestamp.TERMINATED, LocalDateTime.now(ZoneId.systemDefault()));
+        session.updateMessage(SessionProcessingState.buildTerminationMessage(session));
 
-                if (!FINAL_UNSUCCESSFUL_STATES.contains(processingState.getState())) {
-                    processingState.setState(finalState);
-                }
-
-                session.setProcessingState(processingState);
-            }
-        );
+        SessionProcessingState state = session.getProcessingState();
+        if (!FINAL_UNSUCCESSFUL_STATES.contains(state.getState())) {
+            session.updateState(finalState);
+        }
     }
 
     public static void terminateSessionProcessingState(Session session) {

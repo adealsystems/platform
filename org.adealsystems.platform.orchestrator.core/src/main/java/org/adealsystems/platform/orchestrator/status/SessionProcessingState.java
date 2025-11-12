@@ -47,7 +47,7 @@ public class SessionProcessingState implements Cloneable, Serializable {
     private Map<String, Boolean> flags;
     private Map<String, String> stateAttributes;
 
-    public static void buildTerminationMessage(Session session, SessionProcessingState state) {
+    public static String buildTerminationMessage(Session session) {
         StringBuilder msg = new StringBuilder(45);
 
         if (session.hasFailedFlag()) {
@@ -65,6 +65,7 @@ public class SessionProcessingState implements Cloneable, Serializable {
 
         msg.append(" after");
 
+        SessionProcessingState state = session.getProcessingState();
         Duration duration = Duration.between(
             state.started,
             state.terminated == null ? LocalDateTime.now(ZoneId.systemDefault()) : state.terminated
@@ -91,7 +92,7 @@ public class SessionProcessingState implements Cloneable, Serializable {
             msg.append(' ').append(nanos).append(' ').append(nanos == 1 ? "nano" : "nanos");
         }
 
-        state.setMessage(msg.toString());
+        return msg.toString();
     }
 
     public SessionProcessingState(RunSpecification runSpec) {
