@@ -103,7 +103,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
     public Set<SessionId> retrieveSessionIds() {
         ReentrantLock lock = lockMap.computeIfAbsent("session-ids", id -> new ReentrantLock());
         if (lock.isLocked()) {
-            LOGGER.warn("session-ids lock is already locked, waiting ...");
+            LOGGER.info("session-ids lock is already locked, waiting ...");
         }
 
         lock.lock();
@@ -135,7 +135,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
 
         ReentrantLock lock = lockMap.computeIfAbsent("session-ids", id -> new ReentrantLock());
         if (lock.isLocked()) {
-            LOGGER.warn("session-ids lock is already locked, waiting ...");
+            LOGGER.info("session-ids lock is already locked, waiting ...");
         }
 
         lock.lock();
@@ -201,7 +201,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
 
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
         if (lock.isLocked()) {
-            LOGGER.warn("Session with id '{}' already locked, waiting (createSession) ...", sessionId);
+            LOGGER.info("Session with id '{}' already locked, waiting (createSession) ...", sessionId);
         }
 
         lock.lock();
@@ -223,7 +223,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
 
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
         if (lock.isLocked()) {
-            LOGGER.warn("Session with id '{}' already locked, waiting (retrieveSession) ...", sessionId);
+            LOGGER.info("Session with id '{}' already locked, waiting (retrieveSession) ...", sessionId);
         }
 
         lock.lock();
@@ -245,7 +245,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
     public Session retrieveOrCreateSession(SessionId sessionId) {
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
         if (lock.isLocked()) {
-            LOGGER.warn("Session with id '{}' already locked, waiting (retrieveOrCreateSession) ...", sessionId);
+            LOGGER.info("Session with id '{}' already locked, waiting (retrieveOrCreateSession) ...", sessionId);
         }
 
         lock.lock();
@@ -278,7 +278,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         SessionId sessionId = session.getId();
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
         if (lock.isLocked()) {
-            LOGGER.warn("Session with id '{}' already locked, waiting (updateSession) ...", sessionId);
+            LOGGER.info("Session with id '{}' already locked, waiting (updateSession) ...", sessionId);
         }
 
         lock.lock();
@@ -288,7 +288,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
 
             String updateVersionChecksum = session.getChecksum();
             if (!updateVersionChecksum.equals(currentActiveSession.getChecksum())) {
-                LOGGER.info(
+                LOGGER.warn(
                     "Detected a concurrent session modification on update between {} and {}",
                     updateVersionChecksum,
                     currentActiveSession.getChecksum()
@@ -370,7 +370,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
 
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
         if (lock.isLocked()) {
-            LOGGER.warn("Session with id '{}' already locked, waiting (deleteSession) ...", sessionId);
+            LOGGER.info("Session with id '{}' already locked, waiting (deleteSession) ...", sessionId);
         }
 
         lock.lock();
@@ -392,7 +392,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
 
         ReentrantLock lock = lockMap.computeIfAbsent(sessionId.getId(), id -> new ReentrantLock());
         if (lock.isLocked()) {
-            LOGGER.warn("Session with id '{}' already locked, waiting (modifySession) ...", sessionId);
+            LOGGER.info("Session with id '{}' already locked, waiting (modifySession) ...", sessionId);
         }
 
         lock.lock();
