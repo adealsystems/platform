@@ -179,6 +179,7 @@ public final class Session implements Serializable {
             }
 
             processingState.setProgressMaxValue(progressMaxValue);
+            updateGlobalFields(session, processingState);
             session.setProcessingState(processingState);
 
             session.sessionUpdates.addUpdate(
@@ -282,10 +283,12 @@ public final class Session implements Serializable {
             throw new IllegalStateException("Session is not started yet!");
         }
 
-        this.processingState.addStep(step);
+        processingState.addStep(step);
         sessionUpdates.addUpdate(
             new SessionAddStepOperation(step)
         );
+
+        processingState.setLastUpdated(LocalDateTime.now(ZoneId.systemDefault()));
     }
 
     public void updateMessage(String message) {
@@ -300,6 +303,8 @@ public final class Session implements Serializable {
             sessionUpdates.addUpdate(
                 new SessionUpdateMessageOperation(message)
             );
+
+            processingState.setLastUpdated(LocalDateTime.now(ZoneId.systemDefault()));
         }
     }
 
@@ -315,6 +320,8 @@ public final class Session implements Serializable {
             sessionUpdates.addUpdate(
                 new SessionUpdateStateOperation(state)
             );
+
+            processingState.setLastUpdated(LocalDateTime.now(ZoneId.systemDefault()));
         }
     }
 
@@ -337,6 +344,8 @@ public final class Session implements Serializable {
         sessionUpdates.addUpdate(
             new SessionUpdateTimestampOperation(type, timestamp)
         );
+
+        processingState.setLastUpdated(LocalDateTime.now(ZoneId.systemDefault()));
     }
 
     public void updateProcessingState(SessionProcessingState state) {
@@ -347,6 +356,8 @@ public final class Session implements Serializable {
             sessionUpdates.addUpdate(
                 new SessionUpdateProcessingStateOperation(state)
             );
+
+            processingState.setLastUpdated(LocalDateTime.now(ZoneId.systemDefault()));
         }
     }
 
@@ -386,6 +397,8 @@ public final class Session implements Serializable {
             sessionUpdates.addUpdate(
                 new SessionUpdateStateValueOperation(key, value)
             );
+
+            processingState.setLastUpdated(LocalDateTime.now(ZoneId.systemDefault()));
         }
     }
 

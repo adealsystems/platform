@@ -20,12 +20,16 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.adealsystems.platform.orchestrator.Session;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
 
 public class SessionUpdateProcessingStateOperation implements SessionUpdateOperation {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SessionUpdateProcessingStateOperation.class);
+
     private final LocalDateTime timestamp;
     private final String producer;
     private final String cause;
@@ -42,16 +46,23 @@ public class SessionUpdateProcessingStateOperation implements SessionUpdateOpera
     }
 
     private static String buildCause() {
-        Throwable cause = new Throwable();
         StringBuilder builder = new StringBuilder();
-        StackTraceElement[] stackTrace = cause.getStackTrace();
-        if (stackTrace != null) {
-            for (StackTraceElement element : stackTrace) {
-                if (builder.length() > 0) {
-                    builder.append(" -> ");
+        if (LOGGER.isDebugEnabled()) {
+            Throwable cause = new Throwable();
+            StackTraceElement[] stackTrace = cause.getStackTrace();
+            if (stackTrace != null) {
+                for (StackTraceElement element : stackTrace) {
+                    if (builder.length() > 0) {
+                        builder.append(" -> ");
+                    }
+                    builder.append(element.toString());
                 }
-                builder.append(element.toString());
             }
+        }
+        else {
+            builder.append("Enable debug logging for '")
+                .append(SessionUpdateProcessingStateOperation.class.getName())
+                .append("' to see cause stack trace");
         }
         return builder.toString();
     }
