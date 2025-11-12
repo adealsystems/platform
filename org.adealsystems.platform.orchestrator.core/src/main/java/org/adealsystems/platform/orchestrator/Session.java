@@ -294,7 +294,7 @@ public final class Session implements Serializable {
         }
 
         String current = processingState.getMessage();
-        boolean changed = current != null && !current.equals(message);
+        boolean changed = current == null || !current.equals(message);
         if (changed) {
             processingState.setMessage(message);
             sessionUpdates.addUpdate(
@@ -309,7 +309,7 @@ public final class Session implements Serializable {
         }
 
         State current = processingState.getState();
-        boolean changed = current != null && current != state;
+        boolean changed = current == null || current != state;
         if (changed) {
             processingState.setState(state);
             sessionUpdates.addUpdate(
@@ -340,10 +340,10 @@ public final class Session implements Serializable {
     }
 
     public void setProcessingState(SessionProcessingState processingState, boolean addUpdateOperation) {
-        boolean changed = this.processingState != null && !this.processingState.equals(processingState);
-        this.processingState = processingState;
+        boolean changed = this.processingState == null || !this.processingState.equals(processingState);
 
         if (changed && addUpdateOperation) {
+            this.processingState = processingState;
             sessionUpdates.addUpdate(
                 new SessionUpdateProcessingStateOperation(processingState)
             );
