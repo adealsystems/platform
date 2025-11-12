@@ -101,13 +101,22 @@ public class InstanceEventHandlerRunnable implements Runnable {
 
             Session session = oSession.get();
 
-            // Get current session processing state
+            State currentState = session.getProcessingState().getState();
             Set<String> deps = session.getStateRegistry(REG_DEPENDENCIES);
-            if (deps.isEmpty()) {
-                session.updateState(State.RUNNING);
-            }
-            else {
-                session.updateState(State.WAITING_FOR_DEPENDENCIES);
+            switch (currentState) {
+                case READY_TO_RUN:
+                    // initialize session's state
+                    session.updateState(deps.isEmpty() ? State.RUNNING : State.WAITING_FOR_DEPENDENCIES);
+                    break;
+
+                case WAITING_FOR_DEPENDENCIES:
+                    if (deps.isEmpty()) {
+                        session.updateState(State.RUNNING);
+                    }
+                    break;
+
+                default:
+                    // nothing
             }
 
             try {
