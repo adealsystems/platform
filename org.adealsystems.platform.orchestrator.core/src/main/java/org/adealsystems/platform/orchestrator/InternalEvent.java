@@ -259,6 +259,7 @@ public final class InternalEvent implements Cloneable, Serializable {
         Objects.requireNonNull(session, "session must not be null!");
         Session sessionClone = Session.copyOf(session);
         sessionClone.setProcessingState(null);
+        sessionClone.setSessionUpdates(null);
 
         try {
             event.setAttributeValue(SESSION_STATE_ATTRIBUTE_NAME, OBJECT_MAPPER.writeValueAsString(sessionClone));

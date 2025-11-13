@@ -46,8 +46,8 @@ public class SessionUpdateProcessingStateOperation implements SessionUpdateOpera
     }
 
     private static String buildCause() {
-        StringBuilder builder = new StringBuilder();
         if (LOGGER.isDebugEnabled()) {
+            StringBuilder builder = new StringBuilder();
             Throwable cause = new Throwable();
             StackTraceElement[] stackTrace = cause.getStackTrace();
             if (stackTrace != null) {
@@ -58,13 +58,12 @@ public class SessionUpdateProcessingStateOperation implements SessionUpdateOpera
                     builder.append(element.toString());
                 }
             }
+            return builder.toString();
         }
-        else {
-            builder.append("Enable debug logging for '")
-                .append(SessionUpdateProcessingStateOperation.class.getName())
-                .append("' to see cause stack trace");
-        }
-        return builder.toString();
+
+        return "Enable debug logging for '"
+            + SessionUpdateProcessingStateOperation.class.getName()
+            + "' to see cause stack trace";
     }
 
     @JsonCreator

@@ -288,7 +288,7 @@ public final class Session implements Serializable {
             new SessionAddStepOperation(step)
         );
 
-        processingState.setLastUpdated(LocalDateTime.now(ZoneId.systemDefault()));
+        setLastUpdatedTimestamp();
     }
 
     public void updateMessage(String message) {
@@ -304,7 +304,7 @@ public final class Session implements Serializable {
                 new SessionUpdateMessageOperation(message)
             );
 
-            processingState.setLastUpdated(LocalDateTime.now(ZoneId.systemDefault()));
+            setLastUpdatedTimestamp();
         }
     }
 
@@ -321,6 +321,12 @@ public final class Session implements Serializable {
                 new SessionUpdateStateOperation(state)
             );
 
+            setLastUpdatedTimestamp();
+        }
+    }
+
+    private void setLastUpdatedTimestamp() {
+        if (processingState != null) {
             processingState.setLastUpdated(LocalDateTime.now(ZoneId.systemDefault()));
         }
     }
@@ -345,7 +351,7 @@ public final class Session implements Serializable {
             new SessionUpdateTimestampOperation(type, timestamp)
         );
 
-        processingState.setLastUpdated(LocalDateTime.now(ZoneId.systemDefault()));
+        setLastUpdatedTimestamp();
     }
 
     public void updateProcessingState(SessionProcessingState state) {
@@ -357,7 +363,7 @@ public final class Session implements Serializable {
                 new SessionUpdateProcessingStateOperation(state)
             );
 
-            processingState.setLastUpdated(LocalDateTime.now(ZoneId.systemDefault()));
+            setLastUpdatedTimestamp();
         }
     }
 
@@ -398,7 +404,7 @@ public final class Session implements Serializable {
                 new SessionUpdateStateValueOperation(key, value)
             );
 
-            processingState.setLastUpdated(LocalDateTime.now(ZoneId.systemDefault()));
+            setLastUpdatedTimestamp();
         }
     }
 
