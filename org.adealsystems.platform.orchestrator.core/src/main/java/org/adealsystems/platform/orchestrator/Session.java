@@ -386,7 +386,6 @@ public final class Session implements Serializable {
         }
         else {
             this.processingState = processingState.clone();
-            this.processingState.getSteps().addAll(processingState.getSteps());
         }
     }
 
@@ -732,7 +731,6 @@ public final class Session implements Serializable {
         private List<SessionUpdateOperation> updates = new ArrayList<>();
 
         void addUpdate(SessionUpdateOperation update) {
-            
             updates.add(update);
         }
 
