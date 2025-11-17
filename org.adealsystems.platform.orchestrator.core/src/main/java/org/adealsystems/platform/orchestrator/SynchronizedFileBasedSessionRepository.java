@@ -286,19 +286,17 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         try {
             Session currentActiveSession = retrieveSession(sessionId).orElseThrow(IllegalStateException::new);
 
-            String updateVersionChecksum = session.getChecksum();
-            if (!updateVersionChecksum.equals(currentActiveSession.getChecksum())) {
+            String updateVersionChecksum = session.buildChecksum();
+            String currentChecksum = currentActiveSession.buildChecksum();
+            if (!updateVersionChecksum.equals(currentChecksum)) {
                 LOGGER.warn(
                     "Detected a concurrent session modification on update between {} and {}",
                     updateVersionChecksum,
-                    currentActiveSession.getChecksum()
+                    currentChecksum
                 );
                 session = internalMergeActiveSession(session, currentActiveSession);
-                session.extendStateRegistry("merged", String.valueOf(LocalDateTime.now(ZoneId.systemDefault())));
+                // session.extendStateRegistry("merged", String.valueOf(LocalDateTime.now(ZoneId.systemDefault())));
             }
-
-            // re-calculate the checksum
-            session.updateChecksum();
 
             internalUpdateSession(session);
             return session;
@@ -400,19 +398,16 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         try {
             Session currentActiveSession = internalRetrieveOrCreateSession(sessionId);
 
-            String updateVersionChecksum = session.getChecksum();
-            if (!updateVersionChecksum.equals(currentActiveSession.getChecksum())) {
+            String updateVersionChecksum = session.buildChecksum();
+            if (!updateVersionChecksum.equals(currentActiveSession.buildChecksum())) {
                 LOGGER.info(
                     "Detected a concurrent session modification for {} between {} and {}",
                     sessionId,
                     updateVersionChecksum,
-                    currentActiveSession.getChecksum()
+                    currentActiveSession.buildChecksum()
                 );
                 session = internalMergeActiveSession(session, currentActiveSession);
             }
-
-            // re-calculate the checksum
-            session.updateChecksum();
 
             internalUpdateSession(session);
         }
@@ -565,16 +560,15 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
             }
 
             LOGGER.warn("Correcting InstanceId of {} to {}", session.getId(), instanceId);
-            Session newSession = new Session(
+            return new Session(
                 instanceId,
                 session.getId(),
                 session.getCreationTimestamp(),
                 session.getInstanceConfiguration(),
+                session.getProcessingState(),
+                session.getState(),
                 session.getSessionUpdates()
             );
-            newSession.setState(session.getState());
-            newSession.setProcessingState(session.getProcessingState());
-            return newSession;
         }
         catch (IOException ex) {
             throw new IllegalStateException("Unable to read session file '" + sessionFile + "'!", ex);

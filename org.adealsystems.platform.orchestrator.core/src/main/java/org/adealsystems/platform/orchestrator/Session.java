@@ -89,20 +89,16 @@ public final class Session implements Serializable {
     private Map<String, String> state;
     private SessionUpdates sessionUpdates;
 
-    @JsonIgnore
-    private String checksum;
-
     public static Session copyOf(Session session) {
-        Session copy = new Session(
+        return new Session(
             session.getInstanceId(),
             session.getId(),
             session.getCreationTimestamp(),
             session.getInstanceConfiguration(),
+            session.getProcessingState(),
+            session.getState(),
             session.getSessionUpdates()
         );
-        copy.setState(session.getState());
-        copy.setProcessingState(session.getProcessingState());
-        return copy;
     }
 
     public Session(InstanceId instanceId, SessionId id) {
@@ -124,8 +120,24 @@ public final class Session implements Serializable {
         this.instanceConfiguration = Map.copyOf(instanceConfiguration);
         this.creationTimestamp = creationTimestamp;
         this.sessionUpdates = sessionUpdates == null ? new SessionUpdates() : sessionUpdates;
+    }
 
-        updateChecksum();
+    public Session(
+        InstanceId instanceId,
+        SessionId id,
+        LocalDateTime creationTimestamp,
+        Map<String, String> instanceConfiguration,
+        SessionProcessingState processingState,
+        Map<String, String> state,
+        SessionUpdates sessionUpdates
+    ) {
+        this.instanceId = instanceId;
+        this.id = id;
+        this.creationTimestamp = creationTimestamp;
+        this.instanceConfiguration = instanceConfiguration;
+        this.processingState = processingState;
+        this.state = state;
+        this.sessionUpdates = sessionUpdates;
     }
 
     @Deprecated
@@ -229,12 +241,8 @@ public final class Session implements Serializable {
         state.setStateAttributes(session.getState());
     }
 
-    public String getChecksum() {
-        return checksum;
-    }
-
-    public void updateChecksum() {
-        this.checksum = 'i' + ChecksumGenerator.getChecksum(instanceId)
+    public String buildChecksum() {
+        return 'i' + ChecksumGenerator.getChecksum(instanceId)
             + "-id" + ChecksumGenerator.getChecksum(id)
             + "-ts" + ChecksumGenerator.getChecksum(creationTimestamp)
             + "-c" + ChecksumGenerator.getChecksum((Serializable) instanceConfiguration)
@@ -271,7 +279,12 @@ public final class Session implements Serializable {
     }
 
     public void setState(Map<String, String> state) {
-        this.state = state;
+        if (state == null) {
+            this.state = null;
+        }
+        else {
+            this.state = new HashMap<>(state);
+        }
     }
 
     public SessionProcessingState getProcessingState() {
@@ -368,7 +381,13 @@ public final class Session implements Serializable {
     }
 
     public void setProcessingState(SessionProcessingState processingState) {
-        this.processingState = processingState;
+        if (processingState == null) {
+            this.processingState = null;
+        }
+        else {
+            this.processingState = processingState.clone();
+            this.processingState.getSteps().addAll(processingState.getSteps());
+        }
     }
 
     public Optional<String> getStateValue(String key) {
@@ -713,6 +732,7 @@ public final class Session implements Serializable {
         private List<SessionUpdateOperation> updates = new ArrayList<>();
 
         void addUpdate(SessionUpdateOperation update) {
+            
             updates.add(update);
         }
 

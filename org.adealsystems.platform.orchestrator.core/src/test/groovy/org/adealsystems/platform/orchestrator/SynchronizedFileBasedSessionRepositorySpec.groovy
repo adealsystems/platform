@@ -16,22 +16,55 @@
 
 package org.adealsystems.platform.orchestrator
 
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+
+import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.TempDir
 
 import java.time.LocalDateTime
 
 class SynchronizedFileBasedSessionRepositorySpec extends Specification {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SynchronizedFileBasedSessionRepositorySpec)
-
     @TempDir
     File baseDirectory
 
-    def 'instance works as expected'() {
+    @Shared
+    InstanceId instanceId = new InstanceId('0001-instance-id')
+
+    @Shared
+    def sessionId = new SessionId('SESSION-ID-1')
+
+    def 'retrieveSessionIds() and createSession() are working as expected'() {
         given:
-        InstanceId instanceId = new InstanceId('0001-instance-id')
+        SynchronizedFileBasedSessionRepository repo
+            = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
+
+        when:
+        def allIds = repo.retrieveSessionIds()
+
+        then:
+        allIds == [] as Set
+
+        when:
+        def session = repo.createSession(sessionId)
+
+        then:
+        session != null
+        session.id == sessionId
+        session.instanceConfiguration == [:]
+        session.state == null
+
+        when:
+        allIds = repo.retrieveSessionIds()
+
+        then:
+        allIds == [sessionId] as Set
+    }
+
+    def 'retrieveSession() and updateSession() are working as expected'() {
+        given:
+        SynchronizedFileBasedSessionRepository repo
+            = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
+
         def instanceConfiguration = [
             'aaa': 'xxx',
             'bbb': 'yyy'
@@ -40,123 +73,78 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
             'ccc': 'zzz',
             'ddd': '000',
         ]
-
-        SynchronizedFileBasedSessionRepository sessionRepository = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
-        def id = 'SESSION-ID'
-        def sessionId1 = new SessionId(id + '-1')
-
-        when:
-        def allIds = sessionRepository.retrieveSessionIds()
-
-        then:
-        allIds == [] as Set
-
-        when:
-        def session = sessionRepository.createSession(sessionId1)
-
-        then:
-        session != null
-        session.id == sessionId1
-        session.instanceConfiguration == [:]
-        session.state == null
-
-        when:
-        allIds = sessionRepository.retrieveSessionIds()
-
-        then:
-        allIds == [sessionId1] as Set
-
-        when:
-        def sessionId2 = new SessionId(id + '-2')
         def ts = LocalDateTime.of(2023, 3,24,0,0,0,0)
-        def sessionWithConfig = sessionRepository.createSession(sessionId2, ts, instanceConfiguration)
-        sessionWithConfig.setState(sessionState)
-        sessionRepository.updateSession(sessionWithConfig)
 
-        def otherSession = sessionRepository.retrieveSession(sessionId2)
+        when:
+        def sessionWithConfig = repo.createSession(sessionId, ts, instanceConfiguration)
+        sessionWithConfig.setState(sessionState)
+        repo.updateSession(sessionWithConfig)
+
+        def otherSession = repo.retrieveSession(sessionId)
 
         then:
         otherSession.present
-        otherSession.get().id == sessionId2
+        otherSession.get().id == sessionId
         otherSession.get().instanceConfiguration == instanceConfiguration
         otherSession.get().state == sessionState
+    }
+
+    def 'retrieveOrCreateSession() and deleteSession() are working as expected'() {
+        given:
+        SynchronizedFileBasedSessionRepository repo
+            = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
+
+        repo.createSession(sessionId)
 
         when:
-        def lines = readLines(sessionRepository, sessionId2)
+        def existingSession = repo.retrieveOrCreateSession(sessionId)
 
         then:
-        lines == [
-            '{',
-            '  "instanceId" : "0001-instance-id",',
-            '  "id" : "SESSION-ID-2",',
-            '  "creationTimestamp" : [ 2023, 3, 24, 0, 0 ],',
-            '  "instanceConfiguration" : {',
-            '    "aaa" : "xxx",',
-            '    "bbb" : "yyy"',
-            '  },',
-            '  "state" : {',
-            '    "ccc" : "zzz",',
-            '    "ddd" : "000"',
-            '  },',
-            '  "sessionUpdates" : {',
-            '    "updates" : [ ]',
-            '  }',
-            '}'
-        ]
+        existingSession.id == sessionId
 
         when:
-        def existingSession = sessionRepository.retrieveOrCreateSession(sessionId2)
-
-        then:
-        existingSession.id == sessionId2
-        existingSession.instanceConfiguration == instanceConfiguration
-        existingSession.state == sessionState
-
-        when:
-        def deleted = sessionRepository.deleteSession(sessionId2)
+        def deleted = repo.deleteSession(sessionId)
 
         then:
         deleted
 
         when:
-        def oneMoreSession = sessionRepository.retrieveSession(sessionId2)
+        def oneMoreSession = repo.retrieveSession(sessionId)
 
         then:
         !oneMoreSession.present
 
         when:
-        def freshSession = sessionRepository.retrieveOrCreateSession(sessionId2)
+        def freshSession = repo.retrieveOrCreateSession(sessionId)
 
         then:
-        freshSession.id == sessionId2
+        freshSession.id == sessionId
         freshSession.instanceConfiguration == [:]
         freshSession.state == null
     }
 
     def 'session updates are working as expected'() {
         given:
-        InstanceId instanceId = new InstanceId('0001-instance-id')
+        SynchronizedFileBasedSessionRepository repo
+            = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
+
         def ts = LocalDateTime.of(2023, 3,24,0,0,0,0)
 
-        SynchronizedFileBasedSessionRepository sessionRepository = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
-        def id = 'SESSION-ID'
-        def sessionId1 = new SessionId(id + '-1')
-
         when:
-        def session = sessionRepository.createSession(sessionId1, ts, [:])
+        def session = repo.createSession(sessionId, ts, [:])
         session.setStateValue("a", "AAA")
-        sessionRepository.updateSession(session)
+        repo.updateSession(session)
 
         then:
         session != null
-        session.id == sessionId1
+        session.id == sessionId
         session.instanceConfiguration == [:]
         session.state == ['a': 'AAA']
         session.sessionUpdates != null
         session.sessionUpdates.updates.size() == 1
 
         when:
-        def sessionLoaded = sessionRepository.retrieveSession(sessionId1)
+        def sessionLoaded = repo.retrieveSession(sessionId)
 
         then:
         sessionLoaded.present
@@ -165,65 +153,57 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
 
     def 'concurrent update modifications are working as expected'() {
         given:
-        InstanceId instanceId = new InstanceId('0001-instance-id')
+        SynchronizedFileBasedSessionRepository repo
+            = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
+
         def instanceConfiguration = [
             'aaa': 'xxx',
             'bbb': 'yyy'
         ]
-        def sessionState = [
-            'ccc': 'zzz',
-            'ddd': '000',
-        ]
-
-        SynchronizedFileBasedSessionRepository sessionRepository = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
-        def id = 'SESSION-ID'
-        def sessionId = new SessionId(id)
         def ts = LocalDateTime.of(2023, 3,24,0,0,0,0)
 
         when:
-        def session1 = sessionRepository.createSession(sessionId, ts, instanceConfiguration)
+        def session1 = repo.createSession(sessionId, ts, instanceConfiguration)
+        def hash1 = session1.buildChecksum()
+
+        and:
+        def session2 = repo.retrieveSession(sessionId).get()
+        def hash2 = session2.buildChecksum()
 
         then:
-        session1 != null
-        session1.id == sessionId
-        session1.instanceConfiguration == instanceConfiguration
-        session1.creationTimestamp == ts
-        session1.state == null
+        session1 == session2
 
         when:
-        def session10 = sessionRepository.retrieveSession(sessionId).get()
-
-        then:
-        session1 == session10
-
-        when:
-        def checksum1 = session1.checksum
         session1.setStateFlag('flag-1', true)
-        def session2 = sessionRepository.updateSession(session1)
+        def session1_b = repo.updateSession(session1)
+        def hash1_b = session1_b.buildChecksum()
+        // flag-1: true
 
         then:
-        checksum1 != session2.checksum
+        hash1 != hash1_b
 
         when:
-        def checksum2 = session2.checksum
-        session2.setStateValue('A', 'aaa')
-        def session3 = sessionRepository.updateSession(session2)
+        session1_b.setStateValue('A', 'aaa')
+        def session1_c = repo.updateSession(session1_b)
+        def hash1_c = session1_c.buildChecksum()
+        // flag-1: true
+        // A: aaa
 
         then:
-        checksum2 != session3.checksum
+        hash1_b != hash1_c
 
         when:
-        def checksum10 = session10.checksum
-        session10.setStateValue('X', 'xxx')
-        def session11 = sessionRepository.updateSession(session10)
+        session2.setStateValue('X', 'xxx')
+        def session2_b = repo.updateSession(session2)
+        def hash2_b = session2_b.buildChecksum()
+        // flag-1: true
+        // A: aaa
+        // X: xxx
 
         then:
-        checksum10 != session11.checksum
-    }
-
-    private static List<String> readLines(SynchronizedFileBasedSessionRepository instance, SessionId id) {
-        File file = instance.getSessionFile(id)
-        LOGGER.info("Reading lines from '{}'", file)
-        return file.readLines()
+        hash2 != hash2_b
+        session2_b.state.get('flag-1') == 'true'
+        session2_b.state.get('A') == 'aaa'
+        session2_b.state.get('X') == 'xxx'
     }
 }

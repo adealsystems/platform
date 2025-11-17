@@ -802,8 +802,6 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
 
-        // don't use modifySession() here. It's not really possible to have a conflict
-        // at this point, because the session is new and can't be referenced from another thread.
         Session session = sessionRepository.retrieveOrCreateSession(sessionId);
         LOGGER.info("Session loaded for instance {}!", instanceId);
 
@@ -816,10 +814,10 @@ public class InternalEventHandlerRunnable implements Runnable {
                 session.getId(),
                 session.getCreationTimestamp(),
                 instanceConfiguration,
+                processingState,
+                state,
                 session.getSessionUpdates()
             );
-            session.setState(state);
-            session.setProcessingState(processingState);
         }
 
         SessionProcessingState processingState = session.getProcessingState();
