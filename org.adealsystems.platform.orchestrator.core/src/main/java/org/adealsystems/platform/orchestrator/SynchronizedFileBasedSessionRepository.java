@@ -418,7 +418,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         return session;
     }
 
-    private Session internalMergeActiveSession(Session session, Session currentActiveSession) {
+    protected Session internalMergeActiveSession(Session session, Session currentActiveSession) {
         LOGGER.debug(
             "Concurrent session modification details:\n" +
                 "- stored: {}\n" +
@@ -436,7 +436,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         );
 
         Session merged = Session.copyOf(session);
-        Session.SessionUpdates mergedUpdates = applyMissingUpdates(merged, updates, baseUpdates);
+        Session.SessionUpdates mergedUpdates = applyMissingUpdates(merged, baseUpdates, updates);
 
         // set full updates sequence to the session
         merged.setSessionUpdates(mergedUpdates);
@@ -446,37 +446,21 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
 
     private Session.SessionUpdates applyMissingUpdates(
         Session session,
-        Session.SessionUpdates newUpdates,
-        Session.SessionUpdates baseUpdates
+        Session.SessionUpdates baseUpdates,
+        Session.SessionUpdates newUpdates
     ) {
-        List<SessionUpdateOperation> result = new ArrayList<>();
+        List<SessionUpdateOperation> result = new ArrayList<>(session.getSessionUpdates().getUpdates());
         List<SessionUpdateOperation> baseUpdateOperations = baseUpdates.getUpdates();
         List<SessionUpdateOperation> newUpdateOperations = newUpdates.getUpdates();
-        int lastSharedIndex = 0;
-        for (int i = 0; i < baseUpdateOperations.size(); i++) {
-            SessionUpdateOperation op = baseUpdateOperations.get(i);
-            if (i >= newUpdateOperations.size()) {
-                lastSharedIndex = i;
-                break;
-            }
-
-            SessionUpdateOperation newOp = newUpdateOperations.get(i);
-            if (!op.equals(newOp)) {
-                lastSharedIndex = i;
-                break;
-            }
-
-            result.add(op);
-        }
 
         Set<SessionUpdateOperation> mergedOperations = new HashSet<>();
-        for (int i = lastSharedIndex; i < baseUpdateOperations.size(); i++) {
+        for (int i = 0; i < baseUpdateOperations.size(); i++) {
             SessionUpdateOperation op = baseUpdateOperations.get(i);
             if (!result.contains(op)) {
                 mergedOperations.add(op);
             }
         }
-        for (int i = lastSharedIndex; i < newUpdateOperations.size(); i++) {
+        for (int i = 0; i < newUpdateOperations.size(); i++) {
             SessionUpdateOperation op = newUpdateOperations.get(i);
             if (!result.contains(op)) {
                 mergedOperations.add(op);

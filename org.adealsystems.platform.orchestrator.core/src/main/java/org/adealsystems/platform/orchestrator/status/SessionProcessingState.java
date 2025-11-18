@@ -47,6 +47,28 @@ public class SessionProcessingState implements Cloneable, Serializable {
     private Map<String, Boolean> flags;
     private Map<String, String> stateAttributes;
 
+    public static SessionProcessingState copyOf(SessionProcessingState state) {
+        if (state == null) {
+            return null;
+        }
+
+        return new SessionProcessingState(
+            state.getRunSpec(),
+            state.getConfiguration(),
+            state.getState(),
+            state.getMessage(),
+            state.getStarted(),
+            state.getTerminated(),
+            state.getLastUpdated(),
+            state.getProgressMaxValue(),
+            state.getProgressCurrentStep(),
+            state.getProgressFailedSteps(),
+            state.getFlags(),
+            state.getSteps(),
+            state.getStateAttributes()
+        );
+    }
+
     public static SessionProcessingState clone(SessionProcessingState state) {
         return new SessionProcessingState(
             state.getRunSpec(),
@@ -145,14 +167,14 @@ public class SessionProcessingState implements Cloneable, Serializable {
         this.configuration = config == null ? null : new HashMap<>(config);
         this.state = state;
         this.message = message;
-        this.steps = steps;
+        this.steps = steps == null ? null : new ArrayList<>(steps);
         this.started = started;
         this.terminated = terminated;
         this.lastUpdated = lastUpdates;
         this.progressMaxValue = progressMaxValue;
         this.progressCurrentStep = progressCurrentStep;
         this.progressFailedSteps = progressFailedSteps;
-        this.flags = flags == null ? new HashMap<>() : flags;
+        this.flags = flags == null ? new HashMap<>() : new HashMap<>(flags);
         this.stateAttributes = attributes == null ? new HashMap<>() : new HashMap<>(attributes);
     }
 

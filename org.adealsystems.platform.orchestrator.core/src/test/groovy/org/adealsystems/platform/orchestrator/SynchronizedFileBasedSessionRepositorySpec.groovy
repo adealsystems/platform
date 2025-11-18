@@ -16,7 +16,9 @@
 
 package org.adealsystems.platform.orchestrator
 
-
+import org.adealsystems.platform.orchestrator.status.FileProcessingStep
+import org.adealsystems.platform.orchestrator.status.SessionProcessingState
+import org.adealsystems.platform.orchestrator.status.State
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.TempDir
@@ -28,7 +30,7 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
     File baseDirectory
 
     @Shared
-    InstanceId instanceId = new InstanceId('0001-instance-id')
+    def instanceId = new InstanceId('0001-instance-id')
 
     @Shared
     def sessionId = new SessionId('SESSION-ID-1')
@@ -206,5 +208,43 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
         session2_b.state.get('A') == 'aaa'
         session2_b.state.get('X') == 'xxx'
         session2_b.processingState == null
+    }
+
+    /*
+- stored: 	Session{instanceId=0088-arms-package-optimization-schedule, id=01KABBQRX5T0RR3ABY0WFKQDA1, creationTimestamp=2025-11-18T12:31:27.274351003, instanceConfiguration={}, state={update-history=[raw-event-handler] 12:31:27.338: org.adealsystems.platform.orchestrator.InternalEventHandlerRunnable.startSession(InternalEventHandlerRunnable.java:884), [event-handler-0088-arms-package-optimization-schedule] 12:31:27.368: org.adealsystems.platform.orchestrator.InstanceEventHandlerRunnable.run(InstanceEventHandlerRunnable.java:148), __session_category=phase-1, __run_id=2025-11-18}, processingState=SessionProcessingState{runSpec=Run{type=ACTIVE, id='2025-11-18'}, configuration=null, state=RUNNING, message=null, 					steps=[], 																																									started=2025-11-18T12:31:27.299368488, terminated=null, lastUpdated=2025-11-18T12:31:27.368152591, progressMaxValue=4, progressCurrentStep=0, progressFailedSteps=0, flags={ERROR_OCCURRED=false, SESSION_FINISHED=false, SESSION_CANCELLED=false}, stateAttributes={}}}
+- modified: Session{instanceId=0088-arms-package-optimization-schedule, id=01KABBQRX5T0RR3ABY0WFKQDA1, creationTimestamp=2025-11-18T12:31:27.274351003, instanceConfiguration={}, state={update-history=[raw-event-handler] 12:31:27.338: org.adealsystems.platform.orchestrator.InternalEventHandlerRunnable.startSession(InternalEventHandlerRunnable.java:884), [event-handler-0088-arms-package-optimization-schedule] 12:31:27.368: org.adealsystems.platform.orchestrator.InstanceEventHandlerRunnable.run(InstanceEventHandlerRunnable.java:148), __session_category=phase-1, __run_id=2025-11-18}, processingState=SessionProcessingState{runSpec=Run{type=ACTIVE, id='2025-11-18'}, configuration=null, state=RUNNING, message=Waiting for collector, 	steps=[FileProcessingStep{zone=INCOMING, metaName='arms_package_optimization_schedule'}], 																					started=2025-11-18T12:31:27.299368488, terminated=null, lastUpdated=2025-11-18T12:31:27.412461352, progressMaxValue=4, progressCurrentStep=1, progressFailedSteps=0, flags={ERROR_OCCURRED=false, SESSION_FINISHED=false, SESSION_CANCELLED=false}, stateAttributes={update-history=[raw-event-handler] 12:31:27.338: org.adealsystems.platform.orchestrator.InternalEventHandlerRunnable.startSession(InternalEventHandlerRunnable.java:884), [event-handler-0088-arms-package-optimization-schedule] 12:31:27.368: org.adealsystems.platform.orchestrator.InstanceEventHandlerRunnable.run(InstanceEventHandlerRunnable.java:148), __session_category=phase-1, __run_id=2025-11-18}}}
+     */
+    def 'concurrent update modifications (special case) are working as expected'() {
+        given:
+        def instanceId = new InstanceId('0088-arms-package-optimization-schedule')
+        def sessionId = new SessionId('01KABBQRX5T0RR3ABY0WFKQDA1')
+        SynchronizedFileBasedSessionRepository repo
+            = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
+        def ts = LocalDateTime.of(2025, 11,18,12,31,27,0)
+        def state = [:]
+        state.put('update-history', '[raw-event-handler] 12:31:27.338: org.adealsystems.platform.orchestrator.InternalEventHandlerRunnable.startSession(InternalEventHandlerRunnable.java:884), [event-handler-0088-arms-package-optimization-schedule] 12:31:27.368: org.adealsystems.platform.orchestrator.InstanceEventHandlerRunnable.run(InstanceEventHandlerRunnable.java:148)')
+        state.put('__session_category', 'phase-1')
+        state.put('__run_id', '2025-11-18')
+        def runSpec = new RunSpecification(RunType.ACTIVE, '2025-11-18')
+        def unloadingPointFileProcessingStep = new FileProcessingStep(true, new InternalEvent(), null, 'INCOMING', 'arms_package_optimization_schedule')
+        def processingState1 = new SessionProcessingState(runSpec, [:], State.RUNNING, null, null, null, null, 4, 0, 0, [:], [], [:])
+        def processingState2 = new SessionProcessingState(runSpec, [:], State.RUNNING, 'Waiting for collector', null, null, null, 4, 0, 0, [:], [unloadingPointFileProcessingStep], [:])
+
+        when:
+        def session1 = repo.createSession(sessionId, ts, [:])
+        session1.setStateValue('__session_category', 'phase-1')
+        session1.setStateValue('__run_id', '2025-11-18')
+        session1.updateProcessingState(processingState1)
+
+        and:
+        def session2 = Session.copyOf(session1)
+        session2.updateMessage('Waiting for collector')
+        session2.addProcessingStep(unloadingPointFileProcessingStep)
+
+        and:
+        def merged = repo.internalMergeActiveSession(session2, session1)
+
+        then:
+        merged == session2
     }
 }

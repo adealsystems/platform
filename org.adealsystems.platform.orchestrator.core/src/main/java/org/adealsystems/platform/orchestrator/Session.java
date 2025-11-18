@@ -98,9 +98,9 @@ public final class Session implements Serializable {
             session.getId(),
             session.getCreationTimestamp(),
             session.getInstanceConfiguration(),
-            session.getProcessingState(),
+            SessionProcessingState.copyOf(session.getProcessingState()),
             session.getState(),
-            session.getSessionUpdates()
+            SessionUpdates.copyOf(session.getSessionUpdates())
         );
     }
 
@@ -139,7 +139,7 @@ public final class Session implements Serializable {
         this.creationTimestamp = creationTimestamp;
         this.instanceConfiguration = instanceConfiguration;
         this.processingState = processingState;
-        this.state = state;
+        this.state = state == null ? null : new HashMap<>(state);
         this.sessionUpdates = sessionUpdates;
     }
 
@@ -734,6 +734,12 @@ public final class Session implements Serializable {
 
     public static class SessionUpdates implements Serializable {
         private static final long serialVersionUID = 388199570473620237L;
+
+        public static SessionUpdates copyOf(SessionUpdates updates) {
+            SessionUpdates copy = new SessionUpdates();
+            copy.updates = new ArrayList<>(updates.updates);
+            return copy;
+        }
 
         private List<SessionUpdateOperation> updates = new ArrayList<>();
 
