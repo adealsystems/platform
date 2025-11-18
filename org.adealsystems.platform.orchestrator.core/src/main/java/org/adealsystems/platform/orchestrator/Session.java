@@ -42,6 +42,7 @@ import java.beans.ConstructorProperties;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -60,6 +61,8 @@ public final class Session implements Serializable {
     private static final long serialVersionUID = -4977538740085095596L;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Session.class);
+
+    private static final DateTimeFormatter TS_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss.SSS");
 
     public static final String FLAG_ERROR_OCCURRED = "ERROR_OCCURRED";
     public static final String FLAG_SESSION_FINISHED = "SESSION_FINISHED";
@@ -242,12 +245,15 @@ public final class Session implements Serializable {
     }
 
     public String buildChecksum() {
-        return 'i' + ChecksumGenerator.getChecksum(instanceId)
-            + "-id" + ChecksumGenerator.getChecksum(id)
-            + "-ts" + ChecksumGenerator.getChecksum(creationTimestamp)
-            + "-c" + ChecksumGenerator.getChecksum((Serializable) instanceConfiguration)
-            + "-ps" + ChecksumGenerator.getChecksum(processingState)
-            + "-s" + ChecksumGenerator.getChecksum((Serializable) state);
+        String instance = instanceId == null ? "none" : instanceId.getId();
+        String session = id == null ? "none" : id.getId();
+        String creationTS = creationTimestamp == null ? "none" : TS_FORMATTER.format(creationTimestamp);
+        return instance
+            + '-' + session
+            + "-created:" + creationTS
+            + "-conf:" + ChecksumGenerator.getChecksum((Serializable) instanceConfiguration)
+            + "-processing:" + ChecksumGenerator.getChecksum(processingState)
+            + "-state:" + ChecksumGenerator.getChecksum((Serializable) state);
     }
 
     public SessionUpdates getSessionUpdates() {

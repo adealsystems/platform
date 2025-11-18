@@ -205,5 +205,6 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
         session2_b.state.get('flag-1') == 'true'
         session2_b.state.get('A') == 'aaa'
         session2_b.state.get('X') == 'xxx'
+        session2_b.processingState == null
     }
 }

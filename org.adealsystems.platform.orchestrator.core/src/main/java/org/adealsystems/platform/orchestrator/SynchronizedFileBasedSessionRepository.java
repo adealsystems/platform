@@ -479,10 +479,15 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
                 }
 
                 StringBuilder message = new StringBuilder("Merged message: "); // NOPMD
+                boolean first = true;
                 for (SessionUpdateOperation op : typeUpdates) {
                     SessionUpdateMessageOperation messageOp = (SessionUpdateMessageOperation) op;
                     String msg = messageOp.getMessage();
-                    message.append(", ").append(msg);
+                    if (!first) {
+                        message.append(", ");
+                    }
+                    message.append(msg);
+                    first = false;
                 }
                 mergedOps.add(new SessionUpdateMessageOperation(message.toString()));
             }
