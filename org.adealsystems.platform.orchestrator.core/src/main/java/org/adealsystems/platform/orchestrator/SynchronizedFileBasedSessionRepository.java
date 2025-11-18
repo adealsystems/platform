@@ -19,7 +19,6 @@ package org.adealsystems.platform.orchestrator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.adealsystems.platform.orchestrator.session.SessionUpdateMessageOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateOperationModule;
 import org.adealsystems.platform.orchestrator.status.mapping.SessionProcessingStateModule;
@@ -35,7 +34,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -448,91 +446,79 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
 
     private Session.SessionUpdates applyMissingUpdates(
         Session session,
-        Session.SessionUpdates updates,
+        Session.SessionUpdates newUpdates,
         Session.SessionUpdates baseUpdates
     ) {
         List<SessionUpdateOperation> result = new ArrayList<>();
         List<SessionUpdateOperation> baseUpdateOperations = baseUpdates.getUpdates();
-        List<SessionUpdateOperation> newUpdateOperations = updates.getUpdates();
+        List<SessionUpdateOperation> newUpdateOperations = newUpdates.getUpdates();
         int lastSharedIndex = 0;
         for (int i = 0; i < baseUpdateOperations.size(); i++) {
-            SessionUpdateOperation baseOp = baseUpdateOperations.get(i);
+            SessionUpdateOperation op = baseUpdateOperations.get(i);
             if (i >= newUpdateOperations.size()) {
                 lastSharedIndex = i;
                 break;
             }
 
             SessionUpdateOperation newOp = newUpdateOperations.get(i);
-            if (!baseOp.equals(newOp)) {
+            if (!op.equals(newOp)) {
                 lastSharedIndex = i;
                 break;
             }
 
-            result.add(baseOp);
+            result.add(op);
         }
 
-        // cluster update operations by its types
-        Map<Class<? extends SessionUpdateOperation>, Set<SessionUpdateOperation>> ops = new HashMap<>();
-        clusterUpdates(baseUpdateOperations, lastSharedIndex, ops);
-        clusterUpdates(newUpdateOperations, lastSharedIndex, ops);
-
-        // merge clustered updates
-        List<SessionUpdateOperation> mergedOps = new ArrayList<>();
-        for (Map.Entry<Class<? extends SessionUpdateOperation>, Set<SessionUpdateOperation>> entry : ops.entrySet()) {
-            Class<? extends SessionUpdateOperation> type = entry.getKey();
-            Set<SessionUpdateOperation> typeUpdates = entry.getValue();
-            if (SessionUpdateMessageOperation.class.isAssignableFrom(type)) {
-                if (typeUpdates.size() == 1) {
-                    mergedOps.add(typeUpdates.iterator().next());
-                    continue;
-                }
-
-                StringBuilder message = new StringBuilder("Merged message: "); // NOPMD
-                boolean first = true;
-                for (SessionUpdateOperation op : typeUpdates) {
-                    SessionUpdateMessageOperation messageOp = (SessionUpdateMessageOperation) op;
-                    String msg = messageOp.getMessage();
-                    if (!first) {
-                        message.append(", ");
-                    }
-                    message.append(msg.replaceAll("Merged message: ", ""));
-                    first = false;
-                }
-                mergedOps.add(new SessionUpdateMessageOperation(message.toString()));
+        Set<SessionUpdateOperation> mergedOperations = new HashSet<>();
+        for (int i = lastSharedIndex; i < baseUpdateOperations.size(); i++) {
+            SessionUpdateOperation op = baseUpdateOperations.get(i);
+            if (!result.contains(op)) {
+                mergedOperations.add(op);
             }
-
-            // all other types shouldn't be merged, just collect all of them
-            mergedOps.addAll(typeUpdates);
         }
+        for (int i = lastSharedIndex; i < newUpdateOperations.size(); i++) {
+            SessionUpdateOperation op = newUpdateOperations.get(i);
+            if (!result.contains(op)) {
+                mergedOperations.add(op);
+            }
+        }
+
+        List<SessionUpdateOperation> sortedMergedOperations = new ArrayList<>(mergedOperations);
+        sortedMergedOperations.sort((o1, o2) -> {
+            if (o1 == o2) {
+                return 0;
+            }
+            if (o1 == null) {
+                return -1;
+            }
+            if (o2 == null) {
+                return 1;
+            }
+            LocalDateTime t1 = o1.getTimestamp();
+            LocalDateTime t2 = o2.getTimestamp();
+            if (t1 == t2) {
+                return 0;
+            }
+            if (t1 == null) {
+                return -1;
+            }
+            if (t2 == null) {
+                return 1;
+            }
+            return t1.compareTo(t2);
+        });
 
         // apply merged updates
-        for (SessionUpdateOperation op : mergedOps) {
+        for (SessionUpdateOperation op : sortedMergedOperations) {
             op.apply(session);
         }
 
-        result.addAll(mergedOps);
+        result.addAll(sortedMergedOperations);
 
         // build merged session update structure
         Session.SessionUpdates resultUpdates = new Session.SessionUpdates();
         resultUpdates.setUpdates(result);
         return resultUpdates;
-    }
-
-    private void clusterUpdates(
-        List<SessionUpdateOperation> updates,
-        int startIndex,
-        Map<Class<? extends SessionUpdateOperation>, Set<SessionUpdateOperation>> clusters
-    ) {
-        for (int i = startIndex; i < updates.size(); i++) {
-            SessionUpdateOperation op = updates.get(i);
-            Class<? extends SessionUpdateOperation> opClass = op.getClass();
-            Set<SessionUpdateOperation> sameTypeUpdates = clusters.get(opClass);
-            if (sameTypeUpdates == null) {
-                sameTypeUpdates = new HashSet<>(); // NOPMD
-                clusters.put(opClass, sameTypeUpdates);
-            }
-            sameTypeUpdates.add(op);
-        }
     }
 
     File getSessionFile(SessionId id) {

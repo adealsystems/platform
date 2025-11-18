@@ -728,6 +728,7 @@ public final class Session implements Serializable {
             ", creationTimestamp=" + creationTimestamp +
             ", instanceConfiguration=" + instanceConfiguration +
             ", state=" + state +
+            ", processingState=" + processingState +
             '}';
     }
 
