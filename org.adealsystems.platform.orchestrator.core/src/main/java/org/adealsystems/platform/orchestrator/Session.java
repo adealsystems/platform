@@ -49,6 +49,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -62,7 +63,8 @@ public final class Session implements Serializable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Session.class);
 
-    private static final DateTimeFormatter TS_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss.SSS");
+    private static final DateTimeFormatter TS_FORMATTER =
+        DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss.SSS", Locale.ROOT);
 
     public static final String FLAG_ERROR_OCCURRED = "ERROR_OCCURRED";
     public static final String FLAG_SESSION_FINISHED = "SESSION_FINISHED";
@@ -735,13 +737,13 @@ public final class Session implements Serializable {
     public static class SessionUpdates implements Serializable {
         private static final long serialVersionUID = 388199570473620237L;
 
+        private List<SessionUpdateOperation> updates = new ArrayList<>();
+
         public static SessionUpdates copyOf(SessionUpdates updates) {
             SessionUpdates copy = new SessionUpdates();
             copy.updates = new ArrayList<>(updates.updates);
             return copy;
         }
-
-        private List<SessionUpdateOperation> updates = new ArrayList<>();
 
         void addUpdate(SessionUpdateOperation update) {
             updates.add(update);

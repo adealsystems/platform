@@ -26,7 +26,6 @@ import org.adealsystems.platform.orchestrator.status.mapping.SessionProcessingSt
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -43,10 +42,8 @@ import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSI
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SOURCE_EVENT_ATTRIBUTE_NAME;
 
 
-public final class InternalEvent implements Cloneable, Serializable {
+public final class InternalEvent implements Cloneable, Serializable, TimestampAware {
     private static final long serialVersionUID = -1958300486266138089L;
-
-    public static final Comparator<InternalEvent> TIMESTAMP_COMPARATOR = new TimestampComparator();
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     static {
@@ -150,6 +147,7 @@ public final class InternalEvent implements Cloneable, Serializable {
         attributes.put(key, value);
     }
 
+    @Override
     public LocalDateTime getTimestamp() {
         return timestamp;
     }
@@ -351,35 +349,6 @@ public final class InternalEvent implements Cloneable, Serializable {
 
         String id = oInstanceId.get();
         return instanceKey.equals(id);
-    }
-
-    private static class TimestampComparator implements Comparator<InternalEvent> {
-
-        @Override
-        public int compare(InternalEvent event1, InternalEvent event2) {
-            if (event1 == event2) { // NOPMD CompareObjectsWithEquals
-                return 0;
-            }
-            if (event1 == null) {
-                return -1;
-            }
-            if (event2 == null) {
-                return 1;
-            }
-            LocalDateTime t1 = event1.getTimestamp();
-            LocalDateTime t2 = event2.getTimestamp();
-            if (t1 == t2) { // NOPMD CompareObjectsWithEquals
-                return 0;
-            }
-            if (t1 == null) {
-                return -1;
-            }
-            if (t2 == null) {
-                return 1;
-            }
-
-            return t1.compareTo(t2);
-        }
     }
 }
 

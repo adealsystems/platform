@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.orchestrator.session;
+package org.adealsystems.platform.orchestrator;
 
-import org.adealsystems.platform.orchestrator.Session;
-import org.adealsystems.platform.orchestrator.TimestampAware;
+import java.time.LocalDateTime;
 
-public interface SessionUpdateOperation extends TimestampAware {
-    String getProducer();
-    void apply(Session session);
+public interface TimestampAware {
+    LocalDateTime getTimestamp();
 }

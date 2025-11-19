@@ -466,29 +466,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
 
         List<SessionUpdateOperation> sortedMergedOperations = new ArrayList<>(mergedOperations);
-        sortedMergedOperations.sort((o1, o2) -> {
-            if (o1 == o2) {
-                return 0;
-            }
-            if (o1 == null) {
-                return -1;
-            }
-            if (o2 == null) {
-                return 1;
-            }
-            LocalDateTime t1 = o1.getTimestamp();
-            LocalDateTime t2 = o2.getTimestamp();
-            if (t1 == t2) {
-                return 0;
-            }
-            if (t1 == null) {
-                return -1;
-            }
-            if (t2 == null) {
-                return 1;
-            }
-            return t1.compareTo(t2);
-        });
+        sortedMergedOperations.sort(new TimestampAwareComparator());
 
         // apply merged updates
         for (SessionUpdateOperation op : sortedMergedOperations) {
