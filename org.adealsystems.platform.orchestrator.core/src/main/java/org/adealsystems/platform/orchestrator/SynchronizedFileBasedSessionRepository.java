@@ -454,14 +454,12 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         List<SessionUpdateOperation> newUpdateOperations = newUpdates.getUpdates();
 
         Set<SessionUpdateOperation> mergedOperations = new HashSet<>();
-        for (int i = 0; i < baseUpdateOperations.size(); i++) {
-            SessionUpdateOperation op = baseUpdateOperations.get(i);
+        for (SessionUpdateOperation op : baseUpdateOperations) {
             if (!result.contains(op)) {
                 mergedOperations.add(op);
             }
         }
-        for (int i = 0; i < newUpdateOperations.size(); i++) {
-            SessionUpdateOperation op = newUpdateOperations.get(i);
+        for (SessionUpdateOperation op : newUpdateOperations) {
             if (!result.contains(op)) {
                 mergedOperations.add(op);
             }
