@@ -18,6 +18,7 @@ package org.adealsystems.platform.orchestrator;
 
 public interface InstanceEventHandler {
     InternalEvent handle(InternalEvent event, Session session);
+    boolean isRelevant(InternalEvent event);
     boolean isTerminating(InternalEvent event);
     void resetTerminatingFlag(InternalEvent event);
 }

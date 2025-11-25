@@ -43,6 +43,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -79,6 +80,10 @@ public final class Session implements Serializable {
     public static final String COMMAND_IN_PROGRESS_PREFIX = "command:";
     public static final String LOCKED_EVENTS = "locked-events";
     public static final String UPDATE_HISTORY = "update-history";
+
+    private static final String TIMER_PREFIX = "timer--";
+    private static final DateTimeFormatter TIMER_FORMATTER =
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     static {
@@ -558,6 +563,52 @@ public final class Session implements Serializable {
         }
 
         return registry;
+    }
+
+    public void addTimer(String key, LocalDateTime endTime) {
+        setStateValue(TIMER_PREFIX + key, TIMER_FORMATTER.format(endTime));
+    }
+
+    public void removeTimer(String key) {
+        setStateValue(TIMER_PREFIX + key, null);
+    }
+
+    @JsonIgnore
+    public Map<String, LocalDateTime> getActiveTimers() {
+        Map<String, LocalDateTime> timers = new HashMap<>();
+
+        LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault()).minusMinutes(2);
+
+        Set<String> outdatedTimers = new HashSet<>();
+        for (Map.Entry<String, String> entry : state.entrySet()) {
+            String key = entry.getKey();
+            if (!key.startsWith(TIMER_PREFIX)) {
+                continue;
+            }
+
+            String value = entry.getValue();
+            try {
+                LocalDateTime timer = LocalDateTime.parse(value, TIMER_FORMATTER);
+                if (now.isAfter(timer)) {
+                    outdatedTimers.add(key);
+                    continue;
+                }
+
+                timers.put(key.substring(TIMER_PREFIX.length()), timer);
+            }
+            catch(DateTimeParseException ex) {
+                LOGGER.warn("Unable to parse timer '" + key + "'", ex);
+            }
+        }
+
+        // cleanup outdated timers
+        if (!outdatedTimers.isEmpty()) {
+            for (String outdated : outdatedTimers) {
+                setStateValue(outdated, null);
+            }
+        }
+
+        return timers;
     }
 
     // region dependencies

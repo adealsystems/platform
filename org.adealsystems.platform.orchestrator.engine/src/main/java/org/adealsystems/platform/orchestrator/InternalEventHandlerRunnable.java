@@ -111,8 +111,6 @@ public class InternalEventHandlerRunnable implements Runnable {
     private final EmailSenderFactory emailSenderFactory;
     private final String environment;
 
-    private String currentProcessingEvent;
-
     @SuppressWarnings("PMD.ExcessiveParameterList")
     public InternalEventHandlerRunnable(
         InstanceRepository instanceRepository,
@@ -183,10 +181,6 @@ public class InternalEventHandlerRunnable implements Runnable {
         );
     }
 
-    public String getCurrentProcessingEvent() {
-        return currentProcessingEvent;
-    }
-
     protected InternalEventReceiver getRawEventReceiver() {
         return rawEventReceiver;
     }
@@ -202,7 +196,6 @@ public class InternalEventHandlerRunnable implements Runnable {
                 currentEvents.clear();
 
                 LOGGER.debug("Getting a new raw event");
-                currentProcessingEvent = "";
                 Optional<InternalEvent> oEvent = rawEventReceiver.receiveEvent();
                 if (oEvent.isEmpty()) {
                     LOGGER.info("Shutting down internal event handler thread. Raw event receiver returned no value.");
@@ -212,7 +205,6 @@ public class InternalEventHandlerRunnable implements Runnable {
                 InternalEvent event = oEvent.get();
                 String eventId = event.getId();
                 InternalEventType eventType = event.getType();
-                currentProcessingEvent = eventId;
                 LOGGER.debug("Analysing a new received event {} of type {}", eventId, eventType);
 
                 // Session events special handling
@@ -478,7 +470,7 @@ public class InternalEventHandlerRunnable implements Runnable {
 
             boolean relevant = false;
             try {
-                relevant = eventClassifier.isRelevant(clonedEvent);
+                relevant = eventClassifier.isRelevant(clonedEvent) || event.getType() == InternalEventType.TIMER;
             }
             catch (Exception ex) {
                 LOGGER.error(
@@ -1078,18 +1070,6 @@ public class InternalEventHandlerRunnable implements Runnable {
         @Override
         public void close() {
             // empty
-        }
-    }
-
-    private static class BooleanResultContainer {
-        private boolean value;
-
-        public void setValue(boolean value) {
-            this.value = value;
-        }
-
-        public boolean getValue() { // NOPMD
-            return value;
         }
     }
 }

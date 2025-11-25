@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -120,11 +121,33 @@ public class InstanceEventHandlerRunnable implements Runnable {
             }
 
             try {
-                LOGGER.debug("Handling event {} with {} (session: {})", event, instanceId, sessionId);
-                InternalEvent returnedEvent = instanceEventHandler.handle(event, session);
-                LOGGER.debug("Session of {} after handling event {}: {}", instanceId, event, session);
-                InternalEvent processedEvent = InternalEvent.deriveProcessedInstance(returnedEvent);
-                eventHistory.add(processedEvent);
+                // Special handling for TIMER events
+                if (event.getType() == InternalEventType.TIMER) {
+                    Map<String, LocalDateTime> timers = session.getActiveTimers();
+                    if (!timers.isEmpty()) {
+                        LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault()).minusMinutes(1);
+                        for (Map.Entry<String, LocalDateTime> entry : timers.entrySet()) {
+                            String key = entry.getKey();
+                            LocalDateTime timer = entry.getValue();
+                            if (now.isAfter(timer)) {
+                                // trigger a timer event
+                                InternalEvent timerEvent = createTimerEvent(key);
+                                rawEventSender.sendEvent(timerEvent);
+
+                                // remove the triggered timer
+                                session.removeTimer(key);
+                            }
+                        }
+                    }
+                }
+
+                if (instanceEventHandler.isRelevant(event)) {
+                    LOGGER.debug("Handling event {} with {} (session: {})", event, instanceId, sessionId);
+                    InternalEvent returnedEvent = instanceEventHandler.handle(event, session);
+                    LOGGER.debug("Session of {} after handling event {}: {}", instanceId, event, session);
+                    InternalEvent processedEvent = InternalEvent.deriveProcessedInstance(returnedEvent);
+                    eventHistory.add(processedEvent);
+                }
             }
             catch (Exception ex) {
                 LOGGER.error("Exception while handling event {} with session {}!", event, session, ex);
@@ -162,6 +185,16 @@ public class InstanceEventHandlerRunnable implements Runnable {
         result.setAttributeValue(SESSION_ID_ATTRIBUTE_NAME, session.getId().getId());
 
         setSessionStateAttribute(result, session);
+
+        return result;
+    }
+
+    private InternalEvent createTimerEvent(String timerId) {
+        InternalEvent result = new InternalEvent();
+
+        result.setType(InternalEventType.TIMER);
+        result.setTimestamp(timestampFactory.createTimestamp());
+        result.setId(timerId);
 
         return result;
     }
