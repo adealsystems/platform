@@ -32,6 +32,7 @@ import java.util.Set;
 import static org.adealsystems.platform.orchestrator.InternalEvent.setSessionStateAttribute;
 import static org.adealsystems.platform.orchestrator.InternalEventHandlerRunnable.FINAL_UNSUCCESSFUL_STATES;
 import static org.adealsystems.platform.orchestrator.Session.REG_DEPENDENCIES;
+import static org.adealsystems.platform.orchestrator.SessionEventConstants.DYNAMIC_CONTENT_ATTRIBUTE_NAME;
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.INSTANCE_ID_ATTRIBUTE_NAME;
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSION_ID_ATTRIBUTE_NAME;
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSION_STATE;
@@ -131,7 +132,7 @@ public class InstanceEventHandlerRunnable implements Runnable {
                             LocalDateTime timer = entry.getValue();
                             if (now.isAfter(timer)) {
                                 // trigger a timer event
-                                InternalEvent timerEvent = createTimerEvent(key);
+                                InternalEvent timerEvent = createTimerEvent(key, session);
                                 rawEventSender.sendEvent(timerEvent);
 
                                 // remove the triggered timer
@@ -189,12 +190,15 @@ public class InstanceEventHandlerRunnable implements Runnable {
         return result;
     }
 
-    private InternalEvent createTimerEvent(String timerId) {
+    private InternalEvent createTimerEvent(String timerId, Session session) {
         InternalEvent result = new InternalEvent();
 
         result.setType(InternalEventType.TIMER);
         result.setTimestamp(timestampFactory.createTimestamp());
         result.setId(timerId);
+
+        Optional<String> dynamicContent = session.getStateValue(DYNAMIC_CONTENT_ATTRIBUTE_NAME);
+        dynamicContent.ifPresent(s -> result.setAttributeValue(DYNAMIC_CONTENT_ATTRIBUTE_NAME, s));
 
         return result;
     }
