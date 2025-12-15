@@ -453,7 +453,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         return handleEvent(event);
     }
 
-    private boolean isMinuteTimerEvent(InternalEvent event) {
+    private static boolean isMinuteTimerEvent(InternalEvent event) {
         if (event.getType() != InternalEventType.TIMER) {
             return false;
         }
@@ -659,15 +659,6 @@ public class InternalEventHandlerRunnable implements Runnable {
                 clonedEvent.setSessionId(sessionId);
             }
             else {
-                if (isMinuteTimerEvent(event)) {
-                    LOGGER.debug(
-                        "Ignoring MINUTE-TIMER event {} for a not active instance {} to avoid it in the orphan queue.",
-                        clonedEvent,
-                        finalInstanceId
-                    );
-                    continue;
-                }
-
                 LOGGER.debug("Received event without active session for instance {}: {}", finalInstanceId, clonedEvent);
                 if (clonedEvent.getSessionId() != null) {
                     clonedEvent.setSessionId(null);
@@ -780,7 +771,20 @@ public class InternalEventHandlerRunnable implements Runnable {
             if (!added) {
                 throw new IllegalStateException("Unable to add an event, because the sender is in blocking state!");
             }
+
+            eventHistory.add(event);
+            return;
         }
+
+        if (isMinuteTimerEvent(event)) {
+            LOGGER.debug(
+                "Ignoring MINUTE-TIMER event {} for a not active instance {} to avoid it in the orphan queue.",
+                event,
+                event.getInstanceId()
+            );
+            return;
+        }
+
         eventHistory.add(event);
     }
 
@@ -1060,14 +1064,14 @@ public class InternalEventHandlerRunnable implements Runnable {
         @Override
         public void add(InternalEvent event) {
             Objects.requireNonNull(event, "event must not be null!");
-            //TODO
-            //event.setInstanceId(idTuple.getInstanceId());
-            event.setSessionId(idTuple.getSessionId());
-            registerInstanceEvent(
-                event,
-                instanceEventSenderResolver,
-                eventHistory
-            );
+            if (!isMinuteTimerEvent(event)) {
+                event.setSessionId(idTuple.getSessionId());
+                registerInstanceEvent(
+                    event,
+                    instanceEventSenderResolver,
+                    eventHistory
+                );
+            }
         }
 
         @Override
@@ -1075,7 +1079,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             Objects.requireNonNull(iterable, "iterable must not be null!");
 
             for (InternalEvent event : iterable) {
-                if (event == null) {
+                if (event == null || isMinuteTimerEvent(event)) {
                     continue;
                 }
 
