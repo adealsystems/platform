@@ -41,6 +41,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.adealsystems.platform.orchestrator.InternalEvent.ATTR_RUN_ID;
@@ -65,6 +66,8 @@ import static org.adealsystems.platform.orchestrator.SessionEventConstants.TERMI
 
 public class InternalEventHandlerRunnable implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(InternalEventHandlerRunnable.class);
+
+    private static final Pattern MINUTES_TIMER_EVENT_PATTERN = Pattern.compile("^([0-9]{2}):([0-9]{2})$");
 
     public static final Set<String> INTERNAL_SESSION_STATE_IDS = Set.of(
         SESSION_START,
@@ -441,9 +444,22 @@ public class InternalEventHandlerRunnable implements Runnable {
         }
 
         dejaVu.add(event);
-        eventHistory.add(event);
+
+        if (!isMinuteTimerEvent(event)) {
+            // Only register raw events except standard minutes timer events
+            eventHistory.add(event);
+        }
 
         return handleEvent(event);
+    }
+
+    private boolean isMinuteTimerEvent(InternalEvent event) {
+        if (event.getType() != InternalEventType.TIMER) {
+            return false;
+        }
+
+        Matcher matcher = MINUTES_TIMER_EVENT_PATTERN.matcher(event.getId());
+        return matcher.matches();
     }
 
     private List<InternalEvent> handleEvent(InternalEvent event) {
@@ -643,6 +659,15 @@ public class InternalEventHandlerRunnable implements Runnable {
                 clonedEvent.setSessionId(sessionId);
             }
             else {
+                if (isMinuteTimerEvent(event)) {
+                    LOGGER.debug(
+                        "Ignoring MINUTE-TIMER event {} for a not active instance {} to avoid it in the orphan queue.",
+                        clonedEvent,
+                        finalInstanceId
+                    );
+                    continue;
+                }
+
                 LOGGER.debug("Received event without active session for instance {}: {}", finalInstanceId, clonedEvent);
                 if (clonedEvent.getSessionId() != null) {
                     clonedEvent.setSessionId(null);

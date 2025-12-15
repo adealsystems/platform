@@ -597,7 +597,7 @@ public final class Session implements Serializable {
                 timers.put(key.substring(TIMER_PREFIX.length()), timer);
             }
             catch(DateTimeParseException ex) {
-                LOGGER.warn("Unable to parse timer '" + key + "'", ex);
+                LOGGER.warn("Unable to parse timer '{}'", key, ex);
             }
         }
 
