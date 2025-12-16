@@ -462,6 +462,10 @@ public class InternalEventHandlerRunnable implements Runnable {
         return matcher.matches();
     }
 
+    private static boolean isTimerEvent(InternalEvent event) {
+        return event.getType() == InternalEventType.TIMER;
+    }
+
     private List<InternalEvent> handleEvent(InternalEvent event) {
         LOGGER.debug("Handling event: {}", event);
 
@@ -776,9 +780,9 @@ public class InternalEventHandlerRunnable implements Runnable {
             return;
         }
 
-        if (isMinuteTimerEvent(event)) {
+        if (isTimerEvent(event)) {
             LOGGER.debug(
-                "Ignoring MINUTE-TIMER event {} for a not active instance {} to avoid it in the orphan queue.",
+                "Ignoring TIMER event {} for a not active instance {} to avoid it in the orphan queue.",
                 event,
                 event.getInstanceId()
             );
@@ -1064,7 +1068,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         @Override
         public void add(InternalEvent event) {
             Objects.requireNonNull(event, "event must not be null!");
-            if (!isMinuteTimerEvent(event)) {
+            if (!isTimerEvent(event)) {
                 event.setSessionId(idTuple.getSessionId());
                 registerInstanceEvent(
                     event,
@@ -1079,7 +1083,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             Objects.requireNonNull(iterable, "iterable must not be null!");
 
             for (InternalEvent event : iterable) {
-                if (event == null || isMinuteTimerEvent(event)) {
+                if (event == null || isTimerEvent(event)) {
                     continue;
                 }
 

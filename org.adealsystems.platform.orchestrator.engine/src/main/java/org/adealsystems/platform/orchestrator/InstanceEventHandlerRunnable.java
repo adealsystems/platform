@@ -122,7 +122,7 @@ public class InstanceEventHandlerRunnable implements Runnable {
             }
 
             try {
-                // Special handling for TIMER events
+                // Special handling for MINUTE TIMER events
                 if (event.getType() == InternalEventType.TIMER) {
                     Map<String, LocalDateTime> timers = session.getActiveTimers();
                     if (!timers.isEmpty()) {
