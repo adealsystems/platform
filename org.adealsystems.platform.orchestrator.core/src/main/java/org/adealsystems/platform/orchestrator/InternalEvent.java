@@ -191,6 +191,18 @@ public final class InternalEvent implements Cloneable, Serializable, TimestampAw
             '}';
     }
 
+    public String toShortString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(type).append("-event (").append(id).append(')');
+        if (instanceId != null) {
+            sb.append(", instance: ").append(instanceId);
+        }
+        if (sessionId != null) {
+            sb.append(", session: ").append(sessionId);
+        }
+        return sb.toString();
+    }
+
     @Override
     public InternalEvent clone() {
         try {

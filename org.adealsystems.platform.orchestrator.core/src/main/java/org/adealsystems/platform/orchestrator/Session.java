@@ -785,6 +785,10 @@ public final class Session implements Serializable {
             '}';
     }
 
+    public String toShortString() {
+        return "Session " + instanceId + " (" + id + ')';
+    }
+
     public static class SessionUpdates implements Serializable {
         private static final long serialVersionUID = 388199570473620237L;
 
