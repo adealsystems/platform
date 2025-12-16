@@ -488,9 +488,10 @@ public class InternalEventHandlerRunnable implements Runnable {
             // TODO: determine referenced sessions, check if they are active and set a finished/cancelled/failed
             //  or whatever flag. Also verify, if session needs an event to close itself!
 
+            boolean relevantForClassifier = eventClassifier.isRelevant(clonedEvent);
             boolean relevant = false;
             try {
-                relevant = eventClassifier.isRelevant(clonedEvent) || event.getType() == InternalEventType.TIMER;
+                relevant = relevantForClassifier || event.getType() == InternalEventType.TIMER;
             }
             catch (Exception ex) {
                 LOGGER.error(
@@ -670,12 +671,17 @@ public class InternalEventHandlerRunnable implements Runnable {
                 }
             }
 
-            LOGGER.debug("Registering instance event {}", clonedEvent);
-            registerInstanceEvent(
-                clonedEvent,
-                instanceEventSenderResolver,
-                eventHistory
-            );
+            if (oSessionId.isEmpty() && !relevantForClassifier) {
+                LOGGER.debug("Ignoring not relevant event {} without an active session", clonedEvent);
+            }
+            else {
+                LOGGER.debug("Registering instance event {}", clonedEvent);
+                registerInstanceEvent(
+                    clonedEvent,
+                    instanceEventSenderResolver,
+                    eventHistory
+                );
+            }
         }
 
         if (!assigned) {
@@ -745,7 +751,6 @@ public class InternalEventHandlerRunnable implements Runnable {
         if (event.getSessionId() != null) {
             // only put event into queue if session is active
             InstanceId instanceId = event.getInstanceId();
-            // InstanceId dynamicId = resolveDynamicInstanceId(event);
             InternalEventSender eventSender = instanceEventSenderResolver.resolveEventSender(instanceId);
             if (eventSender == null) {
                 LOGGER.error("No event sender found for instance {}!", instanceId);
@@ -775,31 +780,17 @@ public class InternalEventHandlerRunnable implements Runnable {
             if (!added) {
                 throw new IllegalStateException("Unable to add an event, because the sender is in blocking state!");
             }
-
-            eventHistory.add(event);
-            return;
-        }
-
-        if (isTimerEvent(event)) {
-            LOGGER.debug(
-                "Ignoring TIMER event {} for a not active instance {} to avoid it in the orphan queue.",
-                event,
-                event.getInstanceId()
-            );
-            return;
         }
 
         eventHistory.add(event);
     }
 
     private InstanceId resolveDynamicInstanceId(InternalEvent event) {
-        InstanceId instanceId = event.getInstanceId();
+        InstanceId id = event.getInstanceId();
         Optional<String> oDynamicContent = getDynamicContentAttribute(event);
         return oDynamicContent
-            .map(dynamicContent -> new InstanceId(instanceId.getId()
-                                                      + '-'
-                                                      + normalizeDynamicContent(dynamicContent.toLowerCase(Locale.ROOT))))
-            .orElse(instanceId);
+            .map(s -> new InstanceId(id.getId() + '-' + normalizeDynamicContent(s.toLowerCase(Locale.ROOT))))
+            .orElse(id);
     }
 
     private Optional<InternalEvent> startSession(InternalEventClassifier eventClassifier, InternalEvent triggerEvent) {
