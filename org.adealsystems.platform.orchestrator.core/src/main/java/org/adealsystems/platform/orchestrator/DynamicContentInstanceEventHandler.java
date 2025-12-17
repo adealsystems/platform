@@ -91,7 +91,10 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
 
         if (SessionInitializer.class.isAssignableFrom(handler.getClass())) {
             ((SessionInitializer) handler).initializeSession(session);
-            LOGGER.info("Initialized session: {}, processingState: {}", session, session.getProcessingState());
+            LOGGER.info("Initialized session: {}, processingState: {}",
+                        session.toShortString(),
+                        session.getProcessingState()
+            );
         }
     }
 

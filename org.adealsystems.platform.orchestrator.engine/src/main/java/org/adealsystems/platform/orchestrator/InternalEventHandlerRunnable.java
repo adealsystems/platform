@@ -518,7 +518,7 @@ public class InternalEventHandlerRunnable implements Runnable {
                     );
                     continue;
                 }
-                LOGGER.info("Initializing event with dynamic content {}: '{}'", clonedEvent, content);
+                LOGGER.info("Initializing event with dynamic content {}: '{}'", clonedEvent.toShortString(), content);
                 setDynamicContentAttribute(clonedEvent, content);
             }
 
@@ -960,7 +960,7 @@ public class InternalEventHandlerRunnable implements Runnable {
             sessionId,
             InternalEventHandlerRunnable::terminateSessionProcessingState
         );
-        LOGGER.info("Session stopped: {}", session);
+        LOGGER.info("Session stopped: {}", session.toShortString());
 
         setSessionStateAttribute(stopSessionEvent, session);
         registerInstanceEvent(
@@ -1008,7 +1008,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         LOGGER.info(
             "Session {} will be closed due to one of termination flags, base event: {}",
             sessionId,
-            sessionEvent
+            sessionEvent.toShortString()
         );
         session = sessionRepository.modifySession(
             sessionId,
@@ -1023,11 +1023,11 @@ public class InternalEventHandlerRunnable implements Runnable {
 
         Optional<InternalEvent> oStopSessionEvent = stopSession(sessionEvent);
         if (oStopSessionEvent.isEmpty()) {
-            LOGGER.info("Failed to stop session {}, event {}", sessionId, event);
+            LOGGER.info("Failed to stop session {}, event {}", sessionId, event.toShortString());
             return;
         }
 
-        LOGGER.info("Stop session {} with event {}", sessionId, sessionEvent);
+        LOGGER.info("Stop session {} with event {}", sessionId, sessionEvent.toShortString());
         InternalEvent stopSessionEvent = oStopSessionEvent.get();
         Optional<InternalEvent> stopEvent = deriveSessionStateEvent(stopSessionEvent);
         stopEvent.ifPresent(currentEvents::add);
