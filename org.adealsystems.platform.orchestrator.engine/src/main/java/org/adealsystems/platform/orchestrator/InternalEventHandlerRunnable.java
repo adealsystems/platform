@@ -766,7 +766,9 @@ public class InternalEventHandlerRunnable implements Runnable {
                 }
 
                 LOGGER.warn(
-                    "Unable to add an event, because the sender is in blocking state! Retrying after {} ms",
+                    "Unable to add an event {}, because the sender {} is in blocking state! Retrying after {} ms",
+                    event,
+                    eventSender,
                     BLOCKING_RETRY_DELAY
                 );
                 try {
@@ -778,7 +780,8 @@ public class InternalEventHandlerRunnable implements Runnable {
             }
 
             if (!added) {
-                throw new IllegalStateException("Unable to add an event, because the sender is in blocking state!");
+                LOGGER.error("Unable to add an event {}, because the sender queue is in blocking state!", event);
+                return;
             }
         }
 
