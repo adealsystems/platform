@@ -538,6 +538,11 @@ public final class Session implements Serializable {
     }
 
     public Set<String> getExpectedStateRegistry(String key) {
+        if (state == null) {
+            LOGGER.debug("No session state available in session {}!", id);
+            return Collections.emptySet();
+        }
+
         String expectedKey = REGISTRY_PREFIX_EXPECTED_VALUES_OF + key;
         if (!state.containsKey(expectedKey)) {
             return Collections.emptySet();
@@ -548,6 +553,11 @@ public final class Session implements Serializable {
     }
 
     public boolean isRegistryComplete(String key) {
+        if (state == null) {
+            LOGGER.debug("No session state available in session {}!", id);
+            return false;
+        }
+
         String expectedKey = REGISTRY_PREFIX_EXPECTED_VALUES_OF + key;
         if (!state.containsKey(expectedKey)) {
             return false;
@@ -580,24 +590,26 @@ public final class Session implements Serializable {
         LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault()).minusMinutes(2);
 
         Set<String> outdatedTimers = new HashSet<>();
-        for (Map.Entry<String, String> entry : state.entrySet()) {
-            String key = entry.getKey();
-            if (!key.startsWith(TIMER_PREFIX)) {
-                continue;
-            }
-
-            String value = entry.getValue();
-            try {
-                LocalDateTime timer = LocalDateTime.parse(value, TIMER_FORMATTER);
-                if (now.isAfter(timer)) {
-                    outdatedTimers.add(key);
+        if (state != null) {
+            for (Map.Entry<String, String> entry : state.entrySet()) {
+                String key = entry.getKey();
+                if (!key.startsWith(TIMER_PREFIX)) {
                     continue;
                 }
 
-                timers.put(key.substring(TIMER_PREFIX.length()), timer);
-            }
-            catch(DateTimeParseException ex) {
-                LOGGER.warn("Unable to parse timer '{}'", key, ex);
+                String value = entry.getValue();
+                try {
+                    LocalDateTime timer = LocalDateTime.parse(value, TIMER_FORMATTER);
+                    if (now.isAfter(timer)) {
+                        outdatedTimers.add(key);
+                        continue;
+                    }
+
+                    timers.put(key.substring(TIMER_PREFIX.length()), timer);
+                }
+                catch (DateTimeParseException ex) {
+                    LOGGER.warn("Unable to parse timer '{}'", key, ex);
+                }
             }
         }
 
@@ -669,6 +681,11 @@ public final class Session implements Serializable {
 
     public String findLabeledCommandExecutionId(InternalEvent event, String label) {
         LOGGER.debug("Searching for session attribute with command label '{}' in event {}", label, event);
+
+        if (state == null) {
+            LOGGER.debug("No session state available in session {}!", id);
+            return null;
+        }
 
         for (Map.Entry<String, String> entry : state.entrySet()) {
             String value = entry.getValue();
