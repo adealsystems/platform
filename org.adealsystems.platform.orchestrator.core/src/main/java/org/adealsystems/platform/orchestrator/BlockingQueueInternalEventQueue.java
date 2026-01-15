@@ -70,4 +70,9 @@ public class BlockingQueueInternalEventQueue implements InternalEventSender, Int
             return Optional.empty();
         }
     }
+
+    public InternalEvent peekEvent() {
+        LOGGER.debug("Peek a first available event");
+        return queue.peek();
+    }
 }
