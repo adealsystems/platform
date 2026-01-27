@@ -63,21 +63,19 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
 
     @Override
     public Optional<RunSpecification> getCurrentRun() {
-        DynamicContentAwareHandler handler = resolvePrototypeHandler();
-        return handler.getCurrentRun();
+        return resolvePrototypeHandler().getCurrentRun();
     }
 
     @Override
     public boolean isValid(InternalEvent event) {
         // No dynamic attribute available in the event
-        DynamicContentAwareHandler handler = resolvePrototypeHandler();
-        return handler.isValid(event);
+        return resolvePrototypeHandler().isValid(event);
     }
 
     @Override
     public void initializeSession(Session session) {
         Optional<String> oDynamicContent = session.getStateValue(DYNAMIC_CONTENT_ATTRIBUTE_NAME);
-        if (!oDynamicContent.isPresent()) {
+        if (oDynamicContent.isEmpty()) {
             LOGGER.warn("Session {} does not own dynamic content!", session);
             return;
         }
@@ -91,9 +89,10 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
 
         if (SessionInitializer.class.isAssignableFrom(handler.getClass())) {
             ((SessionInitializer) handler).initializeSession(session);
-            LOGGER.info("Initialized session: {}, processingState: {}",
-                        session.toShortString(),
-                        session.getProcessingState()
+            LOGGER.info(
+                "Initialized session: {}, processingState: {}",
+                session.toShortString(),
+                session.getProcessingState()
             );
         }
     }
@@ -101,20 +100,18 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
     @Override
     public boolean isRelevant(InternalEvent event) {
         // No dynamic attribute available in the event
-        DynamicContentAwareHandler handler = resolvePrototypeHandler();
         LOGGER.debug("Check relevance of '{}'", event.getId());
-        return handler.isRelevant(event);
+        return resolvePrototypeHandler().isRelevant(event);
     }
 
     @Override
     public Optional<Long> getTimeout() {
-        DynamicContentAwareHandler handler = resolvePrototypeHandler();
-        return handler.getTimeout();
+        return resolvePrototypeHandler().getTimeout();
     }
 
     @Override
     public boolean isSessionStartEvent(InternalEvent event) {
-        DynamicContentAwareHandler handler = resolveDynamicHandler(event);
+        DynamicContentAwareHandler handler = resolveDynamicHandler(event).orElse(null);
         if (handler == null) {
             LOGGER.debug("No dynamic handler found for {}", event);
             return false;
@@ -125,10 +122,8 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
 
     @Override
     public boolean isSessionStopEvent(InternalEvent event, Session session) {
-        DynamicContentAwareHandler handler = resolveDynamicHandler(event);
-        if (handler == null) {
-            throw new MissingDynamicHandlerException(event);
-        }
+        DynamicContentAwareHandler handler = resolveDynamicHandler(event)
+            .orElseThrow(() -> new MissingDynamicHandlerException(event));
 
         boolean isStopEvent = handler.isSessionStopEvent(event, session);
         cleanupDynamicContentHandler(event, handler);
@@ -137,33 +132,29 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
 
     @Override
     public boolean isTerminating(InternalEvent event) {
-        DynamicContentAwareHandler handler = resolveDynamicHandler(event);
-        if (handler == null) {
-            throw new MissingDynamicHandlerException(event);
-        }
+        DynamicContentAwareHandler handler = resolveDynamicHandler(event)
+            .orElseThrow(() -> new MissingDynamicHandlerException(event));
+
         return handler.isTerminating(event);
     }
 
     @Override
     public void resetTerminatingFlag(InternalEvent event) {
-        DynamicContentAwareHandler handler = resolveDynamicHandler(event);
-        if (handler == null) {
-            throw new MissingDynamicHandlerException(event);
-        }
+        DynamicContentAwareHandler handler = resolveDynamicHandler(event)
+            .orElseThrow(() -> new MissingDynamicHandlerException(event));
+
         handler.resetTerminatingFlag(event);
     }
 
     @Override
     public Optional<String> determineDynamicContent(InternalEvent event) {
         // No dynamic attribute available in the event
-        DynamicContentAwareHandler handler = resolvePrototypeHandler();
-        return handler.determineDynamicContent(event);
+        return resolvePrototypeHandler().determineDynamicContent(event);
     }
 
     @Override
     public InternalEvent handle(InternalEvent event, Session session) {
-        InstanceEventHandler handler = resolveDynamicHandler(event);
-
+        InstanceEventHandler handler = resolveDynamicHandler(event).orElse(null);
         if (handler == null) {
             LOGGER.debug("No dynamic content handler found for event {}", event);
             return event;
@@ -184,12 +175,12 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
         return handler;
     }
 
-    private DynamicContentAwareHandler resolveDynamicHandler(InternalEvent event) {
+    private Optional<DynamicContentAwareHandler> resolveDynamicHandler(InternalEvent event) {
         LOGGER.debug("resolving dynamic handler for class {} and {}", handlerClass, event);
         Optional<String> oDynamicContent = InternalEvent.getDynamicContentAttribute(event);
-        if (!oDynamicContent.isPresent()) {
+        if (oDynamicContent.isEmpty()) {
             LOGGER.debug("No dynamic content found in (dynamic) {}", event);
-            return null;
+            return Optional.empty();
         }
 
         String dynamicContent = oDynamicContent.get();
@@ -200,12 +191,12 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
             dynamicHandlers.put(dynamicContent, handler);
         }
 
-        return handler;
+        return Optional.of(handler);
     }
 
     private void cleanupDynamicContentHandler(InternalEvent event, DynamicContentAwareHandler handler) {
         Optional<String> oDynamicContent = InternalEvent.getDynamicContentAttribute(event);
-        if (!oDynamicContent.isPresent()) {
+        if (oDynamicContent.isEmpty()) {
             LOGGER.debug("No dynamic content found in (dynamic) event {}", event);
             return;
         }
