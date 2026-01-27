@@ -587,7 +587,9 @@ public final class Session implements Serializable {
     public Map<String, LocalDateTime> getActiveTimers() {
         Map<String, LocalDateTime> timers = new HashMap<>();
 
-        LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault()).minusMinutes(2);
+        LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault())
+            .withNano(0)
+            .minusMinutes(2);
 
         Set<String> outdatedTimers = new HashSet<>();
         if (state != null) {

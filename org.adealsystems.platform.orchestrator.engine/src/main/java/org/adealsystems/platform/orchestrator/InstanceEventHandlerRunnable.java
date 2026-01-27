@@ -126,11 +126,14 @@ public class InstanceEventHandlerRunnable implements Runnable {
                 if (event.getType() == InternalEventType.TIMER) {
                     Map<String, LocalDateTime> timers = session.getActiveTimers();
                     if (!timers.isEmpty()) {
-                        LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault()).minusMinutes(1);
+                        LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault())
+                            .withNano(0)
+                            .minusMinutes(1);
                         for (Map.Entry<String, LocalDateTime> entry : timers.entrySet()) {
-                            String key = entry.getKey();
                             LocalDateTime timer = entry.getValue();
-                            if (now.isAfter(timer)) {
+                            if (!timer.isBefore(now)) {
+                                String key = entry.getKey();
+
                                 // trigger a timer event
                                 InternalEvent timerEvent = createTimerEvent(key, session);
                                 rawEventSender.sendEvent(timerEvent);
