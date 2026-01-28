@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -145,7 +144,7 @@ public class InstanceEventHandlerRunnable implements Runnable {
                                 session.extendStateRegistry(Session.TRIGGERED_TIMER, key + ':' + timer);
                             }
                             else {
-                                long timeToTimer = Duration.between(now, timer).get(ChronoUnit.MINUTES);
+                                long timeToTimer = Duration.between(now, timer).toMinutes();
                                 session.setStateValue(Session.EXPECTED_TIMER_PREFIX + key, String.valueOf(timeToTimer));
                             }
                         }
