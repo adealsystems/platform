@@ -486,7 +486,7 @@ public class InternalEventHandlerRunnable implements Runnable {
 
             // Special handling for ABORT events
             // TODO: determine referenced sessions, check if they are active and set a finished/cancelled/failed
-            //  or whatever flag. Also verify, if session needs an event to close itself!
+            // or whatever flag. Also verify, if session needs an event to close itself!
 
             boolean relevantForClassifier = eventClassifier.isRelevant(clonedEvent);
             boolean relevant = false;

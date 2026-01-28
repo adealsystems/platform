@@ -131,7 +131,7 @@ public class InstanceEventHandlerRunnable implements Runnable {
                             .minusMinutes(1);
                         for (Map.Entry<String, LocalDateTime> entry : timers.entrySet()) {
                             LocalDateTime timer = entry.getValue();
-                            if (!timer.isBefore(now)) {
+                            if (timer.isBefore(now)) {
                                 String key = entry.getKey();
 
                                 // trigger a timer event
@@ -140,6 +140,7 @@ public class InstanceEventHandlerRunnable implements Runnable {
 
                                 // remove the triggered timer
                                 session.removeTimer(key);
+                                session.setStateValue("triggered_timer", key + ':' + timer);
                             }
                         }
                     }
