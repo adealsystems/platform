@@ -81,6 +81,9 @@ public final class Session implements Serializable {
     public static final String LOCKED_EVENTS = "locked-events";
     public static final String UPDATE_HISTORY = "update-history";
 
+    public static final String EXPECTED_TIMER_PREFIX = "expected-timer--";
+    public static final String TRIGGERED_TIMER = "triggered-timer";
+    public static final String OUTDATED_TIMER_REGISTRY = "outdated-timer";
     private static final String TIMER_PREFIX = "timer--";
     private static final DateTimeFormatter TIMER_FORMATTER =
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT);
@@ -589,6 +592,7 @@ public final class Session implements Serializable {
 
         LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault())
             .withNano(0)
+            .withSecond(0)
             .minusMinutes(2);
 
         Set<String> outdatedTimers = new HashSet<>();
@@ -619,6 +623,7 @@ public final class Session implements Serializable {
         if (!outdatedTimers.isEmpty()) {
             for (String outdated : outdatedTimers) {
                 setStateValue(outdated, null);
+                extendStateRegistry(OUTDATED_TIMER_REGISTRY, outdated);
             }
         }
 

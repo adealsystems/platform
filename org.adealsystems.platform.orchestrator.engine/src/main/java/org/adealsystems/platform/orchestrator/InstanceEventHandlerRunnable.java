@@ -22,8 +22,10 @@ import org.adealsystems.platform.orchestrator.status.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -128,19 +130,23 @@ public class InstanceEventHandlerRunnable implements Runnable {
                     if (!timers.isEmpty()) {
                         LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault())
                             .withNano(0)
+                            .withSecond(0)
                             .minusMinutes(1);
                         for (Map.Entry<String, LocalDateTime> entry : timers.entrySet()) {
+                            String key = entry.getKey();
                             LocalDateTime timer = entry.getValue();
                             if (timer.isBefore(now)) {
-                                String key = entry.getKey();
-
                                 // trigger a timer event
                                 InternalEvent timerEvent = createTimerEvent(key, session);
                                 rawEventSender.sendEvent(timerEvent);
 
                                 // remove the triggered timer
                                 session.removeTimer(key);
-                                session.setStateValue("triggered_timer", key + ':' + timer);
+                                session.extendStateRegistry(Session.TRIGGERED_TIMER, key + ':' + timer);
+                            }
+                            else {
+                                long timeToTimer = Duration.between(now, timer).get(ChronoUnit.MINUTES);
+                                session.setStateValue(Session.EXPECTED_TIMER_PREFIX + key, String.valueOf(timeToTimer));
                             }
                         }
                     }
