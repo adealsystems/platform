@@ -142,6 +142,7 @@ public class InstanceEventHandlerRunnable implements Runnable {
                                 // remove the triggered timer
                                 session.removeTimer(key);
                                 session.extendStateRegistry(Session.TRIGGERED_TIMER, key + ':' + timer);
+                                session.setStateValue(Session.EXPECTED_TIMER_PREFIX + key, null);
                             }
                             else {
                                 long timeToTimer = Duration.between(now, timer).toMinutes();
