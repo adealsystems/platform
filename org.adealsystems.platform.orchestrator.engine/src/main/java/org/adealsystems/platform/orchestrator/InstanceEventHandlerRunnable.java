@@ -75,115 +75,123 @@ public class InstanceEventHandlerRunnable implements Runnable {
     @Override
     public void run() {
         while (true) {
-            LOGGER.debug("Waiting for the next available event for {}", instanceId);
-            Optional<InternalEvent> oEvent = eventReceiver.receiveEvent();
-            if (oEvent.isEmpty()) {
-                LOGGER.info("Shutting down.");
-                return;
-            }
-
-            InternalEvent event = oEvent.get();
-            if (!instanceId.equals(event.getInstanceId())) {
-                LOGGER.warn("Missing or invalid instanceId for '{}' in event {}! Ignoring...", instanceId, event);
-                continue;
-            }
-
-            SessionId sessionId = event.getSessionId();
-            if (sessionId == null) {
-                LOGGER.warn("No sessionId found in event {}! Ignoring...", event);
-                continue;
-            }
-
-            LOGGER.debug("Processing the event {} for {}", event, instanceId);
-
-            Optional<Session> oSession = sessionRepository.retrieveSession(sessionId);
-            if (oSession.isEmpty()) {
-                LOGGER.warn("No session available for instanceId {} and sessionId {}!", instanceId, sessionId);
-                continue;
-            }
-
-            Session session = oSession.get();
-
-            State currentState = session.getProcessingState().getState();
-            Set<String> deps = session.getStateRegistry(REG_DEPENDENCIES);
-            switch (currentState) {
-                case READY_TO_RUN:
-                    // initialize session's state
-                    session.updateState(deps.isEmpty() ? State.RUNNING : State.WAITING_FOR_DEPENDENCIES);
-                    break;
-
-                case WAITING_FOR_DEPENDENCIES:
-                    if (deps.isEmpty()) {
-                        session.updateState(State.RUNNING);
-                    }
-                    break;
-
-                default:
-                    // nothing
-            }
-
             try {
-                // Special handling for MINUTE TIMER events
-                if (event.getType() == InternalEventType.TIMER) {
-                    Map<String, LocalDateTime> timers = session.getActiveTimers();
-                    if (!timers.isEmpty()) {
-                        LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault())
-                            .withNano(0)
-                            .withSecond(0)
-                            .minusMinutes(1);
-                        for (Map.Entry<String, LocalDateTime> entry : timers.entrySet()) {
-                            String key = entry.getKey();
-                            LocalDateTime timer = entry.getValue();
-                            if (timer.isBefore(now)) {
-                                // trigger a timer event
-                                InternalEvent timerEvent = createTimerEvent(key, session);
-                                rawEventSender.sendEvent(timerEvent);
+                LOGGER.debug("Waiting for the next available event for {}", instanceId);
+                Optional<InternalEvent> oEvent = eventReceiver.receiveEvent();
+                if (oEvent.isEmpty()) {
+                    LOGGER.info("Shutting down.");
+                    return;
+                }
 
-                                // remove the triggered timer
-                                session.removeTimer(key);
-                                session.extendStateRegistry(Session.TRIGGERED_TIMER, key + ':' + timer);
-                                session.setStateValue(Session.EXPECTED_TIMER_PREFIX + key, null);
-                            }
-                            else {
-                                long timeToTimer = Duration.between(now, timer).toMinutes();
-                                session.setStateValue(Session.EXPECTED_TIMER_PREFIX + key, String.valueOf(timeToTimer));
+                InternalEvent event = oEvent.get();
+                if (!instanceId.equals(event.getInstanceId())) {
+                    LOGGER.warn("Missing or invalid instanceId for '{}' in event {}! Ignoring...", instanceId, event);
+                    continue;
+                }
+
+                SessionId sessionId = event.getSessionId();
+                if (sessionId == null) {
+                    LOGGER.warn("No sessionId found in event {}! Ignoring...", event);
+                    continue;
+                }
+
+                LOGGER.debug("Processing the event {} for {}", event, instanceId);
+
+                Optional<Session> oSession = sessionRepository.retrieveSession(sessionId);
+                if (oSession.isEmpty()) {
+                    LOGGER.warn("No session available for instanceId {} and sessionId {}!", instanceId, sessionId);
+                    continue;
+                }
+
+                Session session = oSession.get();
+
+                State currentState = session.getProcessingState().getState();
+                Set<String> deps = session.getStateRegistry(REG_DEPENDENCIES);
+                switch (currentState) {
+                    case READY_TO_RUN:
+                        // initialize session's state
+                        session.updateState(deps.isEmpty() ? State.RUNNING : State.WAITING_FOR_DEPENDENCIES);
+                        break;
+
+                    case WAITING_FOR_DEPENDENCIES:
+                        if (deps.isEmpty()) {
+                            session.updateState(State.RUNNING);
+                        }
+                        break;
+
+                    default:
+                        // nothing
+                }
+
+                try {
+                    // Special handling for MINUTE TIMER events
+                    if (event.getType() == InternalEventType.TIMER) {
+                        Map<String, LocalDateTime> timers = session.getActiveTimers();
+                        if (!timers.isEmpty()) {
+                            LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault())
+                                .withNano(0)
+                                .withSecond(0)
+                                .minusMinutes(1);
+                            for (Map.Entry<String, LocalDateTime> entry : timers.entrySet()) {
+                                String key = entry.getKey();
+                                LocalDateTime timer = entry.getValue();
+                                if (timer.isBefore(now)) {
+                                    // trigger a timer event
+                                    InternalEvent timerEvent = createTimerEvent(key, session);
+                                    rawEventSender.sendEvent(timerEvent);
+
+                                    // remove the triggered timer
+                                    session.removeTimer(key);
+                                    session.extendStateRegistry(Session.TRIGGERED_TIMER, key + ':' + timer);
+                                    session.setStateValue(Session.EXPECTED_TIMER_PREFIX + key, null);
+                                }
+                                else {
+                                    long timeToTimer = Duration.between(now, timer).toMinutes();
+                                    session.setStateValue(
+                                        Session.EXPECTED_TIMER_PREFIX + key,
+                                        String.valueOf(timeToTimer)
+                                    );
+                                }
                             }
                         }
                     }
+
+                    if (instanceEventHandler.isRelevant(event)) {
+                        LOGGER.debug("Handling event {} with {} (session: {})", event, instanceId, sessionId);
+                        InternalEvent returnedEvent = instanceEventHandler.handle(event, session);
+                        LOGGER.debug("Session of {} after handling event {}: {}", instanceId, event, session);
+                        InternalEvent processedEvent = InternalEvent.deriveProcessedInstance(returnedEvent);
+                        eventHistory.add(processedEvent);
+                    }
+                }
+                catch (Exception ex) {
+                    LOGGER.error("Exception while handling event {} with session {}!", event, session, ex);
                 }
 
-                if (instanceEventHandler.isRelevant(event)) {
-                    LOGGER.debug("Handling event {} with {} (session: {})", event, instanceId, sessionId);
-                    InternalEvent returnedEvent = instanceEventHandler.handle(event, session);
-                    LOGGER.debug("Session of {} after handling event {}: {}", instanceId, event, session);
-                    InternalEvent processedEvent = InternalEvent.deriveProcessedInstance(returnedEvent);
-                    eventHistory.add(processedEvent);
+                if (instanceEventHandler.isTerminating(event)) {
+                    LOGGER.debug("Finalizing session {}", session);
+                    session.updateTimestamp(SessionTimestamp.TERMINATED, LocalDateTime.now(ZoneId.systemDefault()));
+                    session.updateMessage(SessionProcessingState.buildTerminationMessage(session));
+
+                    SessionProcessingState state = session.getProcessingState();
+                    if (!FINAL_UNSUCCESSFUL_STATES.contains(state.getState())) {
+                        session.updateState(State.DONE);
+                    }
+
+                    // reset terminating flag
+                    instanceEventHandler.resetTerminatingFlag(event);
                 }
+
+                LOGGER.debug("Updating session to {}.", session);
+                Session updatedSession = sessionRepository.updateSession(session);
+
+                InternalEvent changeSessionEvent = createSessionStateEvent(updatedSession);
+                LOGGER.debug("Sending change session event {} to handler for {}", event, instanceId);
+                rawEventSender.sendEvent(changeSessionEvent);
             }
             catch (Exception ex) {
-                LOGGER.error("Exception while handling event {} with session {}!", event, session, ex);
+                LOGGER.error("Uncaught exception catch!", ex);
             }
-
-            if (instanceEventHandler.isTerminating(event)) {
-                LOGGER.debug("Finalizing session {}", session);
-                session.updateTimestamp(SessionTimestamp.TERMINATED, LocalDateTime.now(ZoneId.systemDefault()));
-                session.updateMessage(SessionProcessingState.buildTerminationMessage(session));
-
-                SessionProcessingState state = session.getProcessingState();
-                if (!FINAL_UNSUCCESSFUL_STATES.contains(state.getState())) {
-                    session.updateState(State.DONE);
-                }
-
-                // reset terminating flag
-                instanceEventHandler.resetTerminatingFlag(event);
-            }
-
-            LOGGER.debug("Updating session to {}.", session);
-            Session updatedSession = sessionRepository.updateSession(session);
-
-            InternalEvent changeSessionEvent = createSessionStateEvent(updatedSession);
-            LOGGER.debug("Sending change session event {} to handler for {}", event, instanceId);
-            rawEventSender.sendEvent(changeSessionEvent);
         }
     }
 
