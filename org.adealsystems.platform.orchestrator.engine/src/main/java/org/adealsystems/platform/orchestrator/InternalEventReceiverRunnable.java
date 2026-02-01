@@ -54,51 +54,54 @@ public class InternalEventReceiverRunnable implements Runnable {
 
         // should be started as daemon thread
         while (true) {
-            List<Message> messages;
             try {
-                messages = sqsClient.receiveMessage(receiveMessageRequest).messages();
-            } catch (Exception ex) {
-                LOGGER.error("Failed to receive messages!", ex);
-                continue;
-            }
-
-            if (messages.isEmpty()) {
+                List<Message> messages;
                 try {
-                    sleep(5_000);
-                } catch (InterruptedException ex) {
-                    break;
+                    messages = sqsClient.receiveMessage(receiveMessageRequest).messages();
                 }
-
-                continue;
-            }
-
-            for (Message message : messages) {
-                LOGGER.debug("Processing message {}", message);
-
-                String messageBody = message.body();
-                InternalEvent event;
-                try {
-                    event = OBJECT_MAPPER.readValue(messageBody, InternalEvent.class);
-                } catch (JsonProcessingException ex) {
-                    LOGGER.error("Error reading message body {}!", messageBody, ex);
-                    deleteMessage(message);
+                catch (Exception ex) {
+                    LOGGER.error("Failed to receive messages!", ex);
                     continue;
                 }
 
-                LOGGER.info("About to send event {}", event);
-                try {
-                    eventSender.sendEvent(event);
-                } catch (Exception ex) {
-                    LOGGER.error("Error sending event {}!", event, ex);
+                if (messages.isEmpty()) {
+                    sleep(5_000);
+                    continue;
                 }
 
-                deleteMessage(message);
-            }
+                for (Message message : messages) {
+                    LOGGER.debug("Processing message {}", message);
 
-            try {
+                    String messageBody = message.body();
+                    InternalEvent event;
+                    try {
+                        event = OBJECT_MAPPER.readValue(messageBody, InternalEvent.class);
+                    }
+                    catch (JsonProcessingException ex) {
+                        LOGGER.error("Error reading message body {}!", messageBody, ex);
+                        deleteMessage(message);
+                        continue;
+                    }
+
+                    LOGGER.info("About to send event {}", event);
+                    try {
+                        eventSender.sendEvent(event);
+                    }
+                    catch (Exception ex) {
+                        LOGGER.error("Error sending event {}!", event, ex);
+                    }
+
+                    deleteMessage(message);
+                }
+
                 sleep(100);
-            } catch (InterruptedException ex) {
+            }
+            catch (InterruptedException ex) {
+                LOGGER.info("Interrupting thread!", ex);
                 break;
+            }
+            catch (Throwable th) {
+                LOGGER.error("Unexpected error occurred", th);
             }
         }
     }

@@ -27,7 +27,6 @@ import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -63,54 +62,57 @@ public class S3EventReceiverRunnable implements Runnable {
 
         // should be started as daemon thread
         while (true) {
-            List<Message> messages;
             try {
-                messages = sqsClient.receiveMessage(receiveMessageRequest).messages();
-            } catch (Exception ex) {
-                LOGGER.error("Failed to receive messages!", ex);
-                continue;
-            }
-
-            if (messages.isEmpty()) {
+                List<Message> messages;
                 try {
-                    sleep(5_000);
-                } catch (InterruptedException ex) {
-                    break;
+                    messages = sqsClient.receiveMessage(receiveMessageRequest).messages();
                 }
-
-                continue;
-            }
-
-            for (Message message : messages) {
-                LOGGER.debug("Processing message {}", message);
-
-                String messageBody = message.body();
-                S3EventNotification s3EventNotification;
-                try {
-                    s3EventNotification = OBJECT_MAPPER.readValue(messageBody, S3EventNotification.class);
-                } catch (JsonProcessingException ex) {
-                    LOGGER.error("Error reading message body {}!", messageBody, ex);
-                    deleteMessage(message);
+                catch (Exception ex) {
+                    LOGGER.error("Failed to receive messages!", ex);
                     continue;
                 }
 
-                List<InternalEvent> events = convertNotification(s3EventNotification);
-                for (InternalEvent event : events) {
-                    LOGGER.info("About to send event {}", event);
-                    try {
-                        eventSender.sendEvent(event);
-                    } catch (Exception ex) {
-                        LOGGER.error("Error sending event {}!", event, ex);
-                    }
+                if (messages.isEmpty()) {
+                    sleep(5_000);
+                    continue;
                 }
 
-                deleteMessage(message);
-            }
+                for (Message message : messages) {
+                    LOGGER.debug("Processing message {}", message);
 
-            try {
+                    String messageBody = message.body();
+                    S3EventNotification s3EventNotification;
+                    try {
+                        s3EventNotification = OBJECT_MAPPER.readValue(messageBody, S3EventNotification.class);
+                    }
+                    catch (JsonProcessingException ex) {
+                        LOGGER.error("Error reading message body {}!", messageBody, ex);
+                        deleteMessage(message);
+                        continue;
+                    }
+
+                    List<InternalEvent> events = convertNotification(s3EventNotification);
+                    for (InternalEvent event : events) {
+                        LOGGER.info("About to send event {}", event);
+                        try {
+                            eventSender.sendEvent(event);
+                        }
+                        catch (Exception ex) {
+                            LOGGER.error("Error sending event {}!", event, ex);
+                        }
+                    }
+
+                    deleteMessage(message);
+                }
+
                 sleep(100);
-            } catch (InterruptedException ex) {
+            }
+            catch (InterruptedException ex) {
+                LOGGER.info("Interrupting thread!", ex);
                 break;
+            }
+            catch (Throwable ex) {
+                LOGGER.error("Error occurred inside thread loop!", ex);
             }
         }
     }
@@ -159,13 +161,7 @@ public class S3EventReceiverRunnable implements Runnable {
             return null;
         }
 
-        String eventId;
-        try {
-            eventId = URLDecoder.decode(object.getKey(), StandardCharsets.ISO_8859_1.toString());
-        } catch (UnsupportedEncodingException ex) {
-            eventId = object.getKey();
-            LOGGER.warn("Unable to decode eventId {}", eventId, ex);
-        }
+        String eventId = URLDecoder.decode(object.getKey(), StandardCharsets.ISO_8859_1);
 
         InternalEvent event = new InternalEvent();
         event.setType(InternalEventType.FILE);

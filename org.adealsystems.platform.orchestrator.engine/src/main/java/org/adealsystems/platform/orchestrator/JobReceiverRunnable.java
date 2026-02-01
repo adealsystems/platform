@@ -131,18 +131,11 @@ public class JobReceiverRunnable implements Runnable {
                 }
 
                 // delay before next check
-                try {
-                    if (waitingMode) {
-                        sleep(waitingInterval);
-                    }
-                    else {
-                        // sleep short
-                        sleep(100);
-                    }
-                }
-                catch (InterruptedException ex) {
-                    break;
-                }
+                sleep(waitingMode ? waitingInterval : 100);
+            }
+            catch (InterruptedException ex) {
+                LOGGER.info("Interrupting thread!", ex);
+                break;
             }
             catch(Throwable th) {
                 LOGGER.error("Error occurred inside thread loop!", th);

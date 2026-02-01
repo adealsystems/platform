@@ -124,7 +124,7 @@ public class SessionsSupervisorRunnable implements Runnable {
                 sleepInterval = SHORT_SLEEP_INTERVAL;
                 for (InstanceId instanceId : activeInstances) {
                     Optional<SessionId> oSessionId = activeSessionIdRepository.retrieveActiveSessionId(instanceId);
-                    if (!oSessionId.isPresent()) {
+                    if (oSessionId.isEmpty()) {
                         LOGGER.debug("No active session found for '{}', strange...", instanceId);
                         continue;
                     }
@@ -175,8 +175,8 @@ public class SessionsSupervisorRunnable implements Runnable {
                 LOGGER.info("Interrupting thread!", ex);
                 break;
             }
-            catch (Throwable ex) {
-                LOGGER.error("Unexpected error occurred", ex);
+            catch (Throwable th) {
+                LOGGER.error("Unexpected error occurred", th);
             }
         }
     }

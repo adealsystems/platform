@@ -189,8 +189,8 @@ public class InstanceEventHandlerRunnable implements Runnable {
                 LOGGER.debug("Sending change session event {} to handler for {}", event, instanceId);
                 rawEventSender.sendEvent(changeSessionEvent);
             }
-            catch (Exception ex) {
-                LOGGER.error("Uncaught exception catch!", ex);
+            catch (Throwable th) {
+                LOGGER.error("Error occurred inside thread loop!", th);
             }
         }
     }

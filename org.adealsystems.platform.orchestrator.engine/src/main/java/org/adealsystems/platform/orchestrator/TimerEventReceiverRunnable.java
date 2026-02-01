@@ -53,56 +53,67 @@ public class TimerEventReceiverRunnable implements Runnable {
 
         // should be started as daemon thread
         while (true) {
-            LocalDateTime timestamp = LocalDateTime.now(ZoneId.systemDefault());
+            try {
+                LocalDateTime timestamp = LocalDateTime.now(ZoneId.systemDefault());
 
-            if (lastTimestamp == null) {
-                LOGGER.debug("Initializing timer with {} ...", timestamp);
-                lastTimestamp = timestamp.withSecond(1).withNano(0);
-            }
-            else {
-                Duration duration = Duration.between(lastTimestamp, timestamp);
-                LOGGER.debug("Comparing timestamp {} with {} ...", lastTimestamp, timestamp);
-                if (duration.compareTo(TIMER_STEP) >= 0) {
-                    String eventId = TIMER_FORMATTER.format(timestamp);
-                    String date = DATE_FORMATTER.format(timestamp);
-                    String dayOfMonth = String.valueOf(timestamp.getDayOfMonth());
-                    String dayOfWeek = String.valueOf(timestamp.get(ChronoField.DAY_OF_WEEK));
+                if (lastTimestamp == null) {
+                    LOGGER.debug("Initializing timer with {} ...", timestamp);
+                    lastTimestamp = timestamp.withSecond(1).withNano(0);
+                }
+                else {
+                    Duration duration = Duration.between(lastTimestamp, timestamp);
+                    LOGGER.debug("Comparing timestamp {} with {} ...", lastTimestamp, timestamp);
+                    if (duration.compareTo(TIMER_STEP) >= 0) {
+                        String eventId = TIMER_FORMATTER.format(timestamp);
+                        String date = DATE_FORMATTER.format(timestamp);
+                        String dayOfMonth = String.valueOf(timestamp.getDayOfMonth());
+                        String dayOfWeek = String.valueOf(timestamp.get(ChronoField.DAY_OF_WEEK));
 
-                    // send the next event
-                    InternalEvent timerEvent = new InternalEvent(); // NOPMD
-                    timerEvent.setId(eventId);
-                    timerEvent.setType(InternalEventType.TIMER);
-                    timerEvent.setTimestamp(timestamp);
-                    timerEvent.setAttributeValue(DATE_ATTRIBUTE, date);
-                    timerEvent.setAttributeValue(DAY_OF_WEEK_ATTRIBUTE, dayOfWeek);
-                    timerEvent.setAttributeValue(DAY_OF_MONTH_ATTRIBUTE, dayOfMonth);
+                        // send the next event
+                        InternalEvent timerEvent = new InternalEvent(); // NOPMD
+                        timerEvent.setId(eventId);
+                        timerEvent.setType(InternalEventType.TIMER);
+                        timerEvent.setTimestamp(timestamp);
+                        timerEvent.setAttributeValue(DATE_ATTRIBUTE, date);
+                        timerEvent.setAttributeValue(DAY_OF_WEEK_ATTRIBUTE, dayOfWeek);
+                        timerEvent.setAttributeValue(DAY_OF_MONTH_ATTRIBUTE, dayOfMonth);
 
-                    InternalEvent cancelEvent = new InternalEvent(); // NOPMD
-                    cancelEvent.setId(eventId);
-                    cancelEvent.setType(InternalEventType.CANCEL);
-                    cancelEvent.setTimestamp(timestamp);
-                    cancelEvent.setAttributeValue(DATE_ATTRIBUTE, date);
-                    cancelEvent.setAttributeValue(DAY_OF_WEEK_ATTRIBUTE, dayOfWeek);
-                    cancelEvent.setAttributeValue(DAY_OF_MONTH_ATTRIBUTE, dayOfMonth);
+                        InternalEvent cancelEvent = new InternalEvent(); // NOPMD
+                        cancelEvent.setId(eventId);
+                        cancelEvent.setType(InternalEventType.CANCEL);
+                        cancelEvent.setTimestamp(timestamp);
+                        cancelEvent.setAttributeValue(DATE_ATTRIBUTE, date);
+                        cancelEvent.setAttributeValue(DAY_OF_WEEK_ATTRIBUTE, dayOfWeek);
+                        cancelEvent.setAttributeValue(DAY_OF_MONTH_ATTRIBUTE, dayOfMonth);
 
-                    LOGGER.debug("Sending a new timer/cancel events {}, {}", timerEvent, cancelEvent);
-                    try {
-                        eventSender.sendEvent(timerEvent);
-                        eventSender.sendEvent(cancelEvent);
-                    } catch (Exception ex) {
-                        LOGGER.error("Error sending events {}/{}!", timerEvent, cancelEvent, ex);
+                        LOGGER.debug("Sending a new timer/cancel events {}, {}", timerEvent, cancelEvent);
+                        try {
+                            eventSender.sendEvent(timerEvent);
+                            eventSender.sendEvent(cancelEvent);
+                        }
+                        catch (Exception ex) {
+                            LOGGER.error("Error sending events {}/{}!", timerEvent, cancelEvent, ex);
+                        }
+
+                        // update last timestamp
+                        lastTimestamp = timestamp;
                     }
+                }
 
-                    // update last timestamp
-                    lastTimestamp = timestamp;
+                try {
+                    sleep(10_000);
+                }
+                catch (InterruptedException ex) {
+                    break;
                 }
             }
-
-            try {
-                Thread.sleep(10_000);
-            } catch (InterruptedException ex) {
-                break;
+            catch (Throwable th) {
+                LOGGER.error("Unexpected error occurred", th);
             }
         }
+    }
+
+    private void sleep(long value) throws InterruptedException {
+        Thread.sleep(value);
     }
 }
