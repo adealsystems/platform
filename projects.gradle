@@ -118,6 +118,14 @@ def platformState = project(':org.adealsystems.platform.state') {
 def platformQueue = project(':org.adealsystems.platform.queue') {
     description = "Queue-related code"
     dependencies {
+        implementation libraries.'commons-text'
+    }
+}
+
+def platformQueueAws = project(':org.adealsystems.platform.queue.aws') {
+    description = "Queue-related code"
+    dependencies {
+        implementation platformQueue
         implementation libraries.'aws-sdk-sqs'
         implementation libraries.'commons-text'
     }

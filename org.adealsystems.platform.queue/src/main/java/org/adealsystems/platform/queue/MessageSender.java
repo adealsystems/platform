@@ -16,8 +16,12 @@
 
 package org.adealsystems.platform.queue;
 
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
-
 public interface MessageSender {
-    SendMessageResponse sendMessage(String queue, String message);
+    /**
+     *
+     * @param queue the queue name
+     * @param message the message to be sent
+     * @return messageId of the message
+     */
+    String sendMessage(String queue, String message);
 }

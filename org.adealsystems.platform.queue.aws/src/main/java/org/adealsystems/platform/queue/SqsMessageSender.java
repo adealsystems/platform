@@ -18,7 +18,6 @@ package org.adealsystems.platform.queue;
 
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 import software.amazon.awssdk.services.sqs.model.SqsException;
 
 import java.util.Objects;
@@ -31,7 +30,7 @@ public class SqsMessageSender implements MessageSender {
     }
 
     @Override
-    public SendMessageResponse sendMessage(String queue, String message) {
+    public String sendMessage(String queue, String message) {
         Objects.requireNonNull(queue, "queue must not be null!");
         Objects.requireNonNull(message, "message must not be null!");
 
@@ -42,32 +41,12 @@ public class SqsMessageSender implements MessageSender {
                 .messageBody(message)
                 .build();
 
-            return sqsClient.sendMessage(messageRequest);
+            return sqsClient.sendMessage(messageRequest).messageId();
         }
         catch (SqsException ex) {
             throw new SqsSendMessageException(
-                "AwsSqsSendMessageExecutor failed. Error writing message body '"
-                    + message
-                    + "'!", ex);
+                "AwsSqsSendMessageExecutor failed. Error writing message body '" + message + "'!", ex
+            );
         }
     }
-
-    //    private SqsClient getSqsClient() {
-    //        return SqsClient
-    //            .builder()
-    //            .region(Region.of(awsRegion))
-    //            .credentialsProvider(credentialsProvider)
-    //            //            .credentialsProvider(() -> new AwsCredentials() {
-    //            //                @Override
-    //            //                public String accessKeyId() {
-    //            //                    return awsCredentialsOrchestrator.getAwsAccessKey();
-    //            //                }
-    //            //
-    //            //                @Override
-    //            //                public String secretAccessKey() {
-    //            //                    return awsCredentialsOrchestrator.getAwsSecretKey();
-    //            //                }
-    //            //            })
-    //            .build();
-    //    }
 }

@@ -20,5 +20,13 @@ import java.util.List;
 import java.util.function.Function;
 
 public interface MessageReceiver {
+    /**
+     * Gets and removes available messages from the queue.
+     *
+     * @param queue the queue name
+     * @param convert the function to convert a message to the result object
+     * @return List of converted objects, built from available messages
+     * @param <T> the target object type
+     */
     <T> List<T> receiveMessages(String queue, Function<String, T> convert);
 }
