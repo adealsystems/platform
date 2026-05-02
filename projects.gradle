@@ -293,6 +293,64 @@ def orchestratorCore = project(':org.adealsystems.platform.orchestrator.core') {
     }
 }
 
+def orchestratorExecutor = project(':org.adealsystems.platform.orchestrator.executor') {
+    dependencies {
+        implementation platformId
+        implementation platformIo
+        implementation platformIoCompression
+        implementation platformIoJson
+        implementation platformProcess
+        implementation platformState
+        implementation orchestratorCore
+
+        implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
+
+        implementation libraries.'sulky-ulid'
+        implementation libraries.'commons-lang'
+        implementation libraries.'jackson-datatype-jsr310'
+    }
+}
+
+def orchestratorExecutorAws = project(':org.adealsystems.platform.orchestrator.executor.aws') {
+    dependencies {
+        implementation platformId
+        implementation platformIo
+        implementation platformIoCompression
+        implementation platformIoJson
+        implementation platformProcess
+        implementation platformState
+        implementation orchestratorExecutor
+        implementation orchestratorCore
+
+        implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
+
+        implementation libraries.'aws-sdk-sns'
+        implementation libraries.'aws-sdk-sqs'
+        implementation libraries.'aws-sdk-s3'
+        implementation libraries.'commons-lang'
+        implementation libraries.'spring-context'
+        implementation libraries.'spring-cloud-aws-messaging'
+        implementation libraries.'jackson-datatype-jsr310'
+    }
+}
+def orchestratorExecutorJenkins = project(':org.adealsystems.platform.orchestrator.executor.jenkins') {
+    dependencies {
+        implementation platformId
+        implementation platformIo
+        implementation platformIoCompression
+        implementation platformIoJson
+        implementation platformProcess
+        implementation platformState
+        implementation orchestratorExecutor
+        implementation orchestratorCore
+
+        implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
+
+        implementation libraries.'commons-lang'
+        implementation libraries.'jackson-datatype-jsr310'
+    }
+}
+
 def orchestratorEngine = project(':org.adealsystems.platform.orchestrator.engine') {
     dependencies {
         implementation platformId
@@ -301,6 +359,7 @@ def orchestratorEngine = project(':org.adealsystems.platform.orchestrator.engine
         implementation platformIoJson
         implementation platformProcess
         implementation platformState
+        implementation orchestratorExecutor
         implementation orchestratorCore
 
         implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary

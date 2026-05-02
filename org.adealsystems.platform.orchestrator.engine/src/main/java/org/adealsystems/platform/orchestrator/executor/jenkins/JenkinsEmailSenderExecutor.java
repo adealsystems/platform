@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.orchestrator.executor.email;
+package org.adealsystems.platform.orchestrator.executor.jenkins;
 
 import org.adealsystems.platform.orchestrator.executor.CommandIdGenerator;
 import org.adealsystems.platform.orchestrator.executor.ExecutorExitCode;
 import org.adealsystems.platform.orchestrator.executor.ExecutorResult;
+import org.adealsystems.platform.orchestrator.executor.email.EmailSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

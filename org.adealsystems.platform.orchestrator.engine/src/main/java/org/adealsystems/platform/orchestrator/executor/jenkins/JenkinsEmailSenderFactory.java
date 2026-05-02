@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.orchestrator.executor.email;
+package org.adealsystems.platform.orchestrator.executor.jenkins;
 
 import org.adealsystems.platform.orchestrator.executor.CommandIdGenerator;
+import org.adealsystems.platform.orchestrator.executor.email.EmailSender;
+import org.adealsystems.platform.orchestrator.executor.email.EmailType;
+import org.adealsystems.platform.orchestrator.executor.email.RecipientsCluster;
 
 import java.util.Map;
 import java.util.Objects;
 
-public class EmailSenderFactory {
+public class JenkinsEmailSenderFactory {
     private final String jenkinsUrl;
     private final String jenkinsToken;
     private final String jenkinsUserName;
@@ -29,7 +32,7 @@ public class EmailSenderFactory {
     private final Map<RecipientsCluster, String> recipientClusterMapping;
     private final Map<EmailType, String> jenkinsJobMapping;
 
-    public EmailSenderFactory(
+    public JenkinsEmailSenderFactory(
         String jenkinsUrl,
         String jenkinsUserName,
         String jenkinsToken,

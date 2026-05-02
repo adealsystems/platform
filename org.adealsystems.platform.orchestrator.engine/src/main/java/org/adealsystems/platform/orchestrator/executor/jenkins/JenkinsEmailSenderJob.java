@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.orchestrator.executor.email;
-
-import org.adealsystems.platform.orchestrator.executor.jenkins.JenkinsJobBase;
+package org.adealsystems.platform.orchestrator.executor.jenkins;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
