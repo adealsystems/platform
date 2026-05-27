@@ -28,8 +28,8 @@ import java.util.Objects;
 import static org.adealsystems.platform.orchestrator.executor.ProcessExecutor.processCommand;
 
 public class JenkinsEmailSenderExecutor implements EmailSender {
-    public static final String LINK_TOKEN = "<link>";
     private static final Logger LOGGER = LoggerFactory.getLogger(JenkinsEmailSenderExecutor.class);
+    public static final String LINK_TOKEN = "<link>";
 
     private final String recipients;
 
