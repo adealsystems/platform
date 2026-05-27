@@ -32,7 +32,6 @@ public class StepFunctionJobBase {
 
     private String commandIdParamName = DEFAULT_COMMAND_ID_PARAM_NAME;
 
-
     public StepFunctionJobBase(String stateMachineArn) {
         this.stateMachineArn = Objects.requireNonNull(stateMachineArn, "stateMachineArn must not be null!");
     }
