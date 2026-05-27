@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.orchestrator.executor;
+package org.adealsystems.platform.orchestrator.executor.aws;
 
-public interface CommandIdGenerator {
-    String generate();
+import org.adealsystems.platform.id.DataIdentifier;
+
+public abstract class StepFunctionJobFactory {
+    public abstract StepFunctionJob getJob(DataIdentifier dataId);
 }

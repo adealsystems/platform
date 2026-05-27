@@ -14,25 +14,25 @@
  * limitations under the License.
  */
 
-package org.adealsystems.platform.orchestrator.executor.jenkins;
+package org.adealsystems.platform.orchestrator.executor.aws;
 
 import org.adealsystems.platform.id.DataIdentifier;
 
 import java.util.Map;
 import java.util.Objects;
 
-public abstract class JenkinsJob extends JenkinsJobBase {
+public abstract class StepFunctionJob extends StepFunctionJobBase {
 
-    public JenkinsJob(String url, String username, String token) {
-        super(url, username, token);
+    public StepFunctionJob(String stateMachineArn) {
+        super(stateMachineArn);
     }
 
-    protected abstract Map<String, String> prepareAdditionalParameters(DataIdentifier dataIdentifier);
+    protected abstract Map<String, ?> prepareInputParameters(DataIdentifier dataIdentifier);
 
-    public String createCommand(String commandId, DataIdentifier dataIdentifier) {
+    public String createInput(String commandId, DataIdentifier dataIdentifier) {
         Objects.requireNonNull(dataIdentifier, "dataIdentifier must not be null!");
 
-        Map<String, String> additionalParameters = prepareAdditionalParameters(dataIdentifier);
-        return createCommand(commandId, additionalParameters);
+        Map<String, ?> inputParameters = prepareInputParameters(dataIdentifier);
+        return createInput(commandId, inputParameters);
     }
 }
