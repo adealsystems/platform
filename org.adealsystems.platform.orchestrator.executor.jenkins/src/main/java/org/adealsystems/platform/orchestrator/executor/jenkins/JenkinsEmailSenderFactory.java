@@ -18,13 +18,14 @@ package org.adealsystems.platform.orchestrator.executor.jenkins;
 
 import org.adealsystems.platform.orchestrator.executor.CommandIdGenerator;
 import org.adealsystems.platform.orchestrator.executor.email.EmailSender;
+import org.adealsystems.platform.orchestrator.executor.email.EmailSenderFactory;
 import org.adealsystems.platform.orchestrator.executor.email.EmailType;
 import org.adealsystems.platform.orchestrator.executor.email.RecipientsCluster;
 
 import java.util.Map;
 import java.util.Objects;
 
-public class JenkinsEmailSenderFactory {
+public class JenkinsEmailSenderFactory implements EmailSenderFactory {
     private final String jenkinsUrl;
     private final String jenkinsToken;
     private final String jenkinsUserName;
@@ -48,6 +49,7 @@ public class JenkinsEmailSenderFactory {
         this.jenkinsJobMapping = Objects.requireNonNull(jenkinsJobMapping, "jenkinsJobMapping must not be null!");
     }
 
+    @Override
     public EmailSender getSender(String env, RecipientsCluster cluster, EmailType type) {
         String jobName = determineJobName(type);
         JenkinsEmailSenderJob job = new JenkinsEmailSenderJob(env, jenkinsUrl, jenkinsUserName, jenkinsToken, jobName);
@@ -56,6 +58,7 @@ public class JenkinsEmailSenderFactory {
         return new JenkinsEmailSenderExecutor(recipients, job, commandIdGenerator);
     }
 
+    @Override
     public EmailSender getSender(String env, String recipients, EmailType type) {
         String jobName = determineJobName(type);
         JenkinsEmailSenderJob job = new JenkinsEmailSenderJob(env, jenkinsUrl, jenkinsUserName, jenkinsToken, jobName);

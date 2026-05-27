@@ -19,7 +19,7 @@ package org.adealsystems.platform.orchestrator;
 import org.adealsystems.platform.io.Drain;
 import org.adealsystems.platform.orchestrator.executor.email.EmailParamMapper;
 import org.adealsystems.platform.orchestrator.executor.email.EmailSender;
-import org.adealsystems.platform.orchestrator.executor.jenkins.JenkinsEmailSenderFactory;
+import org.adealsystems.platform.orchestrator.executor.email.EmailSenderFactory;
 import org.adealsystems.platform.orchestrator.executor.email.EmailType;
 import org.adealsystems.platform.orchestrator.executor.email.RecipientsCluster;
 import org.adealsystems.platform.orchestrator.session.SessionTimestamp;
@@ -111,7 +111,7 @@ public class InternalEventHandlerRunnable implements Runnable {
     private final InternalEventClassifierMappingResolver eventClassifierMappingResolver;
     private final SessionInitializerMappingResolver sessionInitializerMappingResolver;
     private final RunRepository runRepository;
-    private final JenkinsEmailSenderFactory emailSenderFactory;
+    private final EmailSenderFactory emailSenderFactory;
     private final String environment;
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
@@ -126,7 +126,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         TimestampFactory timestampFactory,
         InternalEventClassifierMappingResolver eventClassifierMappingResolver,
         SessionInitializerMappingResolver sessionInitializerMappingResolver,
-        JenkinsEmailSenderFactory emailSenderFactory,
+        EmailSenderFactory emailSenderFactory,
         RunRepository runRepository,
         String environment
     ) {
