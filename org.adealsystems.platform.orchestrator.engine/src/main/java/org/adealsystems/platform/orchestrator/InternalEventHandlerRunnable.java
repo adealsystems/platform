@@ -602,6 +602,33 @@ public class InternalEventHandlerRunnable implements Runnable {
 
             if (isStartEvent) {
                 LOGGER.debug("Starting session");
+                Optional<SessionId> activeSessionId = activeSessionIdRepository.retrieveActiveSessionId(finalInstanceId);
+                if (activeSessionId.isPresent()) {
+                    boolean isRestartEvent;
+                    try {
+                        SessionRepository sessionRepository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
+                        Session activeSession = sessionRepository.retrieveSession(activeSessionId.get())
+                            .orElseThrow(IllegalStateException::new);
+                        isRestartEvent = eventClassifier.isSessionRestartEvent(clonedEvent, activeSession);
+                    }
+                    catch (Exception ex) {
+                        isRestartEvent = false;
+                        LOGGER.error(
+                            "Exception while calling isSessionRestartEvent with event {} on {}!",
+                            clonedEvent,
+                            eventClassifier,
+                            ex
+                        );
+                    }
+
+                    if (isRestartEvent) {
+                        LOGGER.debug("Restarting active session {} for instance {}", activeSessionId.get(), finalInstanceId);
+                        Optional<InternalEvent> optionalStopEvent = stopSession(clonedEvent.clone());
+                        optionalStopEvent.flatMap(InternalEventHandlerRunnable::deriveSessionStateEvent)
+                            .ifPresent(sessionStateEvents::add);
+                    }
+                }
+
                 Optional<InternalEvent> optionalEvent = startSession(eventClassifier, clonedEvent);
                 if (optionalEvent.isPresent()) {
                     optionalEvent = deriveSessionStateEvent(optionalEvent.get());

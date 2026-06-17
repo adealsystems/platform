@@ -22,6 +22,9 @@ public interface InternalEventClassifier {
     boolean isRelevant(InternalEvent event);
     Optional<Long> getTimeout();
     boolean isSessionStartEvent(InternalEvent event);
+    default boolean isSessionRestartEvent(InternalEvent event, Session session) {
+        return false;
+    }
     boolean isSessionStopEvent(InternalEvent event, Session session);
     Optional<String> determineDynamicContent(InternalEvent event);
     Optional<RunSpecification> getCurrentRun();

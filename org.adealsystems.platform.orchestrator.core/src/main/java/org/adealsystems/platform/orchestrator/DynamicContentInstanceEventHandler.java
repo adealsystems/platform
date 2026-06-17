@@ -121,6 +121,14 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
     }
 
     @Override
+    public boolean isSessionRestartEvent(InternalEvent event, Session session) {
+        DynamicContentAwareHandler handler = resolveDynamicHandler(event)
+            .orElseThrow(() -> new MissingDynamicHandlerException(event));
+
+        return handler.isSessionRestartEvent(event, session);
+    }
+
+    @Override
     public boolean isSessionStopEvent(InternalEvent event, Session session) {
         DynamicContentAwareHandler handler = resolveDynamicHandler(event)
             .orElseThrow(() -> new MissingDynamicHandlerException(event));
