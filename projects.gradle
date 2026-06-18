@@ -325,7 +325,6 @@ def orchestratorEngine = project(':org.adealsystems.platform.orchestrator.engine
         implementation libraries.'aws-sdk-s3'
         implementation libraries.'commons-lang'
         implementation libraries.'spring-context'
-        implementation libraries.'spring-cloud-aws-messaging'
         implementation libraries.'jackson-datatype-jsr310'
     }
 }
