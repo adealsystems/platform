@@ -16,10 +16,8 @@
 
 package org.adealsystems.platform.orchestrator;
 
-import com.amazonaws.services.s3.event.S3EventNotification;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -27,7 +25,6 @@ import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -85,23 +82,20 @@ public class S3EventReceiverRunnable implements Runnable {
                 LOGGER.debug("Processing message {}", message);
 
                 String messageBody = message.body();
-                S3EventNotification s3EventNotification;
                 try {
-                    s3EventNotification = OBJECT_MAPPER.readValue(messageBody, S3EventNotification.class);
-                } catch (JsonProcessingException ex) {
+                    List<InternalEvent> events = convertNotification(messageBody);
+                    for (InternalEvent event : events) {
+                        LOGGER.info("About to send event {}", event);
+                        try {
+                            eventSender.sendEvent(event);
+                        } catch (Exception ex) {
+                            LOGGER.error("Error sending event {}!", event, ex);
+                        }
+                    }
+                } catch (Exception ex) {
                     LOGGER.error("Error reading message body {}!", messageBody, ex);
                     deleteMessage(message);
                     continue;
-                }
-
-                List<InternalEvent> events = convertNotification(s3EventNotification);
-                for (InternalEvent event : events) {
-                    LOGGER.info("About to send event {}", event);
-                    try {
-                        eventSender.sendEvent(event);
-                    } catch (Exception ex) {
-                        LOGGER.error("Error sending event {}!", event, ex);
-                    }
                 }
 
                 deleteMessage(message);
@@ -119,15 +113,16 @@ public class S3EventReceiverRunnable implements Runnable {
         Thread.sleep(value);
     }
 
-    static List<InternalEvent> convertNotification(S3EventNotification notification) {
-        List<S3EventNotification.S3EventNotificationRecord> records = notification.getRecords();
-        if (records == null) {
+    static List<InternalEvent> convertNotification(String messageBody) throws Exception {
+        JsonNode root = OBJECT_MAPPER.readTree(messageBody);
+        JsonNode records = root.get("Records");
+        if (records == null || !records.isArray()) {
             return Collections.emptyList();
         }
 
         List<InternalEvent> result = new ArrayList<>();
-        for (S3EventNotification.S3EventNotificationRecord record : records) {
-            if (record == null) {
+        for (JsonNode record : records) {
+            if (record == null || record.isNull()) {
                 continue;
             }
 
@@ -143,48 +138,54 @@ public class S3EventReceiverRunnable implements Runnable {
         return result;
     }
 
-    private static InternalEvent convertRecord(S3EventNotification.S3EventNotificationRecord record) {
-        S3EventNotification.S3Entity s3Entity = record.getS3();
-        if (s3Entity == null) {
+    private static InternalEvent convertRecord(JsonNode record) {
+        JsonNode s3Entity = record.get("s3");
+        if (s3Entity == null || s3Entity.isNull()) {
             return null;
         }
 
-        S3EventNotification.S3BucketEntity bucket = s3Entity.getBucket();
-        if (bucket == null) {
+        JsonNode bucket = s3Entity.get("bucket");
+        if (bucket == null || bucket.isNull()) {
             return null;
         }
 
-        S3EventNotification.S3ObjectEntity object = s3Entity.getObject();
-        if (object == null) {
+        JsonNode object = s3Entity.get("object");
+        if (object == null || object.isNull()) {
             return null;
         }
 
-        String eventId;
-        try {
-            eventId = URLDecoder.decode(object.getKey(), StandardCharsets.ISO_8859_1.toString());
-        } catch (UnsupportedEncodingException ex) {
-            eventId = object.getKey();
-            LOGGER.warn("Unable to decode eventId {}", eventId, ex);
+        String objectKey = getText(object, "key");
+        if (objectKey == null) {
+            return null;
         }
+        String eventId = URLDecoder.decode(objectKey, StandardCharsets.ISO_8859_1);
 
         InternalEvent event = new InternalEvent();
         event.setType(InternalEventType.FILE);
         event.setId(eventId);
         event.setTimestamp(LocalDateTime.now(ZoneId.systemDefault()));
-        event.setAttributeValue(S3Constants.BUCKET_NAME, bucket.getName());
-        event.setAttributeValue(S3Constants.FILE_OPERATION, record.getEventName());
+        event.setAttributeValue(S3Constants.BUCKET_NAME, getText(bucket, "name"));
+        event.setAttributeValue(S3Constants.FILE_OPERATION, getText(record, "eventName"));
 
-        Long fileSize = object.getSizeAsLong();
-        if (fileSize != null) {
-            event.setAttributeValue(S3Constants.FILE_SIZE, String.valueOf(fileSize));
+        JsonNode fileSize = object.get("size");
+        if (fileSize != null && fileSize.canConvertToLong()) {
+            event.setAttributeValue(S3Constants.FILE_SIZE, String.valueOf(fileSize.longValue()));
         }
 
-        DateTime eventTimestamp = record.getEventTime();
+        String eventTimestamp = getText(record, "eventTime");
         if (eventTimestamp != null) {
-            event.setAttributeValue(S3Constants.EVENT_TIMESTAMP, eventTimestamp.toString());
+            event.setAttributeValue(S3Constants.EVENT_TIMESTAMP, eventTimestamp);
         }
 
         return event;
+    }
+
+    private static String getText(JsonNode node, String fieldName) {
+        JsonNode child = node.get(fieldName);
+        if (child == null || child.isNull()) {
+            return null;
+        }
+        return child.asText();
     }
 
     private void deleteMessage(Message message) {
