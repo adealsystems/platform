@@ -27,6 +27,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -536,11 +539,30 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
     }
 
     private void writeSession(File sessionFile, Session session) {
+        Path sessionPath = sessionFile.toPath();
+        Path tempPath = null;
         try {
-            OBJECT_MAPPER.writeValue(sessionFile, session);
+            tempPath = Files.createTempFile(sessionPath.getParent(), sessionFile.getName() + '.', ".tmp");
+            OBJECT_MAPPER.writeValue(tempPath.toFile(), session);
+            Files.move(
+                tempPath,
+                sessionPath,
+                StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING
+            );
         }
         catch (IOException ex) {
             throw new IllegalStateException("Unable to write session file '" + sessionFile + "'!", ex);
+        }
+        finally {
+            if (tempPath != null) {
+                try {
+                    Files.deleteIfExists(tempPath);
+                }
+                catch (IOException ex) {
+                    LOGGER.warn("Unable to delete temporary session file '{}'!", tempPath, ex);
+                }
+            }
         }
     }
 }
