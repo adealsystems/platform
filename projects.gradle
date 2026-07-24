@@ -13,6 +13,14 @@ def platformTime = project(':org.adealsystems.platform.time') {
     }
 }
 
+def platformHttp = project(':org.adealsystems.platform.http') {
+    description = "HTTP client/tools related code"
+    dependencies {
+        implementation libraries.'commons-text'
+        implementation libraries.'jackson-databind'
+    }
+}
+
 def platformId = project(':org.adealsystems.platform.id') {
     dependencies {
         implementation platformTime
