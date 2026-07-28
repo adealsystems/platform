@@ -169,6 +169,9 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
             catch (IOException ex) {
                 LOGGER.error("Failed to retrieve response body!", ex);
             }
+            catch (Exception ex) {
+                LOGGER.error("Unexpected error while retrieving response body!", ex);
+            }
         }
 
         throw new AuthenticationTokenResolverException("Failed to retrieve response body!");
