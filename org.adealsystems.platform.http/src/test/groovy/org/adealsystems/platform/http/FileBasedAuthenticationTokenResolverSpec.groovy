@@ -17,6 +17,7 @@
 package org.adealsystems.platform.http
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.apache.hc.client5.http.impl.classic.HttpClients
 import spock.lang.Specification
 import spock.lang.TempDir
 
@@ -27,9 +28,11 @@ import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.Flow
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
 class FileBasedAuthenticationTokenResolverSpec extends Specification {
 
@@ -66,9 +69,9 @@ class FileBasedAuthenticationTokenResolverSpec extends Specification {
         def result = resolver.resolveToken(client)
 
         then:
-        1 * client.send(_ as HttpRequest, _ as HttpResponse.BodyHandler) >> { HttpRequest sentRequest, HttpResponse.BodyHandler ignored ->
+        1 * client.sendAsync(_ as HttpRequest, _ as HttpResponse.BodyHandler) >> { HttpRequest sentRequest, HttpResponse.BodyHandler ignored ->
             request = sentRequest
-            response
+            CompletableFuture.completedFuture(response)
         }
         result == 'new-token'
         Files.readString(tokenFile) == 'new-token'
@@ -93,10 +96,64 @@ class FileBasedAuthenticationTokenResolverSpec extends Specification {
         0 * client._
     }
 
+    def 'requests and stores a token using Apache HttpClient 5'() {
+        given:
+        Path tokenFile = temporaryDirectory.resolve('apache-token')
+        def requestBody = new AtomicReference<String>()
+        def server = new ServerSocket(0)
+        def serverThread = Thread.start {
+            Socket socket = server.accept()
+            try {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.inputStream, StandardCharsets.UTF_8))
+                reader.readLine()
+                int contentLength = 0
+                String header
+                while ((header = reader.readLine()) != '') {
+                    if (header.toLowerCase(Locale.ROOT).startsWith('content-length:')) {
+                        contentLength = Integer.parseInt(header.substring(header.indexOf(':') + 1).trim())
+                    }
+                }
+                char[] body = new char[contentLength]
+                reader.read(body)
+                requestBody.set(new String(body))
+
+                byte[] responseBody = '{"access_token":"apache-token"}'.getBytes(StandardCharsets.UTF_8)
+                String responseHeaders = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: ${responseBody.length}\r\nConnection: close\r\n\r\n"
+                socket.outputStream.write(responseHeaders.getBytes(StandardCharsets.UTF_8))
+                socket.outputStream.write(responseBody)
+                socket.outputStream.flush()
+            }
+            finally {
+                socket.close()
+            }
+        }
+        def client = HttpClients.createDefault()
+        def resolver = resolverFor(tokenFile, "http://localhost:${server.localPort}/token")
+
+        try {
+            when:
+            def result = resolver.resolveToken(client)
+
+            then:
+            result == 'apache-token'
+            Files.readString(tokenFile) == 'apache-token'
+            requestBody.get() == 'client_id=gateway&grant_type=password&username=user%40example.com&password=p%40ss'
+        }
+        finally {
+            client.close()
+            server.close()
+            serverThread.join(1000)
+        }
+    }
+
     private FileBasedAuthenticationTokenResolver resolverFor(Path tokenFile) {
+        resolverFor(tokenFile, 'https://auth.example/token')
+    }
+
+    private FileBasedAuthenticationTokenResolver resolverFor(Path tokenFile, String authServiceUrl) {
         new FileBasedAuthenticationTokenResolver(
             tokenFile.toString(),
-            'https://auth.example/token',
+            authServiceUrl,
             'client_id=gateway&grant_type=password&username=${username}&password=${password}',
             'user@example.com',
             'p@ss',

@@ -18,6 +18,7 @@ def platformHttp = project(':org.adealsystems.platform.http') {
     dependencies {
         implementation libraries.'commons-text'
         implementation libraries.'jackson-databind'
+        implementation libraries.'httpclient'
     }
 }
 
