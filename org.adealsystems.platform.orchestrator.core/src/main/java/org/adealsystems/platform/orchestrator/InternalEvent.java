@@ -59,7 +59,7 @@ public final class InternalEvent implements Cloneable, Serializable, TimestampAw
     private InstanceId instanceId;
     private SessionId sessionId;
 
-    @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = FalseFilter.class)
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private boolean processed;
 
     @JsonProperty("timestamp")
@@ -332,9 +332,9 @@ public final class InternalEvent implements Cloneable, Serializable, TimestampAw
         // ([,@\_\-\.0-9a-zA-Z]+)* -> ([-_][0-9a-z]+)*
         return dynamicContent
             .toLowerCase(Locale.ROOT)
-            .replaceAll(",", "-c-")
-            .replaceAll("@", "-a-")
-            .replaceAll("%", "-p-")
+            .replace(",", "-c-")
+            .replace("@", "-a-")
+            .replace("%", "-p-")
             .replaceAll("\\.", "-d-");
     }
 

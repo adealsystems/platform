@@ -89,8 +89,9 @@ public final class Session implements Serializable {
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     static {
-        OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        OBJECT_MAPPER.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         OBJECT_MAPPER.registerModule(new JavaTimeModule());
     }
 
@@ -166,8 +167,7 @@ public final class Session implements Serializable {
 
             updateGlobalFields(session, processingState);
             session.updateProcessingState(processingState);
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             LOGGER.error("Error updating session processing state in {}!", session, ex);
         }
     }
@@ -189,8 +189,7 @@ public final class Session implements Serializable {
 
             updateGlobalFields(session, processingState);
             session.updateProcessingState(processingState);
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             LOGGER.error("Error updating session processing state in {}!", session, ex);
         }
     }
@@ -210,8 +209,7 @@ public final class Session implements Serializable {
             session.sessionUpdates.addUpdate(
                 new SessionSetProgressMaxValueOperation(progressMaxValue)
             );
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             LOGGER.error("Error starting session progress in {}!", session, ex);
         }
     }
@@ -240,8 +238,7 @@ public final class Session implements Serializable {
 
             updateGlobalFields(session, processingState);
             session.setProcessingState(processingState);
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             LOGGER.error("Error updating session progress in {}!", session, ex);
         }
     }
@@ -297,8 +294,7 @@ public final class Session implements Serializable {
     public void setState(Map<String, String> state) {
         if (state == null) {
             this.state = null;
-        }
-        else {
+        } else {
             this.state = new HashMap<>(state);
         }
     }
@@ -399,8 +395,7 @@ public final class Session implements Serializable {
     public void setProcessingState(SessionProcessingState processingState) {
         if (processingState == null) {
             this.processingState = null;
-        }
-        else {
+        } else {
             this.processingState = processingState.clone();
         }
     }
@@ -413,8 +408,9 @@ public final class Session implements Serializable {
 
         Objects.requireNonNull(key, "key must not be null!");
 
-        LOGGER.debug("Returning state value for key '{}' from session {}", key, id);
-        return Optional.ofNullable(state.get(key));
+        String value = state.get(key);
+        LOGGER.debug("Returning state value for key '{}' from session {}: {}", key, id, value);
+        return Optional.ofNullable(value);
     }
 
     public void setStateValue(String key, String value) {
@@ -612,8 +608,7 @@ public final class Session implements Serializable {
                     }
 
                     timers.put(key.substring(TIMER_PREFIX.length()), timer);
-                }
-                catch (DateTimeParseException ex) {
+                } catch (DateTimeParseException ex) {
                     LOGGER.warn("Unable to parse timer '{}'", key, ex);
                 }
             }

@@ -16,11 +16,17 @@
 
 package org.adealsystems.platform.orchestrator
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import org.adealsystems.platform.orchestrator.status.FileProcessingStep
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState
 import org.adealsystems.platform.orchestrator.status.State
+import org.slf4j.LoggerFactory
 import spock.lang.Shared
 import spock.lang.Specification
+import spock.lang.Subject
 import spock.lang.TempDir
 
 import java.time.LocalDateTime
@@ -30,24 +36,42 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
     File baseDirectory
 
     @Shared
-    def instanceId = new InstanceId('0001-instance-id')
+    def instanceId =
+        new InstanceId('0001-instance-id')
 
     @Shared
-    def sessionId = new SessionId('SESSION-ID-1')
+    def sessionId =
+        new SessionId('SESSION-ID-1')
+
+    @Subject
+    def subject =
+        new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
+
+
+    @Shared
+    ListAppender<ILoggingEvent> listAppender
+
+    def 'setupSpec'() {
+        def logger = (Logger) LoggerFactory.getLogger(SynchronizedFileBasedSessionRepository)
+        listAppender = new ListAppender<>()
+        listAppender.start()
+        logger.addAppender(listAppender)
+        logger.setLevel(Level.DEBUG)
+    }
+
+    def 'cleanup'() {
+        listAppender.list.clear()
+    }
 
     def 'retrieveSessionIds() and createSession() are working as expected'() {
-        given:
-        SynchronizedFileBasedSessionRepository repo
-            = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
-
         when:
-        def allIds = repo.retrieveSessionIds()
+        def allIds = subject.retrieveSessionIds()
 
         then:
         allIds == [] as Set
 
         when:
-        def session = repo.createSession(sessionId)
+        def session = subject.createSession(sessionId)
 
         then:
         session != null
@@ -56,7 +80,7 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
         session.state == null
 
         when:
-        allIds = repo.retrieveSessionIds()
+        allIds = subject.retrieveSessionIds()
 
         then:
         allIds == [sessionId] as Set
@@ -64,9 +88,6 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
 
     def 'retrieveSession() and updateSession() are working as expected'() {
         given:
-        SynchronizedFileBasedSessionRepository repo
-            = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
-
         def instanceConfiguration = [
             'aaa': 'xxx',
             'bbb': 'yyy'
@@ -75,49 +96,66 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
             'ccc': 'zzz',
             'ddd': '000',
         ]
-        def ts = LocalDateTime.of(2023, 3,24,0,0,0,0)
+        def ts = LocalDateTime.of(2023, 3, 24, 0, 0, 0, 0)
 
         when:
-        def sessionWithConfig = repo.createSession(sessionId, ts, instanceConfiguration)
+        def sessionWithConfig = subject.createSession(sessionId, ts, instanceConfiguration)
         sessionWithConfig.setState(sessionState)
-        repo.updateSession(sessionWithConfig)
+        subject.updateSession(sessionWithConfig)
 
-        def otherSession = repo.retrieveSession(sessionId)
+        def otherSessionOptional = subject.retrieveSession(sessionId)
 
         then:
-        otherSession.present
-        otherSession.get().id == sessionId
-        otherSession.get().instanceConfiguration == instanceConfiguration
-        otherSession.get().state == sessionState
+        otherSessionOptional.present
+
+        when:
+        def otherSession = otherSessionOptional.get()
+
+        // update-history depends on logging level, checked below
+        def updateHistory = otherSession.state.remove('update-history')
+
+        then:
+        otherSession.id == sessionId
+        otherSession.instanceConfiguration == instanceConfiguration
+        otherSession.state == sessionState
+
+        when:
+        def callerEvents =
+            listAppender.list.stream()
+                .filter { it.formattedMessage.startsWith("Added caller: ") }
+                .toList()
+
+        then:
+        callerEvents.size() == 1
+
+        when:
+        def callerEvent = callerEvents.get(0)
+        then:
+        callerEvent.formattedMessage == "Added caller: " + updateHistory
     }
 
     def 'retrieveOrCreateSession() and deleteSession() are working as expected'() {
-        given:
-        SynchronizedFileBasedSessionRepository repo
-            = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
-
-        repo.createSession(sessionId)
-
         when:
-        def existingSession = repo.retrieveOrCreateSession(sessionId)
+        subject.createSession(sessionId)
+        def existingSession = subject.retrieveOrCreateSession(sessionId)
 
         then:
         existingSession.id == sessionId
 
         when:
-        def deleted = repo.deleteSession(sessionId)
+        def deleted = subject.deleteSession(sessionId)
 
         then:
         deleted
 
         when:
-        def oneMoreSession = repo.retrieveSession(sessionId)
+        def oneMoreSession = subject.retrieveSession(sessionId)
 
         then:
         !oneMoreSession.present
 
         when:
-        def freshSession = repo.retrieveOrCreateSession(sessionId)
+        def freshSession = subject.retrieveOrCreateSession(sessionId)
 
         then:
         freshSession.id == sessionId
@@ -127,15 +165,12 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
 
     def 'session updates are working as expected'() {
         given:
-        SynchronizedFileBasedSessionRepository repo
-            = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
-
-        def ts = LocalDateTime.of(2023, 3,24,0,0,0,0)
+        def ts = LocalDateTime.of(2023, 3, 24, 0, 0, 0, 0)
 
         when:
-        def session = repo.createSession(sessionId, ts, [:])
+        def session = subject.createSession(sessionId, ts, [:])
         session.setStateValue("a", "AAA")
-        repo.updateSession(session)
+        subject.updateSession(session)
 
         then:
         session != null
@@ -146,30 +181,50 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
         session.sessionUpdates.updates.size() == 1
 
         when:
-        def sessionLoaded = repo.retrieveSession(sessionId)
+        def sessionLoadedOptional = subject.retrieveSession(sessionId)
 
         then:
-        sessionLoaded.present
-        sessionLoaded.get() == session
+        sessionLoadedOptional.present
+
+        when:
+        def sessionLoaded = sessionLoadedOptional.get()
+
+        // update-history depends on logging level, checked below
+        def updateHistory = sessionLoaded.state.remove('update-history')
+
+        then:
+        sessionLoaded.state == session.state
+        sessionLoaded == session
+
+        when:
+        def callerEvents =
+            listAppender.list.stream()
+                .filter { it.formattedMessage.startsWith("Added caller: ") }
+                .toList()
+
+        then:
+        callerEvents.size() == 1
+
+        when:
+        def callerEvent = callerEvents.get(0)
+        then:
+        callerEvent.formattedMessage == "Added caller: " + updateHistory
     }
 
     def 'concurrent update modifications are working as expected'() {
         given:
-        SynchronizedFileBasedSessionRepository repo
-            = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
-
         def instanceConfiguration = [
             'aaa': 'xxx',
             'bbb': 'yyy'
         ]
-        def ts = LocalDateTime.of(2023, 3,24,0,0,0,0)
+        def ts = LocalDateTime.of(2023, 3, 24, 0, 0, 0, 0)
 
         when:
-        def session1 = repo.createSession(sessionId, ts, instanceConfiguration)
+        def session1 = subject.createSession(sessionId, ts, instanceConfiguration)
         def hash1 = session1.buildChecksum()
 
         and:
-        def session2 = repo.retrieveSession(sessionId).get()
+        def session2 = subject.retrieveSession(sessionId).get()
         def hash2 = session2.buildChecksum()
 
         then:
@@ -177,7 +232,7 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
 
         when:
         session1.setStateFlag('flag-1', true)
-        def session1_b = repo.updateSession(session1)
+        def session1_b = subject.updateSession(session1)
         def hash1_b = session1_b.buildChecksum()
         // flag-1: true
 
@@ -186,7 +241,7 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
 
         when:
         session1_b.setStateValue('A', 'aaa')
-        def session1_c = repo.updateSession(session1_b)
+        def session1_c = subject.updateSession(session1_b)
         def hash1_c = session1_c.buildChecksum()
         // flag-1: true
         // A: aaa
@@ -196,7 +251,7 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
 
         when:
         session2.setStateValue('X', 'xxx')
-        def session2_b = repo.updateSession(session2)
+        def session2_b = subject.updateSession(session2)
         def hash2_b = session2_b.buildChecksum()
         // flag-1: true
         // A: aaa
@@ -214,13 +269,14 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
 - stored: 	Session{instanceId=0088-arms-package-optimization-schedule, id=01KABBQRX5T0RR3ABY0WFKQDA1, creationTimestamp=2025-11-18T12:31:27.274351003, instanceConfiguration={}, state={update-history=[raw-event-handler] 12:31:27.338: org.adealsystems.platform.orchestrator.InternalEventHandlerRunnable.startSession(InternalEventHandlerRunnable.java:884), [event-handler-0088-arms-package-optimization-schedule] 12:31:27.368: org.adealsystems.platform.orchestrator.InstanceEventHandlerRunnable.run(InstanceEventHandlerRunnable.java:148), __session_category=phase-1, __run_id=2025-11-18}, processingState=SessionProcessingState{runSpec=Run{type=ACTIVE, id='2025-11-18'}, configuration=null, state=RUNNING, message=null, 					steps=[], 																																									started=2025-11-18T12:31:27.299368488, terminated=null, lastUpdated=2025-11-18T12:31:27.368152591, progressMaxValue=4, progressCurrentStep=0, progressFailedSteps=0, flags={ERROR_OCCURRED=false, SESSION_FINISHED=false, SESSION_CANCELLED=false}, stateAttributes={}}}
 - modified: Session{instanceId=0088-arms-package-optimization-schedule, id=01KABBQRX5T0RR3ABY0WFKQDA1, creationTimestamp=2025-11-18T12:31:27.274351003, instanceConfiguration={}, state={update-history=[raw-event-handler] 12:31:27.338: org.adealsystems.platform.orchestrator.InternalEventHandlerRunnable.startSession(InternalEventHandlerRunnable.java:884), [event-handler-0088-arms-package-optimization-schedule] 12:31:27.368: org.adealsystems.platform.orchestrator.InstanceEventHandlerRunnable.run(InstanceEventHandlerRunnable.java:148), __session_category=phase-1, __run_id=2025-11-18}, processingState=SessionProcessingState{runSpec=Run{type=ACTIVE, id='2025-11-18'}, configuration=null, state=RUNNING, message=Waiting for collector, 	steps=[FileProcessingStep{zone=INCOMING, metaName='arms_package_optimization_schedule'}], 																					started=2025-11-18T12:31:27.299368488, terminated=null, lastUpdated=2025-11-18T12:31:27.412461352, progressMaxValue=4, progressCurrentStep=1, progressFailedSteps=0, flags={ERROR_OCCURRED=false, SESSION_FINISHED=false, SESSION_CANCELLED=false}, stateAttributes={update-history=[raw-event-handler] 12:31:27.338: org.adealsystems.platform.orchestrator.InternalEventHandlerRunnable.startSession(InternalEventHandlerRunnable.java:884), [event-handler-0088-arms-package-optimization-schedule] 12:31:27.368: org.adealsystems.platform.orchestrator.InstanceEventHandlerRunnable.run(InstanceEventHandlerRunnable.java:148), __session_category=phase-1, __run_id=2025-11-18}}}
      */
+
     def 'concurrent update modifications (special case) are working as expected'() {
         given:
         def instanceId = new InstanceId('0088-arms-package-optimization-schedule')
         def sessionId = new SessionId('01KABBQRX5T0RR3ABY0WFKQDA1')
         SynchronizedFileBasedSessionRepository repo
             = new SynchronizedFileBasedSessionRepository(instanceId, baseDirectory)
-        def ts = LocalDateTime.of(2025, 11,18,12,31,27,0)
+        def ts = LocalDateTime.of(2025, 11, 18, 12, 31, 27, 0)
         def state = [:]
         state.put('update-history', '[raw-event-handler] 12:31:27.338: org.adealsystems.platform.orchestrator.InternalEventHandlerRunnable.startSession(InternalEventHandlerRunnable.java:884), [event-handler-0088-arms-package-optimization-schedule] 12:31:27.368: org.adealsystems.platform.orchestrator.InstanceEventHandlerRunnable.run(InstanceEventHandlerRunnable.java:148)')
         state.put('__session_category', 'phase-1')
@@ -246,5 +302,16 @@ class SynchronizedFileBasedSessionRepositorySpec extends Specification {
 
         then:
         merged == session2
+    }
+
+    def 'findCaller works'() {
+        when:
+        def caller = caller()
+        then:
+        caller.contains(": .SynchronizedFileBasedSessionRepositorySpec.caller(")
+    }
+
+    private static String caller() {
+        return SynchronizedFileBasedSessionRepository.findCaller()
     }
 }

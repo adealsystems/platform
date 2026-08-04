@@ -27,10 +27,11 @@ import java.io.IOException;
 
 public final class EmailParamMapper {
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
     static {
         MAPPER.registerModule(new JavaTimeModule());
         MAPPER.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        MAPPER.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
     }
 
     private EmailParamMapper() {

@@ -25,6 +25,8 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDateTime;
@@ -40,6 +42,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * This utility class can be used to log dataset states and should help
@@ -568,15 +572,14 @@ public class DatasetLogger {
                 if (dataset != null) {
                     try {
                         dataset = dataset.where(column);
-                    }
-                    catch (Exception ex) {
+                    } catch (Exception ex) {
                         applied = false;
                         LOGGER.warn("Error applying column condition {}, ignoring it.", column);
                     }
                 }
 
                 if (applied) {
-                    if (contextBuilder.length() > 0) {
+                    if (!contextBuilder.isEmpty()) {
                         contextBuilder.append(", ");
                     }
                     contextBuilder.append(column);
@@ -584,19 +587,18 @@ public class DatasetLogger {
             }
         }
         if (numberOfRows != Context.DEFAULT_NUMBER_OF_ROWS) {
-            if (contextBuilder.length() > 0) {
+            if (!contextBuilder.isEmpty()) {
                 contextBuilder.append(", ");
             }
             contextBuilder.append("numberOfRows = ").append(numberOfRows);
         }
 
         // message
-        if (contextBuilder.length() > 0) {
+        if (!contextBuilder.isEmpty()) {
             builder.append(message)
                 .append(" [total-size: ").append(totalCount == null ? "N/A" : df.format(totalCount))
                 .append(", filtered-size: ").append(dataset == null ? "N/A" : df.format(dataset.count())).append("]:\n");
-        }
-        else {
+        } else {
             builder.append(message)
                 .append(" [size: ").append(totalCount == null ? "N/A" : df.format(totalCount)).append("]:\n");
         }
@@ -608,15 +610,11 @@ public class DatasetLogger {
         }
 
         // context
-        if (contextBuilder.length() > 0) {
+        if (!contextBuilder.isEmpty()) {
             builder.append("\tcontext: ").append(contextBuilder).append('\n');
         }
 
-        if (dataset == null) {
-            builder.append("Dataset is null");
-        } else {
-            builder.append(dataset.showString(numberOfRows, 0, false));
-        }
+        builder.append(showString(dataset, numberOfRows));
 
         ctx.getLogger().info("\n{}", builder);
     }
@@ -934,6 +932,26 @@ public class DatasetLogger {
         }
 
         return stack.remove(len - 1);
+    }
+
+    @SuppressWarnings("PMD.CloseResource")
+    private static String showString(Dataset<Row> dataset, int numberOfRows) {
+        if (dataset == null) {
+            return "Dataset is null";
+        }
+
+        // this is completely nuts
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream oldOut = System.out; // PMD complains that we don't close oldOut
+
+        try (PrintStream ps = new PrintStream(baos, true, UTF_8)) {
+            System.setOut(ps);
+            dataset.show(numberOfRows, false);
+        } finally {
+            System.setOut(oldOut);
+        }
+
+        return baos.toString(UTF_8);
     }
 
     // region for unit tests only

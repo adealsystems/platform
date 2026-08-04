@@ -1,0 +1,68 @@
+[versions]
+awsSdkSfn = '2.41.32' # EMR 8
+awsSdkSns = '2.41.32' # EMR 8
+awsSdkSqs = '2.41.32' # EMR 8
+awsSdkS3 = '2.41.32' # EMR 8
+bytebuddy = '1.18.11'
+groovy = '5.0.8'
+hadoop = '3.5.0'
+jackson = '2.22.1'
+jacksonAnnotations = '2.22'
+junit = '6.1.2'
+logback = '1.6.1'
+parquet = '1.17.1'
+slf4j = '2.0.18'
+spark = '4.0.2' # EMR 8
+spock = '2.4-groovy-5.0'
+spring = '6.2.19'
+springboot = '3.5.16'
+sulky = '8.3.0'
+
+[libraries]
+avro = 'org.apache.avro:avro:1.12.1'
+aws-sdk-s3 = { module = 'software.amazon.awssdk:s3', version.ref = 'awsSdkS3' }
+aws-sdk-sfn = { module = 'software.amazon.awssdk:sfn', version.ref = 'awsSdkSfn' }
+aws-sdk-sns = { module = 'software.amazon.awssdk:sns', version.ref = 'awsSdkSns' }
+aws-sdk-sqs = { module = 'software.amazon.awssdk:sqs', version.ref = 'awsSdkSqs' }
+byte-buddy = { module = 'net.bytebuddy:byte-buddy', version.ref = 'bytebuddy' }
+commons-compress = 'org.apache.commons:commons-compress:1.20'
+commons-csv = 'org.apache.commons:commons-csv:1.9.0'
+commons-io = 'commons-io:commons-io:2.11.0'
+commons-lang = 'org.apache.commons:commons-lang3:3.12.0'
+commons-text = 'org.apache.commons:commons-text:1.10.0'
+groovy-core = { module = 'org.apache.groovy:groovy', version.ref = 'groovy' }
+groovy-nio = { module = 'org.apache.groovy:groovy-nio', version.ref = 'groovy' }
+hadoop-common = { module = 'org.apache.hadoop:hadoop-common', version.ref = 'hadoop' }
+hadoop-hdfs = { module = 'org.apache.hadoop:hadoop-hdfs', version.ref = 'hadoop' }
+hadoop-minicluster = { module = 'org.apache.hadoop:hadoop-minicluster', version.ref = 'hadoop' }
+httpclient = 'org.apache.httpcomponents.client5:httpclient5:5.0.3'
+httpcore = 'org.apache.httpcomponents.core5:httpcore5:5.1'
+jackson-annotations = { module = 'com.fasterxml.jackson.core:jackson-annotations', version.ref = 'jacksonAnnotations' }
+jackson-databind = { module = 'com.fasterxml.jackson.core:jackson-databind', version.ref = 'jackson' }
+jackson-datatype-jsr310 = { module = 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310', version.ref = 'jackson' }
+jcl-over-slf4j = { module = 'org.slf4j:jcl-over-slf4j', version.ref = 'slf4j' }
+junit-jupiter-api = { module = 'org.junit.jupiter:junit-jupiter-api', version.ref = 'junit' }
+junit-platform-launcher = { module = 'org.junit.platform:junit-platform-launcher', version.ref = 'junit' }
+junit-jupiter-engine = { module = 'org.junit.jupiter:junit-jupiter-engine', version.ref = 'junit' }
+logback-classic = { module = 'ch.qos.logback:logback-classic', version.ref = 'logback' }
+objenesis = "org.objenesis:objenesis:3.5"
+parquet-avro = { module = 'org.apache.parquet:parquet-avro', version.ref = 'parquet' }
+slf4j-api = { module = 'org.slf4j:slf4j-api', version.ref = 'slf4j' }
+snappy = 'org.xerial.snappy:snappy-java:1.1.8.4'
+spark-core = { module = 'org.apache.spark:spark-core_2.13', version.ref = 'spark' }
+spark-sql = { module = 'org.apache.spark:spark-sql_2.13', version.ref = 'spark' }
+spark-avro = { module = 'org.apache.spark:spark-avro_2.13', version.ref = 'spark' }
+spark-tags = { module = 'org.apache.spark:spark-tags_2.13', version.ref = 'spark' }
+spark-mllib = { module = 'org.apache.spark:spark-mllib_2.13', version.ref = 'spark' }
+spock-core = { module = 'org.spockframework:spock-core', version.ref = 'spock' }
+spring-context = { module = 'org.springframework:spring-context', version.ref = 'spring' }
+spring-boot-starter = { module = 'org.springframework.boot:spring-boot-starter', version.ref = 'springboot' }
+spring-boot-starter-jdbc = { module = 'org.springframework.boot:spring-boot-starter-jdbc', version.ref = 'springboot' }
+spring-boot-starter-actuator = { module = 'org.springframework.boot:spring-boot-starter-actuator', version.ref = 'springboot' }
+spring-boot-starter-web = { module = 'org.springframework.boot:spring-boot-starter-web', version.ref = 'springboot' }
+spring-boot-starter-thymeleaf = { module = 'org.springframework.boot:spring-boot-starter-thymeleaf', version.ref = 'springboot' }
+spring-boot-starter-log4j2 = { module = 'org.springframework.boot:spring-boot-starter-log4j2', version.ref = 'springboot' }
+spring-boot-starter-quartz = { module = 'org.springframework.boot:spring-boot-starter-quartz', version.ref = 'springboot' }
+sulky-ulid = { module = 'de.huxhorn.sulky:de.huxhorn.sulky.ulid', version.ref = 'sulky' }
+xz = 'org.tukaani:xz:1.9'
+zstd = 'com.github.luben:zstd-jni:1.5.0-4'

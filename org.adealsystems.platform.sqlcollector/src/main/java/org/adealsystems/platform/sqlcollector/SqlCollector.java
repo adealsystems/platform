@@ -333,7 +333,7 @@ public class SqlCollector<Q, R> {
         }
 
         // perform cleanup
-        clientBundleThreadLocal.set(null);
+        clientBundleThreadLocal.remove();
         try {
             DataSource dataSource = clientBundle.getDataSource();
             if (dataSource != null) {
@@ -382,7 +382,7 @@ public class SqlCollector<Q, R> {
                 LOGGER.info("Stopping worker executors {}", runningWorkers);
                 for (Runnable runningWorker : runningWorkers) {
                     if (Worker.class.isAssignableFrom(runningWorker.getClass())) {
-                        Worker worker = (Worker) runningWorker;
+                        SqlCollector<?, ?>.Worker worker = (SqlCollector<?, ?>.Worker)(runningWorker);
                         worker.shutdown();
                     }
                 }
@@ -441,6 +441,7 @@ public class SqlCollector<Q, R> {
                     }
 
                     try {
+                        //noinspection BusyWait
                         Thread.sleep(supervisorCheckInterval);
                     } catch (InterruptedException ex) {
                         LOGGER.warn("Closing supervisor after an interrupt!", ex);
@@ -497,7 +498,7 @@ public class SqlCollector<Q, R> {
                         long count = executeQuery(query, metricsDrain, context);
                         LOGGER.debug("Collected {} entries", count);
                         if (count == -1) {
-                            // cancelled query
+                            // canceled query
                             throw new IllegalStateException("Query cancelled: " + query);
                         }
                         if (query != null) {

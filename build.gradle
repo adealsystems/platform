@@ -1,7 +1,30 @@
-if (!JavaVersion.current().isJava11Compatible()) {
-    throw new RuntimeException("This build requires Java 11! https://adoptopenjdk.net/")
+buildscript {
+    repositories {
+        maven {
+            url = "https://plugins.gradle.org/m2/"
+        }
+    }
+
+    dependencies {
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:2.3.0.RELEASE"
+        classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
+        classpath "de.thetaphi:forbiddenapis:3.10"
+        classpath "com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.6.1"
+        classpath "com.gorylenko.gradle-git-properties:gradle-git-properties:2.5.4"
+        classpath "org.ajoberstar.grgit:grgit-core:5.2.2"
+        //classpath "dev.yumi:yumi-gradle-licenser:4.0.0" // TODO: activate
+        //classpath "gradle.plugin.org.cadixdev.gradle:licenser:0.6.1"
+        //classpath "gradle.plugin.org.ec4j.gradle:editorconfig-gradle-plugin:0.0.3"
+    }
 }
-apply from: 'externalDependencies.gradle'
+
+final int requiredJavaMajorVersion = 17
+final def requiredJavaVersion =
+        JavaVersion.toVersion(requiredJavaMajorVersion)
+
+if (JavaVersion.current() < requiredJavaVersion) {
+    throw new RuntimeException("This build requires Java " + requiredJavaVersion + "! https://adoptium.net/temurin/releases/")
+}
 
 // This defines the Gradle version to be used by this build.
 // The wrapper task can be executed with 'gradle wrapper'.
@@ -11,32 +34,8 @@ apply from: 'externalDependencies.gradle'
 // Using those scripts ensures that the correct Gradle version
 // is used (and downloaded automatically).
 wrapper {
-    gradleVersion = '7.3.3'
+    gradleVersion = '9.7.0'
 }
-
-def javaMajorVersion = 11
-
-buildscript {
-    repositories {
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
-    }
-
-    dependencies {
-        classpath "org.springframework.boot:spring-boot-gradle-plugin:2.3.0.RELEASE"
-        classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
-        classpath "de.thetaphi:forbiddenapis:3.2"
-        classpath "gradle.plugin.com.github.johnrengelman:shadow:7.1.2"
-        classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:2.2.4"
-        classpath "org.ajoberstar.grgit:grgit-core:5.2.2"
-        classpath "gradle.plugin.org.cadixdev.gradle:licenser:0.6.1"
-        //classpath "gradle.plugin.org.ec4j.gradle:editorconfig-gradle-plugin:0.0.3"
-    }
-}
-
-def globalSourceCompatibility = 1.8
-def globalTargetCompatibility = 1.8
 
 // https://github.com/kt3k/coveralls-gradle-plugin
 
@@ -47,11 +46,12 @@ allprojects {
     apply plugin: 'eclipse'
     apply plugin: 'idea'
     apply plugin: 'jacoco'
+    apply plugin: 'java'
     apply plugin: 'maven-publish'
     //apply plugin: 'org.ec4j.editorconfig'
 
     group = 'org.adealsystems'
-    version = '0.51.3b'
+    version = '0.52.0'
     def prereleaseIdentifier = System.properties.'prerelease'
     if (prereleaseIdentifier) {
         version = version + '-' + prereleaseIdentifier
@@ -59,8 +59,14 @@ allprojects {
         version = version + '-SNAPSHOT'
     }
 
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(requiredJavaMajorVersion)
+        }
+    }
+
     jacoco {
-        toolVersion = '0.8.7'
+        toolVersion = '0.8.15'
     }
 
     repositories {
@@ -69,13 +75,13 @@ allprojects {
 
     def compilerArgs = ['-Xlint:all']
     tasks.withType(JavaCompile) {
-        options.release = javaMajorVersion
+        options.release = requiredJavaMajorVersion
         options.encoding = 'UTF-8'
         options.debug = true // default, but let's be explicit
         options.compilerArgs = compilerArgs
     }
     tasks.withType(GroovyCompile) {
-        options.release = javaMajorVersion
+        options.release = requiredJavaMajorVersion
         options.encoding = 'UTF-8'
         options.debug = true // default, but let's be explicit
         options.compilerArgs = compilerArgs
@@ -83,11 +89,12 @@ allprojects {
     tasks.withType(Javadoc) {
         options.optionFiles << rootProject.file('config/javadoc.options')
         // it's actually --release but one - is added automatically. *eyeroll*
-        options.addStringOption('-release', "" + javaMajorVersion)
+        options.addStringOption('-release', "" + requiredJavaMajorVersion)
+        options.addBooleanOption('Xdoclint:all,-missing', true)
     }
 
     // the tasks to be executed if no tasks are given explicitly.
-    defaultTasks 'build', 'licenseCheck'
+    defaultTasks 'build'//, 'licenseCheck'
 }
 
 // the block below configures all subprojects, i.e. the rootProject
@@ -98,12 +105,12 @@ subprojects {
     apply plugin: 'de.thetaphi.forbiddenapis'
     apply plugin: 'checkstyle'
     apply plugin: 'pmd'
-    apply plugin: 'org.cadixdev.licenser'
+    //apply plugin: 'org.cadixdev.licenser'
 
-    license {
-        header = rootProject.file('license_header.txt')
-        include '**/*.java', '**/*.groovy'
-    }
+//    license {
+//        header = rootProject.file('license_header.txt')
+//        include '**/*.java', '**/*.groovy'
+//    }
 
     java {
         withJavadocJar()
@@ -117,6 +124,8 @@ subprojects {
                 'baseDir'  : rootDir,
         ]
         toolVersion = '9.3'
+        //toolVersion = '12.3.1'  // TODO: Java 17 - upgrade
+        //toolVersion = '13.10.0' // TODO: Java 21 - upgrade
         //ignoreFailures = true
     }
 
@@ -124,6 +133,7 @@ subprojects {
         ruleSetFiles = files(rootProject.file('config/pmd/ruleSet.xml'))
         ruleSets = []
         toolVersion = '6.42.0'
+        //toolVersion = '7.26.0' // TODO: upgrade
         incrementalAnalysis = true
         //ignoreFailures = true
     }
@@ -165,17 +175,18 @@ subprojects {
 
     // this gives all subprojects a default set of test dependencies
     dependencies {
-        implementation libraries.'slf4j-api'
+        implementation rootProject.libs.slf4j.api
 
-        testImplementation libraries.'byte-buddy'
-        testImplementation libraries.'groovy'
-        testImplementation libraries.'groovy-nio'
-        testImplementation libraries.'spock-core'
-        testImplementation libraries.'junit-jupiter-api'
+        testImplementation rootProject.libs.byte.buddy
+        testImplementation rootProject.libs.groovy.core
+        testImplementation rootProject.libs.groovy.nio
+        testImplementation rootProject.libs.spock.core
+        testImplementation rootProject.libs.junit.jupiter.api
+        testImplementation rootProject.libs.logback.classic
 
-        testRuntimeOnly libraries.'junit-jupiter-engine'
-        testRuntimeOnly libraries.'jcl-over-slf4j'
-        testRuntimeOnly libraries.'logback-classic'
+        testRuntimeOnly rootProject.libs.objenesis
+        testRuntimeOnly rootProject.libs.junit.platform.launcher
+        testRuntimeOnly rootProject.libs.jcl.over.slf4j
     }
 }
 
@@ -269,7 +280,7 @@ task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
     reports {
         html.required = true
         xml.required = true
-        xml.destination file("${buildDir}/reports/jacoco/report.xml")
+        xml.outputLocation = file("${buildDir}/reports/jacoco/report.xml")
         csv.required = false
     }
 }

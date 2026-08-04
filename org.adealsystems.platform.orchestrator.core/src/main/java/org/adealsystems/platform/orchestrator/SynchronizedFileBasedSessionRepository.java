@@ -124,8 +124,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -174,8 +173,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -209,8 +207,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         LOGGER.debug("Locked '{}' (createSession)", sessionId);
         try {
             writeSession(sessionFile, session);
-        }
-        finally {
+        } finally {
             lock.unlock();
             LOGGER.debug("Unlocked '{}' (createSession)", sessionId);
         }
@@ -235,8 +232,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
             }
 
             return Optional.of(readSession(sessionFile));
-        }
-        finally {
+        } finally {
             lock.unlock();
             LOGGER.debug("Unlocked '{}' (retrieveSession)", sessionId);
         }
@@ -253,8 +249,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         LOGGER.debug("Locked '{}' (retrieveOrCreateSession)", sessionId);
         try {
             return internalRetrieveOrCreateSession(sessionId);
-        }
-        finally {
+        } finally {
             lock.unlock();
             LOGGER.debug("Unlocked '{}' (retrieveOrCreateSession)", sessionId);
         }
@@ -301,8 +296,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
 
             internalUpdateSession(session);
             return session;
-        }
-        finally {
+        } finally {
             lock.unlock();
             LOGGER.debug("Unlocked '{}' (updateSession)", sessionId);
         }
@@ -314,44 +308,17 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         }
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.trace("Updating session {}", session);
-
             // log the update caller
-            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-            String history = session.getStateValue(Session.UPDATE_HISTORY).orElse("");
-            if (!history.isEmpty()) {
-                history += ", ";
+            String caller = findCaller();
+            StringBuilder historyBuilder = new StringBuilder(
+                session.getStateValue(Session.UPDATE_HISTORY).orElse("")
+            );
+            if (!historyBuilder.isEmpty()) {
+                historyBuilder.append(", ");
             }
-
-            String me = this.getClass().getName();
-            String myPackage = me.getClass().getPackage().getName();
-            String threadName = Thread.currentThread().getName();
-            String timestamp = SESSION_UPDATE_FORMATTER.format(LocalDateTime.now(ZoneId.systemDefault()));
-            boolean found = false;
-            for (int i = 0; i < stackTrace.length; i++) {
-                if (i > 10 && !found) {
-                    // Strange! Caller class should be in one of the first 3-4 elements.
-                    LOGGER.warn("Unable to identify caller from {}", Arrays.asList(stackTrace));
-                    break;
-                }
-
-                if (i == 0) {
-                    continue;
-                }
-
-                StackTraceElement element = stackTrace[i];
-                String value = element.toString();
-                LOGGER.trace("\tTRACE[{}]: {}", i, value);
-
-                if (!found && !value.startsWith(me)) {
-                    found = true;
-                    if (value.startsWith(myPackage)) {
-                        value = value.substring(myPackage.length());
-                    }
-                    history += '[' + threadName + "] " + timestamp + ": " + value;
-                    session.setStateValue(Session.UPDATE_HISTORY, history);
-                }
-            }
+            historyBuilder.append(caller);
+            session.setStateValue(Session.UPDATE_HISTORY, historyBuilder.toString());
+            LOGGER.debug("Added caller: {}", caller);
         }
 
         SessionId id = session.getId();
@@ -376,8 +343,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         LOGGER.debug("Locked '{}' (deleteSession)", sessionId);
         try {
             return sessionFile.delete();
-        }
-        finally {
+        } finally {
             lock.unlock();
             LOGGER.debug("Unlocked '{}' (deleteSession)", sessionId);
         }
@@ -412,8 +378,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
             }
 
             internalUpdateSession(session);
-        }
-        finally {
+        } finally {
             lock.unlock();
             LOGGER.debug("Unlocked '{}' (modifySession)", sessionId);
         }
@@ -422,10 +387,10 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
     }
 
     protected Session internalMergeActiveSession(Session session, Session currentActiveSession) {
-        LOGGER.debug(
-            "Concurrent session modification details:\n" +
-                "- stored: {}\n" +
-                "- modified: {}",
+        LOGGER.debug("""
+                Concurrent session modification details:
+                - stored: {}
+                - modified: {}""",
             currentActiveSession,
             session
         );
@@ -518,12 +483,11 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         try {
             Session session = OBJECT_MAPPER.readValue(sessionFile, Session.class);
             if (instanceId.equals(session.getInstanceId())) {
-                LOGGER.debug("Returning original loaded session for {}", instanceId);
+                LOGGER.debug("Returning original loaded session for {}: {}", instanceId, session);
                 return session;
             }
 
-            LOGGER.warn("Correcting InstanceId of {} to {}", session.getId(), instanceId);
-            return new Session(
+            session = new Session(
                 instanceId,
                 session.getId(),
                 session.getCreationTimestamp(),
@@ -532,8 +496,9 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
                 session.getState(),
                 session.getSessionUpdates()
             );
-        }
-        catch (IOException ex) {
+            LOGGER.warn("Correcting InstanceId of {} to {}: {}", session.getId(), instanceId, session);
+            return session;
+        } catch (IOException ex) {
             throw new IllegalStateException("Unable to read session file '" + sessionFile + "'!", ex);
         }
     }
@@ -550,19 +515,43 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
                 StandardCopyOption.ATOMIC_MOVE,
                 StandardCopyOption.REPLACE_EXISTING
             );
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             throw new IllegalStateException("Unable to write session file '" + sessionFile + "'!", ex);
-        }
-        finally {
+        } finally {
             if (tempPath != null) {
                 try {
                     Files.deleteIfExists(tempPath);
-                }
-                catch (IOException ex) {
+                } catch (IOException ex) {
                     LOGGER.warn("Unable to delete temporary session file '{}'!", tempPath, ex);
                 }
             }
         }
+    }
+
+    static String findCaller() {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        final Class<?> clazz = SynchronizedFileBasedSessionRepository.class;
+        String me = clazz.getName();
+        String myPackage = clazz.getPackage().getName();
+        String threadName = Thread.currentThread().getName();
+        String timestamp = SESSION_UPDATE_FORMATTER.format(LocalDateTime.now(ZoneId.systemDefault()));
+        for (int i = 0; i < stackTrace.length; i++) {
+            if (i == 0) {
+                continue;
+            }
+            StackTraceElement element = stackTrace[i];
+
+            if (element.getClassName().equals(me)) {
+                continue;
+            }
+
+
+            String value = element.toString();
+            if (value.contains(myPackage)) {
+                value = value.replace(myPackage, "");
+            }
+            return "[" + threadName + "] " + timestamp + ": " + value;
+        }
+        return "";
     }
 }

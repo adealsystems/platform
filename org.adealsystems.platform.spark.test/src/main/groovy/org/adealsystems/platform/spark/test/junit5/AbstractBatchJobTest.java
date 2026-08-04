@@ -57,7 +57,7 @@ public abstract class AbstractBatchJobTest {
     }
 
     @AfterAll
-    public static void afterClass() {
+    public static void afterClass() throws IOException {
         sparkSession.close();
     }
 }

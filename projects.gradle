@@ -1,213 +1,213 @@
 // This file contains the configuration of all subprojects.
 //
 // The libraries, i.e. the definition of external dependencies
-// (group, artifact, version) are located in externalDependencies.gradle
+// (group, artifact, version) are located in gradle/libs.versions.toml
 //
 // Be aware that subprojects must also be specified in settings.gradle!
 // Otherwise Gradle won't pick them up!
 
-def platformTime = project(':org.adealsystems.platform.time') {
+project(':org.adealsystems.platform.time') {
     description = "Time-related code"
     dependencies {
-        implementation libraries.'commons-text'
+        implementation rootProject.libs.commons.text
     }
 }
 
-def platformHttp = project(':org.adealsystems.platform.http') {
+project(':org.adealsystems.platform.http') {
     description = "HTTP client/tools related code"
     dependencies {
-        implementation libraries.'commons-text'
-        implementation libraries.'jackson-databind'
-        implementation libraries.'httpclient'
+        implementation rootProject.libs.commons.text
+        implementation rootProject.libs.jackson.databind
+        implementation rootProject.libs.httpclient
     }
 }
 
-def platformId = project(':org.adealsystems.platform.id') {
+project(':org.adealsystems.platform.id') {
     dependencies {
-        implementation platformTime
+        implementation project(':org.adealsystems.platform.time')
     }
 }
 
 project(':org.adealsystems.platform.id.hadoop') {
     dependencies {
-        implementation platformId
-        implementation libraries.'hadoop-common'
-        testImplementation libraries.'jcl-over-slf4j'
+        implementation project(':org.adealsystems.platform.id')
+        implementation rootProject.libs.hadoop.common
+        testImplementation rootProject.libs.jcl.over.slf4j
     }
 }
 
-def platformProcess = project(':org.adealsystems.platform.process') {
+project(':org.adealsystems.platform.process') {
     dependencies {
-        implementation platformId
+        implementation project(':org.adealsystems.platform.id')
     }
 }
 
-def platformIo = project(':org.adealsystems.platform.io') {
-    dependencies {
-    }
-}
-
-def platformIoTransform = project(':org.adealsystems.platform.io.transform') {
-    dependencies {
-        implementation platformIo
-    }
-}
-
-def platformIoTest = project(':org.adealsystems.platform.io.test') {
+project(':org.adealsystems.platform.io') {
     dependencies {
     }
 }
 
-def platformIoCompression = project(':org.adealsystems.platform.io.compression') {
+project(':org.adealsystems.platform.io.transform') {
     dependencies {
-        implementation libraries.'commons-compress'
-        implementation libraries.'snappy'
+        implementation project(':org.adealsystems.platform.io')
     }
 }
 
-def platformIoLine = project(':org.adealsystems.platform.io.line') {
+project(':org.adealsystems.platform.io.test') {
     dependencies {
-        implementation platformIo
-        implementation platformIoCompression
     }
 }
 
-def platformIoCsv = project(':org.adealsystems.platform.io.csv') {
+project(':org.adealsystems.platform.io.compression') {
     dependencies {
-        implementation platformIo
-        implementation platformIoCompression
-        implementation libraries.'commons-csv'
-        implementation libraries.'commons-io'
-        testImplementation platformIoTest
+        implementation rootProject.libs.commons.compress
+        implementation rootProject.libs.snappy
     }
 }
 
-def platformIoJson = project(':org.adealsystems.platform.io.json') {
+project(':org.adealsystems.platform.io.line') {
     dependencies {
-        implementation platformIo
-        implementation platformIoCompression
-        implementation platformIoLine
-        implementation libraries.'jackson-databind'
+        implementation project(':org.adealsystems.platform.io')
+        implementation project(':org.adealsystems.platform.io.compression')
     }
 }
 
-def platformIoAvro = project(':org.adealsystems.platform.io.avro') {
+project(':org.adealsystems.platform.io.csv') {
     dependencies {
-        implementation platformIo
-        implementation libraries.'avro'
-        testImplementation platformIoTest
-        testRuntimeOnly libraries.'snappy' // optional snappy codec dependency
-        testRuntimeOnly libraries.'xz' // optional xz codec dependency
-        testRuntimeOnly libraries.'zstd' // optional zstandard codec dependency
+        implementation project(':org.adealsystems.platform.io')
+        implementation project(':org.adealsystems.platform.io.compression')
+        implementation rootProject.libs.commons.csv
+        implementation rootProject.libs.commons.io
+        testImplementation project(':org.adealsystems.platform.io.test')
     }
 }
 
-def platformIoParquet = project(':org.adealsystems.platform.io.parquet') {
+project(':org.adealsystems.platform.io.json') {
     dependencies {
-        implementation platformIo
-        implementation libraries.'avro'
-        implementation libraries.'hadoop-common'
-        implementation libraries.'parquet-avro'
-        testImplementation platformIoTest
-        testImplementation libraries.'hadoop-minicluster'
-        testImplementation libraries.'hadoop-hdfs'
-        testRuntimeOnly libraries.'snappy' // optional snappy codec dependency
-        testRuntimeOnly libraries.'xz' // optional xz codec dependency
-        testRuntimeOnly libraries.'zstd' // optional zstandard codec dependency
+        implementation project(':org.adealsystems.platform.io')
+        implementation project(':org.adealsystems.platform.io.compression')
+        implementation project(':org.adealsystems.platform.io.line')
+        implementation rootProject.libs.jackson.databind
     }
 }
 
-def platformState = project(':org.adealsystems.platform.state') {
+project(':org.adealsystems.platform.io.avro') {
     dependencies {
-        implementation platformId
-        implementation libraries.'jackson-databind'
+        implementation project(':org.adealsystems.platform.io')
+        implementation rootProject.libs.avro
+        testImplementation project(':org.adealsystems.platform.io.test')
+        testRuntimeOnly rootProject.libs.snappy // optional snappy codec dependency
+        testRuntimeOnly rootProject.libs.xz // optional xz codec dependency
+        testRuntimeOnly rootProject.libs.zstd // optional zstandard codec dependency
     }
 }
 
-def platformQueue = project(':org.adealsystems.platform.queue') {
+project(':org.adealsystems.platform.io.parquet') {
+    dependencies {
+        implementation project(':org.adealsystems.platform.io')
+        implementation rootProject.libs.avro
+        implementation rootProject.libs.hadoop.common
+        implementation rootProject.libs.parquet.avro
+        testImplementation project(':org.adealsystems.platform.io.test')
+        testImplementation rootProject.libs.hadoop.minicluster
+        testImplementation rootProject.libs.hadoop.hdfs
+        testRuntimeOnly rootProject.libs.snappy // optional snappy codec dependency
+        testRuntimeOnly rootProject.libs.xz // optional xz codec dependency
+        testRuntimeOnly rootProject.libs.zstd // optional zstandard codec dependency
+    }
+}
+
+project(':org.adealsystems.platform.state') {
+    dependencies {
+        implementation project(':org.adealsystems.platform.id')
+        implementation rootProject.libs.jackson.databind
+    }
+}
+
+project(':org.adealsystems.platform.queue') {
     description = "Queue-related code"
     dependencies {
-        implementation libraries.'commons-text'
+        implementation rootProject.libs.commons.text
     }
 }
 
-def platformQueueAws = project(':org.adealsystems.platform.queue.aws') {
+project(':org.adealsystems.platform.queue.aws') {
     description = "Queue-related code"
     dependencies {
-        implementation platformQueue
-        implementation libraries.'aws-sdk-sqs'
-        implementation libraries.'commons-text'
+        implementation project(':org.adealsystems.platform.queue')
+        implementation rootProject.libs.aws.sdk.sqs
+        implementation rootProject.libs.commons.text
     }
 }
 
-def platformSparkTest = project(':org.adealsystems.platform.spark.test') {
+project(':org.adealsystems.platform.spark.test') {
     dependencies {
-        implementation platformId
-        implementation platformProcess
-        implementation libraries.'spark-core'
-        implementation libraries.'spark-sql' // for SparkSession m(
-        implementation libraries.'junit-jupiter-api'
-        implementation libraries.'spock-core'
+        implementation project(':org.adealsystems.platform.id')
+        implementation project(':org.adealsystems.platform.process')
+        implementation rootProject.libs.spark.core
+        implementation rootProject.libs.spark.sql // for SparkSession m(
+        implementation rootProject.libs.junit.jupiter.api
+        implementation rootProject.libs.spock.core
     }
 }
 
-def platformSpark = project(':org.adealsystems.platform.spark') {
+project(':org.adealsystems.platform.spark') {
     dependencies {
-        implementation platformId
-        implementation platformProcess
-        compileOnly libraries.'spark-core'
-        compileOnly libraries.'spark-sql' // for SparkSession m(
-        testImplementation libraries.'spark-sql' // for SparkSession m(
-        testImplementation platformSparkTest
+        implementation project(':org.adealsystems.platform.id')
+        implementation project(':org.adealsystems.platform.process')
+        compileOnly rootProject.libs.spark.core
+        compileOnly rootProject.libs.spark.sql // for SparkSession m(
+        testImplementation rootProject.libs.spark.sql // for SparkSession m(
+        testImplementation project(':org.adealsystems.platform.spark.test')
     }
 }
 
-def platformSparkUdf = project(':org.adealsystems.platform.spark.udf') {
+project(':org.adealsystems.platform.spark.udf') {
     dependencies {
-        implementation platformTime
-        compileOnly libraries.'spark-sql'
-        testImplementation libraries.'spark-sql'
+        implementation project(':org.adealsystems.platform.time')
+        compileOnly rootProject.libs.spark.sql
+        testImplementation rootProject.libs.spark.sql
     }
 }
 
-def platformSparkMain = project(':org.adealsystems.platform.spark.main') {
+project(':org.adealsystems.platform.spark.main') {
     dependencies {
-        implementation platformId
-        implementation platformTime
-        implementation platformProcess
-        implementation platformSpark
-        implementation libraries.'spring-context'
-        compileOnly libraries.'spark-core'
-        compileOnly libraries.'spark-sql' // for SparkSession m(
+        implementation project(':org.adealsystems.platform.id')
+        implementation project(':org.adealsystems.platform.time')
+        implementation project(':org.adealsystems.platform.process')
+        implementation project(':org.adealsystems.platform.spark')
+        implementation rootProject.libs.spring.context
+        compileOnly rootProject.libs.spark.core
+        compileOnly rootProject.libs.spark.sql // for SparkSession m(
     }
 }
 
-def platformSparkExample = project(':org.adealsystems.platform.spark.example') {
+project(':org.adealsystems.platform.spark.example') {
     dependencies {
-        implementation platformId
-        implementation platformProcess
-        implementation platformSpark
-        implementation platformSparkUdf
-        compileOnly libraries.'spark-core'
-        compileOnly libraries.'spark-sql' // for SparkSession m(
-        testImplementation platformSparkTest
-        testImplementation libraries.'spark-sql' // for SparkSession m(
+        implementation project(':org.adealsystems.platform.id')
+        implementation project(':org.adealsystems.platform.process')
+        implementation project(':org.adealsystems.platform.spark')
+        implementation project(':org.adealsystems.platform.spark.udf')
+        compileOnly rootProject.libs.spark.core
+        compileOnly rootProject.libs.spark.sql // for SparkSession m(
+        testImplementation project(':org.adealsystems.platform.spark.test')
+        testImplementation rootProject.libs.spark.sql // for SparkSession m(
     }
 }
 
-def platformSparkConfigExample = project(':org.adealsystems.platform.spark.config.example') {
+project(':org.adealsystems.platform.spark.config.example') {
     dependencies {
-        implementation platformProcess
-        implementation platformSpark
-        implementation platformSparkExample
-        implementation libraries.'spring-context'
+        implementation project(':org.adealsystems.platform.process')
+        implementation project(':org.adealsystems.platform.spark')
+        implementation project(':org.adealsystems.platform.spark.example')
+        implementation rootProject.libs.spring.context
     }
 }
 
 project(':org.adealsystems.platform.spark.app.example') {
     apply plugin: 'application'
     apply plugin: 'com.gorylenko.gradle-git-properties'
-    apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: 'com.gradleup.shadow'
 
     gitProperties {
         gitPropertiesName = 'adeal-platform-git.properties'
@@ -222,19 +222,21 @@ project(':org.adealsystems.platform.spark.app.example') {
         runtime.extendsFrom runtimeExcludedFromBootJar
     }
 
-    mainClassName = 'org.adealsystems.platform.spark.main.Application'
+    application {
+        mainClass.set("org.adealsystems.platform.spark.main.Application")
+    }
 
     dependencies {
-        runtimeOnly platformSparkMain
-        runtimeOnly platformSparkConfigExample
-        runtimeExcludedFromBootJar libraries.'spark-core'
-        runtimeExcludedFromBootJar libraries.'spark-sql' // for SparkSession m(
+        runtimeOnly project(':org.adealsystems.platform.spark.main')
+        runtimeOnly project(':org.adealsystems.platform.spark.config.example')
+        runtimeExcludedFromBootJar rootProject.libs.spark.core
+        runtimeExcludedFromBootJar rootProject.libs.spark.sql // for SparkSession m(
         runtimeOnly 'org.codehaus.janino:janino:3.0.9' // Spark sucks
         runtimeOnly 'org.codehaus.janino:commons-compiler:3.0.9' // Spark sucks
     }
 
     def firstLevelProvided = project.configurations.runtimeExcludedFromBootJar.getResolvedConfiguration().getFirstLevelModuleDependencies()
-    def artifactsToExclude = getResolvedArtifacts(firstLevelProvided)
+    def artifactsToExclude = rootProject.getResolvedArtifacts(firstLevelProvided)
     artifactsToExclude.each { artifact ->
         project.logger.info "Excluding ${artifact} from being bundled into the shadow jar."
         shadowJar {
@@ -242,6 +244,10 @@ project(':org.adealsystems.platform.spark.app.example') {
                 exclude(dependency(artifact))
             }
         }
+    }
+
+    tasks.named('shadowJar') {
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
     }
 
     // javadoc: error - No public or protected classes found to document.
@@ -261,140 +267,141 @@ project(':org.adealsystems.platform.spark.app.example') {
 
 project(':org.adealsystems.platform.webcollector') {
     dependencies {
-        implementation platformIo
-        implementation libraries.'httpclient'
-        runtimeOnly libraries.'httpcore'
-        testImplementation libraries.'jackson-databind'
-        testRuntimeOnly libraries.'logback-classic'
-        testRuntimeOnly libraries.'jcl-over-slf4j'
+        implementation project(':org.adealsystems.platform.io')
+        implementation rootProject.libs.httpclient
+        runtimeOnly rootProject.libs.httpcore
+        testImplementation rootProject.libs.jackson.databind
+        testRuntimeOnly rootProject.libs.logback.classic
+        testRuntimeOnly rootProject.libs.jcl.over.slf4j
     }
 }
 
 project(':org.adealsystems.platform.sqlcollector') {
     dependencies {
-        implementation platformIo
-        implementation platformIoCsv
-        // implementation platformIoAvro
+        implementation project(':org.adealsystems.platform.io')
+        implementation project(':org.adealsystems.platform.io.csv')
 
-        implementation platformTime
-        implementation platformState
+        implementation project(':org.adealsystems.platform.time')
+        implementation project(':org.adealsystems.platform.state')
 
-        implementation libraries.'commons-csv'
-        testRuntimeOnly libraries.'logback-classic'
-        testRuntimeOnly libraries.'jcl-over-slf4j'
+        implementation rootProject.libs.commons.csv
+        implementation rootProject.libs.jackson.annotations
+        testRuntimeOnly rootProject.libs.logback.classic
+        testRuntimeOnly rootProject.libs.jcl.over.slf4j
     }
 }
 
-def orchestratorCore = project(':org.adealsystems.platform.orchestrator.core') {
+project(':org.adealsystems.platform.orchestrator.core') {
     dependencies {
         implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
-        implementation platformId
-        implementation platformIo
-        implementation platformIoCompression
-        implementation platformIoJson
-        implementation platformProcess
-        implementation platformState
+        implementation project(':org.adealsystems.platform.id')
+        implementation project(':org.adealsystems.platform.io')
+        implementation project(':org.adealsystems.platform.io.compression')
+        implementation project(':org.adealsystems.platform.io.json')
+        implementation project(':org.adealsystems.platform.process')
+        implementation project(':org.adealsystems.platform.state')
 
-        implementation libraries.'sulky-ulid'
-        implementation libraries.'commons-lang'
-        implementation libraries.'spring-context'
-        implementation libraries.'jackson-datatype-jsr310'
+        implementation rootProject.libs.sulky.ulid
+        implementation rootProject.libs.commons.lang
+        implementation rootProject.libs.spring.context
+        implementation rootProject.libs.jackson.datatype.jsr310
     }
 }
 
-def orchestratorExecutor = project(':org.adealsystems.platform.orchestrator.executor') {
+project(':org.adealsystems.platform.orchestrator.executor') {
     dependencies {
-        implementation platformId
-        implementation platformIo
-        implementation platformIoCompression
-        implementation platformIoJson
-        implementation platformProcess
-        implementation platformState
-        implementation orchestratorCore
+        implementation project(':org.adealsystems.platform.id')
+        implementation project(':org.adealsystems.platform.io')
+        implementation project(':org.adealsystems.platform.io.compression')
+        implementation project(':org.adealsystems.platform.io.json')
+        implementation project(':org.adealsystems.platform.process')
+        implementation project(':org.adealsystems.platform.state')
+        implementation project(':org.adealsystems.platform.orchestrator.core')
 
         implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
 
-        implementation libraries.'sulky-ulid'
-        implementation libraries.'commons-lang'
-        implementation libraries.'jackson-datatype-jsr310'
+        implementation rootProject.libs.sulky.ulid
+        implementation rootProject.libs.commons.lang
+        implementation rootProject.libs.jackson.datatype.jsr310
     }
 }
 
-def orchestratorExecutorAws = project(':org.adealsystems.platform.orchestrator.executor.aws') {
+project(':org.adealsystems.platform.orchestrator.executor.aws') {
     dependencies {
-        implementation platformId
-        implementation platformIo
-        implementation platformIoCompression
-        implementation platformIoJson
-        implementation platformProcess
-        implementation platformState
-        implementation orchestratorExecutor
-        implementation orchestratorCore
+        implementation project(':org.adealsystems.platform.id')
+        implementation project(':org.adealsystems.platform.io')
+        implementation project(':org.adealsystems.platform.io.compression')
+        implementation project(':org.adealsystems.platform.io.json')
+        implementation project(':org.adealsystems.platform.process')
+        implementation project(':org.adealsystems.platform.state')
+        implementation project(':org.adealsystems.platform.orchestrator.executor')
+        implementation project(':org.adealsystems.platform.orchestrator.core')
 
         implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
 
-        implementation libraries.'aws-sdk-sns'
-        implementation libraries.'aws-sdk-sqs'
-        implementation libraries.'aws-sdk-s3'
-        implementation libraries.'aws-sdk-sfn'
-        implementation libraries.'commons-lang'
-        implementation libraries.'spring-context'
-        implementation libraries.'jackson-datatype-jsr310'
-    }
-}
-def orchestratorExecutorJenkins = project(':org.adealsystems.platform.orchestrator.executor.jenkins') {
-    dependencies {
-        implementation platformId
-        implementation platformIo
-        implementation platformIoCompression
-        implementation platformIoJson
-        implementation platformProcess
-        implementation platformState
-        implementation orchestratorExecutor
-        implementation orchestratorCore
-
-        implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
-
-        implementation libraries.'commons-lang'
-        implementation libraries.'jackson-datatype-jsr310'
+        implementation rootProject.libs.aws.sdk.sns
+        implementation rootProject.libs.aws.sdk.sqs
+        implementation rootProject.libs.aws.sdk.s3
+        implementation rootProject.libs.aws.sdk.sfn
+        implementation rootProject.libs.commons.lang
+        implementation rootProject.libs.spring.context
+        implementation rootProject.libs.jackson.datatype.jsr310
     }
 }
 
-def orchestratorEngine = project(':org.adealsystems.platform.orchestrator.engine') {
+project(':org.adealsystems.platform.orchestrator.executor.jenkins') {
     dependencies {
-        implementation platformId
-        implementation platformIo
-        implementation platformIoCompression
-        implementation platformIoJson
-        implementation platformProcess
-        implementation platformState
-        implementation orchestratorExecutor
-        implementation orchestratorExecutorJenkins
-        implementation orchestratorCore
+        implementation project(':org.adealsystems.platform.id')
+        implementation project(':org.adealsystems.platform.io')
+        implementation project(':org.adealsystems.platform.io.compression')
+        implementation project(':org.adealsystems.platform.io.json')
+        implementation project(':org.adealsystems.platform.process')
+        implementation project(':org.adealsystems.platform.state')
+        implementation project(':org.adealsystems.platform.orchestrator.executor')
+        implementation project(':org.adealsystems.platform.orchestrator.core')
 
         implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
 
-        implementation libraries.'spring-boot-starter-actuator', {
+        implementation rootProject.libs.commons.lang
+        implementation rootProject.libs.jackson.datatype.jsr310
+    }
+}
+
+project(':org.adealsystems.platform.orchestrator.engine') {
+    dependencies {
+        implementation project(':org.adealsystems.platform.id')
+        implementation project(':org.adealsystems.platform.io')
+        implementation project(':org.adealsystems.platform.io.compression')
+        implementation project(':org.adealsystems.platform.io.json')
+        implementation project(':org.adealsystems.platform.process')
+        implementation project(':org.adealsystems.platform.state')
+        implementation project(':org.adealsystems.platform.orchestrator.executor')
+        implementation project(':org.adealsystems.platform.orchestrator.executor.jenkins')
+        implementation project(':org.adealsystems.platform.orchestrator.core')
+
+        implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
+
+        implementation rootProject.libs.spring.boot.starter.actuator, {
             exclude group: 'org.springframework.boot', module: 'spring-boot-starter'
         }
-        implementation libraries.'spring-boot-starter-web', {
+        implementation rootProject.libs.spring.boot.starter.web, {
             exclude group: 'org.springframework.boot', module: 'spring-boot-starter'
         }
-        implementation libraries.'spring-boot-starter-thymeleaf', {
+        implementation rootProject.libs.spring.boot.starter.thymeleaf, {
             exclude group: 'org.springframework.boot', module: 'spring-boot-starter'
         }
-//        implementation libraries.'spring-boot-starter-quartz', {
+//        implementation libs.spring.boot.starter.quartz, {
 //            exclude group: 'org.springframework.boot', module: 'spring-boot-starter'
 //            exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
 //        }
 
-        implementation libraries.'sulky-ulid'
-        implementation libraries.'aws-sdk-sns'
-        implementation libraries.'aws-sdk-sqs'
-        implementation libraries.'aws-sdk-s3'
-        implementation libraries.'commons-lang'
-        implementation libraries.'spring-context'
-        implementation libraries.'jackson-datatype-jsr310'
+        implementation rootProject.libs.sulky.ulid
+        implementation rootProject.libs.aws.sdk.sns
+        implementation rootProject.libs.aws.sdk.sqs
+        implementation rootProject.libs.aws.sdk.s3
+        implementation rootProject.libs.commons.lang
+        implementation rootProject.libs.spring.context
+        implementation rootProject.libs.jackson.datatype.jsr310
     }
 }
 

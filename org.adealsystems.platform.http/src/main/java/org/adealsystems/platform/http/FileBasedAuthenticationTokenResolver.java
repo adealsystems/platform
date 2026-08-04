@@ -17,6 +17,7 @@
 package org.adealsystems.platform.http;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.text.StringSubstitutor;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
@@ -24,7 +25,6 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
-import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,8 +123,7 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
         try {
             String loadedToken = Files.readString(persistentAuthTokenPath, StandardCharsets.UTF_8).trim();
             return loadedToken.isEmpty() ? null : loadedToken;
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             LOGGER.error("Failed to read token file '{}'", persistentAuthTokenFile, ex);
             return null;
         }
@@ -156,8 +155,7 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
                 StandardCopyOption.REPLACE_EXISTING,
                 StandardCopyOption.ATOMIC_MOVE
             );
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             LOGGER.error("Could not store auth token", ex);
         }
     }
@@ -191,18 +189,15 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
                 CompletableFuture<HttpResponse<String>> future = client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
                 try {
                     response = future.get(REQUEST_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-                }
-                catch (InterruptedException ex) {
+                } catch (InterruptedException ex) {
                     future.cancel(true);
                     throw ex;
-                }
-                catch (TimeoutException ex) {
+                } catch (TimeoutException ex) {
                     future.cancel(true);
                     HttpTimeoutException timeout = new HttpTimeoutException("Request timed out after " + REQUEST_TIMEOUT);
                     timeout.initCause(ex);
                     throw timeout;
-                }
-                catch (ExecutionException ex) {
+                } catch (ExecutionException ex) {
                     Throwable cause = ex.getCause();
                     if (cause instanceof IOException) {
                         throw (IOException) cause;
@@ -227,15 +222,12 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
 
                 storeAuthToken(requestedToken);
                 return requestedToken;
-            }
-            catch (HttpTimeoutException ex) {
+            } catch (HttpTimeoutException ex) {
                 LOGGER.error("Timed out retrieving response body!", ex);
-            }
-            catch (InterruptedException ex) {
+            } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
                 throw new AuthenticationTokenResolverException("Interrupted while retrieving response body!", ex);
-            }
-            catch (IOException ex) {
+            } catch (IOException ex) {
                 LOGGER.error("Failed to retrieve response body!", ex);
             }
         }
@@ -275,8 +267,7 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
                     storeAuthToken(requestedToken);
                     return requestedToken;
                 }
-            }
-            catch (IOException | ParseException ex) {
+            } catch (IOException | ParseException ex) {
                 LOGGER.error("Failed to retrieve response body!", ex);
             }
         }
@@ -293,8 +284,10 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
                 StandardOpenOption.CREATE,
                 StandardOpenOption.WRITE
             );
-            FileLock ignoredLock = channel.lock()
+            FileLock lock = channel.lock()
         ) {
+            // unused workaround, remove with Java 25
+            LOGGER.debug("Acquired lock for HttpClient: {}", lock);
             String sharedToken = loadAuthTokenFromFile();
             if (sharedToken != null && !sharedToken.equals(rejectedToken)) {
                 LOGGER.info("Using auth token from HttpClient refreshed by another worker");
@@ -306,8 +299,7 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
             String newToken = requestAuthToken(client);
             token = newToken;
             return newToken;
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             throw new AuthenticationTokenResolverException("Failed to acquire token refresh lock!", ex);
         }
     }
@@ -321,8 +313,10 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
                 StandardOpenOption.CREATE,
                 StandardOpenOption.WRITE
             );
-            FileLock ignoredLock = channel.lock()
+            FileLock lock = channel.lock()
         ) {
+            // unused workaround, remove with Java 25
+            LOGGER.debug("Acquired lock for CloseableHttpClient: {}", lock);
             String sharedToken = loadAuthTokenFromFile();
             if (sharedToken != null && !sharedToken.equals(rejectedToken)) {
                 LOGGER.info("Using auth token from Apache CloseableHttpClient refreshed by another worker");
@@ -334,8 +328,7 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
             String newToken = requestAuthToken(client);
             token = newToken;
             return newToken;
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             throw new AuthenticationTokenResolverException("Failed to acquire token refresh lock!", ex);
         }
     }
