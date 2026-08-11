@@ -405,7 +405,7 @@ project(':org.adealsystems.platform.orchestrator.engine') {
     }
 }
 
-project(':org.adealsystems.platform.orchestrator.app.example') {
-    dependencies {
-    }
-}
+//project(':org.adealsystems.platform.orchestrator.app.example') {
+//    dependencies {
+//    }
+//}
