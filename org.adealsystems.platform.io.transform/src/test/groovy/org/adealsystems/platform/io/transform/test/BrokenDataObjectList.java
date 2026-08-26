@@ -16,11 +16,13 @@
 
 package org.adealsystems.platform.io.transform.test;
 
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 
 public class BrokenDataObjectList extends ArrayList<DataObject> {
+    @Serial
     private static final long serialVersionUID = -5278998080841342241L;
 
     public BrokenDataObjectList(Collection<? extends DataObject> c) {

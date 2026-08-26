@@ -19,9 +19,13 @@ package org.adealsystems.platform.orchestrator.session;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
+import java.io.Serial;
+
 public class SessionUpdateOperationModule extends SimpleModule {
+    @Serial
     private static final long serialVersionUID = 6958780006516683816L;
 
+    @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
     public SessionUpdateOperationModule() {
         super("SessionUpdateOperationModule", Version.unknownVersion());
 

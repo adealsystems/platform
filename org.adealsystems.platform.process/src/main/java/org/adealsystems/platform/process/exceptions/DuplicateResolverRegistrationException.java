@@ -19,26 +19,30 @@ package org.adealsystems.platform.process.exceptions;
 import org.adealsystems.platform.id.DataResolver;
 import org.adealsystems.platform.process.DataLocation;
 
+import java.io.Serial;
 import java.util.Objects;
 
 
 public class DuplicateResolverRegistrationException extends RuntimeException {
-    private static final long serialVersionUID = -2561489709678465409L;
+    @Serial
+    private static final long serialVersionUID = -412047508579187210L;
 
     private final DataLocation dataLocation;
-    private final DataResolver dataResolver;
+    private final String dataResolverString;
 
     public DuplicateResolverRegistrationException(DataLocation dataLocation, DataResolver dataResolver) {
         super("location '" + dataLocation + "' does already have resolver " + dataResolver + "!");
         this.dataLocation = Objects.requireNonNull(dataLocation, "dataInstance must not be null!");
-        this.dataResolver = Objects.requireNonNull(dataResolver, "dataResolver must not be null!");
+        this.dataResolverString =
+            Objects.requireNonNull(dataResolver, "dataResolver must not be null!")
+                .toString();
     }
 
     public DataLocation getDataLocation() {
         return dataLocation;
     }
 
-    public DataResolver getDataResolver() {
-        return dataResolver;
+    public String getDataResolverString() {
+        return dataResolverString;
     }
 }

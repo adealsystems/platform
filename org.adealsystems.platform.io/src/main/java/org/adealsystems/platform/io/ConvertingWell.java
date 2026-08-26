@@ -32,10 +32,7 @@ public class ConvertingWell<I, O> implements Well<O> {
 
     @Override
     public boolean isConsumed() {
-        if (innerWell == null) {
-            return true;
-        }
-        return innerWell.isConsumed();
+        return innerWell == null || innerWell.isConsumed();
     }
 
     @Override

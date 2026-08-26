@@ -135,7 +135,7 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
             for (String headerName : header) {
                 setValue(result, headerName, record.get(headerName));
             }
-        } catch (NoSuchElementException ex) { // NOPMD
+        } catch (NoSuchElementException ex) {
             throw ex;
         } catch (Throwable t) {
             throw new WellException("Exception while reading record!", t);

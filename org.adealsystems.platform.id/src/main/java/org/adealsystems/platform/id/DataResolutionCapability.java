@@ -16,9 +16,7 @@
 
 package org.adealsystems.platform.id;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.EnumSet;
 import java.util.Set;
 
 public enum DataResolutionCapability {
@@ -26,5 +24,6 @@ public enum DataResolutionCapability {
     STREAM,
     DELETE;
 
-    public static final Set<DataResolutionCapability> ALL = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(values())));
+    public static final Set<DataResolutionCapability> ALL =
+        EnumSet.allOf(DataResolutionCapability.class);
 }

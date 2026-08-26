@@ -18,19 +18,23 @@ package org.adealsystems.platform.process.exceptions;
 
 import org.adealsystems.platform.id.DataInstance;
 
+import java.io.Serial;
 import java.util.Objects;
 
 public class DuplicateInstanceRegistrationException extends RuntimeException {
-    private static final long serialVersionUID = 1884748814399404983L;
+    @Serial
+    private static final long serialVersionUID = -20873103230947729L;
 
-    private final DataInstance dataInstance;
+    private final String dataInstanceString;
 
     public DuplicateInstanceRegistrationException(DataInstance dataInstance) {
         super("dataInstance " + dataInstance + " is already registered!");
-        this.dataInstance = Objects.requireNonNull(dataInstance, "dataInstance must not be null!");
+        this.dataInstanceString =
+            Objects.requireNonNull(dataInstance, "dataInstance must not be null!")
+                .toString();
     }
 
-    public DataInstance getDataInstance() {
-        return dataInstance;
+    public String getDataInstanceString() {
+        return dataInstanceString;
     }
 }

@@ -16,15 +16,21 @@
 
 package org.adealsystems.platform.id;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
-public final class DataIdentifier implements Comparable<DataIdentifier> {
+public final class DataIdentifier
+    implements Comparable<DataIdentifier>, Serializable {
+    @Serial
+    private static final long serialVersionUID = 8425282101767414414L;
+
     public static final String SEPARATOR = ":";
     public static final String PATTERN_STRING = "[a-z][0-9a-z]*(_[0-9a-z]+)*";
-    public static final String CONFIGURATION_PATTERN_STRING = "[a-zA-Z][0-9a-zA-Z]*([,@%\\_\\-\\.0-9a-zA-Z/:]+)*";
+    public static final String CONFIGURATION_PATTERN_STRING = "[a-zA-Z][0-9a-zA-Z]*([,@%_\\-.0-9a-zA-Z/:]+)*";
     private static final Pattern PATTERN = Pattern.compile(PATTERN_STRING);
     private static final Pattern CONFIGURATION_PATTERN = Pattern.compile(CONFIGURATION_PATTERN_STRING);
 
@@ -133,15 +139,14 @@ public final class DataIdentifier implements Comparable<DataIdentifier> {
             throw new DataIdentifierCreationException("Expected three or four tokens separated by '" + SEPARATOR + "' but got " + tokenCount + "!", input);
         }
 
-        String source = tok.nextToken(); // NOPMD
-        String useCase = tok.nextToken(); // NOPMD
-        String configuration = tokenCount == 4 ? tok.nextToken() : null; // NOPMD
+        String source = tok.nextToken();
+        String useCase = tok.nextToken();
+        String configuration = tokenCount == 4 ? tok.nextToken() : null;
         String dataFormatValue = tok.nextToken();
         DataFormat dataFormat;
         try {
             dataFormat = DataFormat.valueOf(dataFormatValue);
-        }
-        catch(IllegalArgumentException ex) {
+        } catch (IllegalArgumentException ex) {
             throw new DataIdentifierCreationException("Error creating DataFormat!", ex.getMessage(), ex);
         }
 

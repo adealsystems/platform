@@ -18,9 +18,11 @@ package org.adealsystems.platform.process.exceptions;
 
 import org.adealsystems.platform.id.DataIdentifier;
 
+import java.io.Serial;
 import java.util.Objects;
 
 public class DuplicateUniqueIdentifierException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = 4127296498700462187L;
     private final DataIdentifier dataIdentifier;
 

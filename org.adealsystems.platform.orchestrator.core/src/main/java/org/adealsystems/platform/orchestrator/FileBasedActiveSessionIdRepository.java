@@ -85,8 +85,7 @@ public class FileBasedActiveSessionIdRepository implements ActiveSessionIdReposi
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -199,8 +198,7 @@ public class FileBasedActiveSessionIdRepository implements ActiveSessionIdReposi
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof SessionIdHolder)) return false;
-            SessionIdHolder that = (SessionIdHolder) o;
+            if (!(o instanceof SessionIdHolder that)) return false;
             return Objects.equals(sessionId, that.sessionId);
         }
 

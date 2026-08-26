@@ -32,7 +32,6 @@ public abstract class AbstractParquetDrain<E> implements Drain<E> {
     private final Schema schema;
     private ParquetWriter<GenericRecord> parquetWriter;
 
-    @SuppressWarnings("PMD.CloseResource")
     protected AbstractParquetDrain(Schema schema, AvroParquetWriter.Builder<GenericRecord> builder)
         throws IOException {
         this.schema = Objects.requireNonNull(schema, "schema must not be null!");

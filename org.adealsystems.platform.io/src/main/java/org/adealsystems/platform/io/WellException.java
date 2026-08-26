@@ -16,7 +16,10 @@
 
 package org.adealsystems.platform.io;
 
+import java.io.Serial;
+
 public class WellException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = -4893887702803869244L;
 
     public WellException(String message) {

@@ -34,7 +34,7 @@ if (JavaVersion.current() < requiredJavaVersion) {
 // Using those scripts ensures that the correct Gradle version
 // is used (and downloaded automatically).
 wrapper {
-    gradleVersion = '9.7.0'
+    gradleVersion = '9.7.1'
 }
 
 // https://github.com/kt3k/coveralls-gradle-plugin
@@ -123,17 +123,15 @@ subprojects {
                 'configDir': rootProject.file('config/checkstyle'),
                 'baseDir'  : rootDir,
         ]
-        toolVersion = '9.3'
-        //toolVersion = '12.3.1'  // TODO: Java 17 - upgrade
-        //toolVersion = '13.10.0' // TODO: Java 21 - upgrade
+        toolVersion = '12.3.1' // requires Java 17
+        //toolVersion = '13.10.0' // TODO: requires Java 21 - upgrade
         //ignoreFailures = true
     }
 
     pmd {
         ruleSetFiles = files(rootProject.file('config/pmd/ruleSet.xml'))
         ruleSets = []
-        toolVersion = '6.42.0'
-        //toolVersion = '7.26.0' // TODO: upgrade
+        toolVersion = '7.26.0'
         incrementalAnalysis = true
         //ignoreFailures = true
     }

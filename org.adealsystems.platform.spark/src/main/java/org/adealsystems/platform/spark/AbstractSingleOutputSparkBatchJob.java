@@ -269,6 +269,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
      */
     protected abstract Dataset<Row> processData();
 
+    @SuppressWarnings("PMD.ExceptionAsFlowControl")
     @Override
     public void execute() {
         executionStartTimestamp = System.currentTimeMillis();
@@ -279,8 +280,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             }
 
             writeOutput(processData());
-        }
-        catch (Throwable th) {
+        } catch (Throwable th) {
             for (DataIdentifier dataId : getOutputIdentifiers()) {
                 registerProcessingStatus(dataId, STATE_PROCESSING_ERROR);
             }
@@ -533,8 +533,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
             if (dataset == null) {
                 dataset = currentDataset;
-            }
-            else {
+            } else {
                 dataset = dataset.union(currentDataset);
             }
         }
@@ -565,8 +564,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         if (dataInstance != null) {
             try {
                 return Optional.of(readInput(dataIdentifier));
-            }
-            catch (Throwable t) {
+            } catch (Throwable t) {
                 logger.debug("Reading {} failed. Returning Optional.empty().", dataIdentifier, t);
                 return Optional.empty();
             }
@@ -596,14 +594,13 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
         for (DataIdentifier dataIdentifier : dataIdentifiers) {
             Optional<Dataset<Row>> oCurrentDataset = readOptionalInput(dataIdentifier);
-            if (!oCurrentDataset.isPresent()) {
+            if (oCurrentDataset.isEmpty()) {
                 continue;
             }
 
             if (dataset == null) {
                 dataset = oCurrentDataset.get();
-            }
-            else {
+            } else {
                 dataset = dataset.union(oCurrentDataset.get());
             }
         }
@@ -660,8 +657,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         for (DataInstance current : instances) {
             try {
                 result.put(current, readInput(current));
-            }
-            catch (Throwable t) {
+            } catch (Throwable t) {
                 logger.debug("Reading {} failed.", current, t);
             }
         }
@@ -669,7 +665,6 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         return result;
     }
 
-    @SuppressWarnings("PMD.CloseResource")
     private Dataset<Row> readInput(DataInstance dataInstance) {
         Objects.requireNonNull(dataInstance, "dataInstance must not be null!");
         String path = dataInstance.getPath();
@@ -677,47 +672,28 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         logger.info("Reading {} from '{}'.", dataInstance, path);
 
         SparkSession session = getSparkSession();
-        switch (dataFormat) {
-            case CSV_COMMA:
-                return readCsvAsDataset(session, COMMA, path);
-
-            case CSV_SEMICOLON:
-                return readCsvAsDataset(session, SEMICOLON, path);
-
-            case CSV_PIPE:
-                return readCsvAsDataset(session, PIPE, path);
-
-            case JSON:
-                return readJsonAsDataset(session, path);
-
-            case AVRO:
-                return readAvroAsDataset(session, path);
-
-            case PARQUET:
-                return readParquetAsDataset(session, path);
-
-            default:
-                throw new UnsupportedDataFormatException(dataFormat);
-        }
+        return switch (dataFormat) {
+            case CSV_COMMA -> readCsvAsDataset(session, COMMA, path);
+            case CSV_SEMICOLON -> readCsvAsDataset(session, SEMICOLON, path);
+            case CSV_PIPE -> readCsvAsDataset(session, PIPE, path);
+            case JSON -> readJsonAsDataset(session, path);
+            case AVRO -> readAvroAsDataset(session, path);
+            case PARQUET -> readParquetAsDataset(session, path);
+            default -> throw new UnsupportedDataFormatException(dataFormat);
+        };
     }
 
-    @SuppressWarnings("PMD.CloseResource")
     private Dataset<Row> readJdbcInput(DataIdentifier dataId, JdbcConnectionProperties props) {
         Objects.requireNonNull(dataId, "dataId must not be null!");
 
         Properties properties = props.getConnectionProperties();
         SparkSession session = getSparkSession();
         DataFormat dataFormat = dataId.getDataFormat();
-        switch (dataFormat) {
-            case JDBC:
-                return readJdbc(session, properties);
-
-            case ATHENA:
-                return readAthenaJdbc(session, properties);
-
-            default:
-                throw new UnsupportedDataFormatException(dataFormat);
-        }
+        return switch (dataFormat) {
+            case JDBC -> readJdbc(session, properties);
+            case ATHENA -> readAthenaJdbc(session, properties);
+            default -> throw new UnsupportedDataFormatException(dataFormat);
+        };
     }
 
     @Override
@@ -750,8 +726,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
             if (resultWriterInterceptor == null) {
                 logger.info("NOT registering result of {} because resultWriterInterceptor is null!", dateInstance);
-            }
-            else {
+            } else {
                 logger.info("Registering result of {} with resultWriterInterceptor.", dateInstance);
                 dateInstance = resultWriterInterceptor.registerResult(outputLocation, dateInstance, outputDataset);
             }
@@ -1010,17 +985,13 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             Class<?> valueClass = value.getClass();
             if (Long.class.isAssignableFrom(valueClass)) {
                 writer.option(key, (long) value);
-            }
-            else if (Double.class.isAssignableFrom(valueClass)) {
+            } else if (Double.class.isAssignableFrom(valueClass)) {
                 writer.option(key, (double) value);
-            }
-            else if (Boolean.class.isAssignableFrom(valueClass)) {
+            } else if (Boolean.class.isAssignableFrom(valueClass)) {
                 writer.option(key, (boolean) value);
-            }
-            else if (String.class.isAssignableFrom(valueClass)) {
+            } else if (String.class.isAssignableFrom(valueClass)) {
                 writer.option(key, (String) value);
-            }
-            else {
+            } else {
                 String valueClassName = valueClass.getName();
                 LOGGER.error("Ignoring unsupported value class {} for writer-option '{}'!", valueClassName, key);
                 //writer.option(key, value.toString()); // null was already handled
@@ -1057,8 +1028,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
                     LOGGER.info("Waiting for appearance of {}...", successFilename);
                     Thread.sleep(1_000);
-                }
-                catch (InterruptedException e) {
+                } catch (InterruptedException e) {
                     throw new IllegalStateException("Exception while waiting for success file!", e);
                 }
             }
@@ -1112,14 +1082,12 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             LOGGER.debug("About to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
             if (!FileUtil.copy(fs, sourcePath, fs, targetPath, true, sparkContext.hadoopConfiguration())) {
                 LOGGER.warn("Failed to copy sourcePath: {} to targetPath: {}", sourcePath, targetPath);
-            }
-            else {
+            } else {
                 if (!fs.delete(new Path(source), true)) {
                     LOGGER.warn("Failed to delete source: {}", source);
                 }
             }
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             throw new IllegalStateException("Unable to rename result file!", ex);
         }
     }

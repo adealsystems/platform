@@ -33,7 +33,11 @@ import static org.adealsystems.platform.orchestrator.SessionEventConstants.DYNAM
 public final class DynamicContentInstanceEventHandler implements InternalEventClassifier, InstanceEventHandler, SessionInitializer {
     private static final Logger LOGGER = LoggerFactory.getLogger(DynamicContentInstanceEventHandler.class);
 
-    private static final ConcurrentMap<Class<? extends DynamicContentAwareHandler>, DynamicContentInstanceEventHandler> HANDLERS = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<
+        Class<? extends DynamicContentAwareHandler>,
+        DynamicContentInstanceEventHandler
+        > HANDLERS = new ConcurrentHashMap<>();
+
     private static final String PROTOTYPE_HANDLER_KEY = "_prototype_handler";
 
     private final Map<String, DynamicContentAwareHandler> dynamicHandlers = new HashMap<>();
@@ -44,13 +48,10 @@ public final class DynamicContentInstanceEventHandler implements InternalEventCl
         ApplicationContext applicationContext,
         Class<? extends DynamicContentAwareHandler> handlerClass
     ) {
-        DynamicContentInstanceEventHandler result = HANDLERS.get(handlerClass);
-        if (result == null) {
-            result = new DynamicContentInstanceEventHandler(applicationContext, handlerClass);
-            HANDLERS.put(handlerClass, result);
-        }
-
-        return result;
+        return HANDLERS.computeIfAbsent(handlerClass,
+            clazz ->
+                new DynamicContentInstanceEventHandler(applicationContext, clazz)
+        );
     }
 
     private DynamicContentInstanceEventHandler(

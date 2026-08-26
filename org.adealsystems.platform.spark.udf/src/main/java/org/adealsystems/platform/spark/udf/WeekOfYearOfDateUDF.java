@@ -19,11 +19,13 @@ package org.adealsystems.platform.spark.udf;
 import org.adealsystems.platform.time.TimeHandling;
 import org.apache.spark.sql.api.java.UDF1;
 
+import java.io.Serial;
 import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Objects;
 
 public class WeekOfYearOfDateUDF implements UDF1<Object, String> {
+    @Serial
     private static final long serialVersionUID = -8734875778324463949L;
 
     private final boolean longFormat;

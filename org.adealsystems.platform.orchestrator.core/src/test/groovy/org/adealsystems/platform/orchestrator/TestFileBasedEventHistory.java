@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+@SuppressWarnings("PMD.TestClassWithoutTestCases")
 public class TestFileBasedEventHistory extends FileBasedEventHistory {
 
     private final List<InternalEvent> consumedEvents = new ArrayList<>();

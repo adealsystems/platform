@@ -19,9 +19,11 @@ package org.adealsystems.platform.orchestrator.status;
 
 import org.adealsystems.platform.orchestrator.InternalEvent;
 
+import java.io.Serial;
 import java.util.Objects;
 
 public class TimerProcessingStep extends EventProcessingStep {
+    @Serial
     private static final long serialVersionUID = -3723828232415262147L;
 
     private final String name;

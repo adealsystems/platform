@@ -102,7 +102,7 @@ public abstract class AbstractAvroWell<E> implements Well<E> {
                 }
 
                 return convert(iterator.next());
-            } catch (NoSuchElementException ex) { // NOPMD
+            } catch (NoSuchElementException ex) {
                 throw ex;
             } catch (Throwable t) {
                 throw new WellException("Exception while reading record!", t);

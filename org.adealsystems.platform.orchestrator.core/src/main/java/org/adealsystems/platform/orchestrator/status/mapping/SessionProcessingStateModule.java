@@ -26,9 +26,13 @@ import org.adealsystems.platform.orchestrator.status.ProcessingStep;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 import org.adealsystems.platform.orchestrator.status.TimerProcessingStep;
 
+import java.io.Serial;
+
 public class SessionProcessingStateModule extends SimpleModule {
+    @Serial
     private static final long serialVersionUID = 6180608143970327030L;
 
+    @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
     public SessionProcessingStateModule() {
         super("SessionProcessingState", Version.unknownVersion());
 

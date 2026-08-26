@@ -18,9 +18,11 @@ package org.adealsystems.platform.process.exceptions;
 
 import org.adealsystems.platform.process.DataLocation;
 
+import java.io.Serial;
 import java.util.Objects;
 
 public class UnregisteredDataResolverException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = 2507799205666202353L;
 
     private final DataLocation dataLocation;

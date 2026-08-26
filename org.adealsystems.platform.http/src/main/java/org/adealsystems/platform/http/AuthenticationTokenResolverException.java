@@ -16,7 +16,10 @@
 
 package org.adealsystems.platform.http;
 
+import java.io.Serial;
+
 public class AuthenticationTokenResolverException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = 7041732920302232643L;
 
     public AuthenticationTokenResolverException(String message) {

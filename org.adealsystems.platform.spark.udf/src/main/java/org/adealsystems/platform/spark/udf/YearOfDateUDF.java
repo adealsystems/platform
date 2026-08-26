@@ -19,10 +19,12 @@ package org.adealsystems.platform.spark.udf;
 import org.adealsystems.platform.time.TimeHandling;
 import org.apache.spark.sql.api.java.UDF1;
 
+import java.io.Serial;
 import java.time.LocalDate;
 import java.time.temporal.ChronoField;
 
 public class YearOfDateUDF implements UDF1<Object, Integer> {
+    @Serial
     private static final long serialVersionUID = -5041403178358407625L;
 
     @Override

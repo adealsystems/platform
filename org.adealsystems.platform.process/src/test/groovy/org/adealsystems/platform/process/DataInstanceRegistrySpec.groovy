@@ -42,7 +42,7 @@ class DataInstanceRegistrySpec extends Specification {
 
         then:
         DuplicateInstanceRegistrationException ex = thrown()
-        ex.getDataInstance() == dataInstance
+        ex.getDataInstanceString() == dataInstance.toString()
         ex.message == "dataInstance source:use_case:CSV_SEMICOLON#current is already registered!"
     }
 

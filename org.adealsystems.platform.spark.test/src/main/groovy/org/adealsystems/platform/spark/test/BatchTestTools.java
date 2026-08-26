@@ -165,7 +165,7 @@ public final class BatchTestTools {
         }
     }
 
-    public static class RowFormat {
+    public static final class RowFormat {
         private static final String DEFAULT_DELIMITER = ",";
 
         private String delimiter = DEFAULT_DELIMITER;
@@ -216,8 +216,7 @@ public final class BatchTestTools {
                     "Number of columns at row %d is wrong: expected %d, but found %d",
                     r, exp.size(), row.size()
                 ));
-            }
-            else {
+            } else {
                 for (int c = 0; c < row.size(); c++) {
                     if (isDifferent(exp.get(c), row.get(c))) {
                         Object value = exp.get(c);
@@ -380,8 +379,7 @@ public final class BatchTestTools {
             case "java.lang.Integer":
                 try {
                     return Integer.parseInt(value);
-                }
-                catch (NumberFormatException ex) {
+                } catch (NumberFormatException ex) {
                     LOGGER.warn("Could not parse integer from value '{}'!", value);
                     return null;
                 }
@@ -392,8 +390,7 @@ public final class BatchTestTools {
                         value = value.substring(0, value.length() - 1);
                     }
                     return Long.parseLong(value);
-                }
-                catch (NumberFormatException ex) {
+                } catch (NumberFormatException ex) {
                     LOGGER.warn("Could not parse long from value '{}'!", value);
                     return null;
                 }
@@ -401,8 +398,7 @@ public final class BatchTestTools {
             case "java.lang.Float":
                 try {
                     return Float.parseFloat(value);
-                }
-                catch (NumberFormatException ex) {
+                } catch (NumberFormatException ex) {
                     LOGGER.warn("Could not parse float from value '{}'!", value);
                     return null;
                 }
@@ -413,8 +409,7 @@ public final class BatchTestTools {
                         value = value.substring(0, value.length() - 1);
                     }
                     return Double.parseDouble(value);
-                }
-                catch (NumberFormatException ex) {
+                } catch (NumberFormatException ex) {
                     LOGGER.warn("Could not parse double from value '{}'!", value);
                     return null;
                 }
@@ -437,8 +432,7 @@ public final class BatchTestTools {
                         Locale.ROOT
                     );
                     return LocalDate.parse(value, formatter);
-                }
-                catch (DateTimeParseException ex) {
+                } catch (DateTimeParseException ex) {
                     LOGGER.warn("Could not parse date from value '{}'!", value);
                     return null;
                 }
@@ -450,8 +444,7 @@ public final class BatchTestTools {
                         Locale.ROOT
                     );
                     return Timestamp.valueOf(LocalDateTime.parse(value, formatter));
-                }
-                catch (DateTimeParseException ex) {
+                } catch (DateTimeParseException ex) {
                     LOGGER.warn("Could not parse datetime from value '{}'!", value);
                     return null;
                 }
@@ -490,52 +483,45 @@ public final class BatchTestTools {
             maybeDouble = false;
             maybeFloat = false;
             numberValue = value.substring(0, value.length() - 1);
-        }
-        else if (upperCaseValue.endsWith("D")) {
+        } else if (upperCaseValue.endsWith("D")) {
             maybeInt = false;
             maybeLong = false;
             maybeFloat = false;
             numberValue = value.substring(0, value.length() - 1);
-        }
-        else if (upperCaseValue.endsWith("F")) {
+        } else if (upperCaseValue.endsWith("F")) {
             maybeInt = false;
             maybeLong = false;
             maybeDouble = false;
             numberValue = value.substring(0, value.length() - 1);
-        }
-        else {
+        } else {
             numberValue = value;
         }
 
         if (maybeInt) {
             try {
                 return Integer.parseInt(numberValue);
-            }
-            catch (NumberFormatException ex) {
+            } catch (NumberFormatException ex) {
                 // ignore
             }
         }
         if (maybeLong) {
             try {
                 return Long.parseLong(numberValue);
-            }
-            catch (NumberFormatException ex) {
+            } catch (NumberFormatException ex) {
                 // ignore
             }
         }
         if (maybeFloat) {
             try {
                 return Float.parseFloat(numberValue);
-            }
-            catch (NumberFormatException ex) {
+            } catch (NumberFormatException ex) {
                 // ignore
             }
         }
         if (maybeDouble) {
             try {
                 return Double.parseDouble(numberValue);
-            }
-            catch (NumberFormatException ex) {
+            } catch (NumberFormatException ex) {
                 // ignore
             }
         }
@@ -566,8 +552,7 @@ public final class BatchTestTools {
                 // header is only available if more than 3 lines specified & 1st and 3rd are borderlines
                 skipHeader = lines[0].startsWith(TABLE_LINE_SEPARATOR_PREFIX)
                     && lines[2].startsWith(TABLE_LINE_SEPARATOR_PREFIX);
-            }
-            else {
+            } else {
                 skipHeader = false;
             }
 

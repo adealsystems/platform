@@ -66,8 +66,6 @@ public class TimerEventReceiverRunnable implements Runnable {
                     if (duration.compareTo(TIMER_STEP) >= 0) {
                         String eventId = TIMER_FORMATTER.format(timestamp);
                         String date = DATE_FORMATTER.format(timestamp);
-                        String dayOfMonth = String.valueOf(timestamp.getDayOfMonth());
-                        String dayOfWeek = String.valueOf(timestamp.get(ChronoField.DAY_OF_WEEK));
 
                         // send the next event
                         InternalEvent timerEvent = new InternalEvent(); // NOPMD
@@ -75,6 +73,9 @@ public class TimerEventReceiverRunnable implements Runnable {
                         timerEvent.setType(InternalEventType.TIMER);
                         timerEvent.setTimestamp(timestamp);
                         timerEvent.setAttributeValue(DATE_ATTRIBUTE, date);
+
+                        String dayOfMonth = String.valueOf(timestamp.getDayOfMonth());
+                        String dayOfWeek = String.valueOf(timestamp.get(ChronoField.DAY_OF_WEEK));
                         timerEvent.setAttributeValue(DAY_OF_WEEK_ATTRIBUTE, dayOfWeek);
                         timerEvent.setAttributeValue(DAY_OF_MONTH_ATTRIBUTE, dayOfMonth);
 

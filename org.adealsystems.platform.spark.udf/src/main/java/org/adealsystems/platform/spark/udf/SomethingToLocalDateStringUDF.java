@@ -19,9 +19,11 @@ package org.adealsystems.platform.spark.udf;
 import org.adealsystems.platform.time.TimeHandling;
 import org.apache.spark.sql.api.java.UDF1;
 
+import java.io.Serial;
 import java.time.LocalDate;
 
 public class SomethingToLocalDateStringUDF implements UDF1<Object, String> {
+    @Serial
     private static final long serialVersionUID = -9130488231442628109L;
 
     @Override

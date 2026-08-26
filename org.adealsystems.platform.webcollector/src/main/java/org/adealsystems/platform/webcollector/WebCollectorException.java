@@ -16,7 +16,10 @@
 
 package org.adealsystems.platform.webcollector;
 
+import java.io.Serial;
+
 public class WebCollectorException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = -3868235794079695936L;
 
     public WebCollectorException(String message) {

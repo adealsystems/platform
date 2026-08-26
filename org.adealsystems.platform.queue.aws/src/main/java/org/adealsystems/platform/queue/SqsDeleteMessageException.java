@@ -16,7 +16,10 @@
 
 package org.adealsystems.platform.queue;
 
+import java.io.Serial;
+
 public class SqsDeleteMessageException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = 6167618859214899634L;
 
     public SqsDeleteMessageException(String message, Throwable cause) {

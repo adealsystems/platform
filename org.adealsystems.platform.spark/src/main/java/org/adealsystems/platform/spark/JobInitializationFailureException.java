@@ -16,7 +16,10 @@
 
 package org.adealsystems.platform.spark;
 
+import java.io.Serial;
+
 public class JobInitializationFailureException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = -5887009386016855841L;
 
     public JobInitializationFailureException(String message) {

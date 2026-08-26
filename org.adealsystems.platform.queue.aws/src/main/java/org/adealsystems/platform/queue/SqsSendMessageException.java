@@ -16,7 +16,10 @@
 
 package org.adealsystems.platform.queue;
 
+import java.io.Serial;
+
 public class SqsSendMessageException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = 3935266403014517759L;
 
     public SqsSendMessageException(String message, Throwable cause) {

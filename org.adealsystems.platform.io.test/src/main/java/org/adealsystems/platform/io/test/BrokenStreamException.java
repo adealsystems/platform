@@ -17,8 +17,10 @@
 package org.adealsystems.platform.io.test;
 
 import java.io.IOException;
+import java.io.Serial;
 
 public class BrokenStreamException extends IOException {
+    @Serial
     private static final long serialVersionUID = 9170111826967975843L;
 
     // this is not an unnecessary constructor.

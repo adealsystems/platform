@@ -22,7 +22,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public class ZoneDescriptor {
+public final class ZoneDescriptor {
     String zone;
     Set<FileDescriptor> files = new HashSet<>();
 

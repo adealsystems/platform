@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.beans.ConstructorProperties;
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -60,6 +61,7 @@ import java.util.function.Consumer;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class Session implements Serializable {
+    @Serial
     private static final long serialVersionUID = -4977538740085095596L;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Session.class);
@@ -809,6 +811,7 @@ public final class Session implements Serializable {
     }
 
     public static class SessionUpdates implements Serializable {
+        @Serial
         private static final long serialVersionUID = 388199570473620237L;
 
         private List<SessionUpdateOperation> updates = new ArrayList<>();

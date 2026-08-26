@@ -23,8 +23,7 @@ import org.adealsystems.platform.id.NamingStrategy;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -32,7 +31,8 @@ public class UrlDataResolutionStrategy implements DataResolutionStrategy {
     private final String baseUrl;
     private final NamingStrategy namingStrategy;
 
-    private static final Set<DataResolutionCapability> SUPPORTED = Collections.unmodifiableSet(new HashSet<>(Collections.singletonList(DataResolutionCapability.PATH)));
+    private static final Set<DataResolutionCapability> SUPPORTED =
+        EnumSet.of(DataResolutionCapability.PATH);
 
     public UrlDataResolutionStrategy(NamingStrategy namingStrategy, String baseUrl) {
         this.namingStrategy = Objects.requireNonNull(namingStrategy, "namingStrategy must not be null!");

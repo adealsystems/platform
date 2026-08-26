@@ -24,8 +24,10 @@ import org.adealsystems.platform.orchestrator.InternalEvent;
 import org.adealsystems.platform.orchestrator.status.TimerProcessingStep;
 
 import java.io.IOException;
+import java.io.Serial;
 
 public class TimerProcessingStepDeserializer extends StdDeserializer<TimerProcessingStep> {
+    @Serial
     private static final long serialVersionUID = 2333073101219808266L;
 
     protected TimerProcessingStepDeserializer() {

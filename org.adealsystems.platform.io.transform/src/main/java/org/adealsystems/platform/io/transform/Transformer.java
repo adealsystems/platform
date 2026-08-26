@@ -247,7 +247,6 @@ public class Transformer<I, J, O, P> {
         }
     }
 
-    @SuppressWarnings("PMD.ReturnEmptyCollectionRatherThanNull")
     private Iterable<P> convert(J input, TransformerMetrics metrics) {
         if (input == null) {
             return null;

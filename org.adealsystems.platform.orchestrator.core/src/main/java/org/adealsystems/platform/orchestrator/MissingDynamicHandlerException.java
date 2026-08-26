@@ -16,7 +16,10 @@
 
 package org.adealsystems.platform.orchestrator;
 
+import java.io.Serial;
+
 public class MissingDynamicHandlerException extends IllegalArgumentException {
+    @Serial
     private static final long serialVersionUID = -7221463095382674995L;
 
     private final InternalEvent event;

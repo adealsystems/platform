@@ -19,6 +19,7 @@ package org.adealsystems.platform.orchestrator.status;
 import org.adealsystems.platform.orchestrator.RunSpecification;
 import org.adealsystems.platform.orchestrator.Session;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -31,6 +32,7 @@ import java.util.Objects;
 
 
 public class SessionProcessingState implements Cloneable, Serializable {
+    @Serial
     private static final long serialVersionUID = -4771183871755310172L;
 
     private final RunSpecification runSpec;
@@ -88,7 +90,7 @@ public class SessionProcessingState implements Cloneable, Serializable {
     }
 
     public static String buildTerminationMessage(Session session) {
-        StringBuilder msg = new StringBuilder(45);
+        StringBuilder msg = new StringBuilder(100);
 
         if (session.hasFailedFlag()) {
             msg.append("Terminated by failed flag");

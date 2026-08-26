@@ -51,7 +51,6 @@ import java.util.stream.Collectors;
 import static org.adealsystems.platform.spark.main.SystemProperties.loadPropertiesFrom;
 import static org.adealsystems.platform.spark.main.SystemProperties.replaceProperty;
 
-@SuppressWarnings("PMD.UseUtilityClass")
 @ComponentScan({"org.adealsystems.platform.spark.config", "org.adealsystems.platform.spark.main"})
 @PropertySource("classpath:adeal-platform-git.properties")
 @PropertySource("classpath:application.properties")

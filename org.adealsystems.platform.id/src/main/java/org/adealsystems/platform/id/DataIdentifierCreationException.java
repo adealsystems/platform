@@ -16,7 +16,10 @@
 
 package org.adealsystems.platform.id;
 
+import java.io.Serial;
+
 public class DataIdentifierCreationException extends IllegalArgumentException {
+    @Serial
     private static final long serialVersionUID = -6400680999226215701L;
 
     private final String value;

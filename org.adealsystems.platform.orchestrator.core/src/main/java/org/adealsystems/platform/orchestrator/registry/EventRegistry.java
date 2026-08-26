@@ -130,7 +130,7 @@ public class EventRegistry {
         }
 
         if (LOGGER.isDebugEnabled()) {
-            StringBuilder builder = new StringBuilder() // NOPMD
+            StringBuilder builder = new StringBuilder(200)
                 .append("\n\tcancel: ").append(cancelEvents.size())
                 .append("\n\ttimer: ").append(timerEvents.size())
                 .append("\n\tsession: ").append(sessionEvents.size())

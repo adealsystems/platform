@@ -17,11 +17,13 @@
 package org.adealsystems.platform.orchestrator;
 
 import java.beans.ConstructorProperties;
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class RunSpecification implements Serializable {
+    @Serial
     private static final long serialVersionUID = 94637417304603248L;
 
     private final RunType type;

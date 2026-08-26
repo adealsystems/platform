@@ -19,9 +19,11 @@ package org.adealsystems.platform.orchestrator.status;
 
 import org.adealsystems.platform.orchestrator.InternalEvent;
 
+import java.io.Serial;
 import java.util.Objects;
 
 public class EventProcessingStep implements ProcessingStep {
+    @Serial
     private static final long serialVersionUID = 8583659551095886478L;
 
     private final boolean success; // NOPMD

@@ -15,27 +15,27 @@
         <exclude name="AvoidReassigningParameters"/>
         <exclude name="ConstantsInInterface"/>
         <exclude name="GuardLogStatement"/>
-        <exclude name="JUnitAssertionsShouldIncludeMessage"/>
-        <exclude name="JUnitTestContainsTooManyAsserts"/>
-        <exclude name="JUnitTestsShouldIncludeAssert"/>
+        <exclude name="ImplicitFunctionalInterface"/>
+        <exclude name="UnitTestAssertionsShouldIncludeMessage"/>
         <exclude name="UseVarargs"/>
     </rule>
 
     <rule ref="category/java/design.xml">
         <exclude name="AvoidCatchingGenericException"/>
         <exclude name="CognitiveComplexity"/>
+        <exclude name="CouplingBetweenObjects"/>
         <exclude name="CyclomaticComplexity"/>
         <exclude name="DataClass"/>
-        <exclude name="ExcessiveClassLength"/>
         <exclude name="ExcessiveImports"/>
-        <exclude name="ExcessiveMethodLength"/>
         <exclude name="ExcessivePublicCount"/>
         <exclude name="GodClass"/>
         <exclude name="LawOfDemeter"/>
         <exclude name="LoosePackageCoupling"/>
         <exclude name="NPathComplexity"/>
         <exclude name="NcssCount"/>
+        <exclude name="PublicMemberInNonPublicType"/>
         <exclude name="SignatureDeclareThrowsException"/>
+        <exclude name="SimplifyBooleanReturns"/>
         <exclude name="TooManyFields"/>
         <exclude name="TooManyMethods"/>
         <exclude name="UseObjectForClearerAPI"/>
@@ -47,15 +47,11 @@
     </rule>
 
     <rule ref="category/java/codestyle.xml">
-        <exclude name="AbstractNaming"/>
         <exclude name="AtLeastOneConstructor"/>
-        <exclude name="AvoidPrefixingMethodParameters"/>
         <exclude name="CallSuperInConstructor"/>
         <exclude name="CommentDefaultAccessModifier"/>
         <exclude name="ConfusingTernary"/>
-        <exclude name="DefaultPackage"/>
         <exclude name="EmptyMethodInAbstractClassShouldBeAbstract"/>
-        <exclude name="IfStmtsMustUseBraces"/>
         <exclude name="LinguisticNaming"/>
         <exclude name="LocalVariableCouldBeFinal"/>
         <exclude name="LongVariable"/>
@@ -79,18 +75,15 @@
     <rule ref="category/java/errorprone.xml">
         <exclude name="AvoidBranchingStatementAsLastInLoop"/>
         <exclude name="AvoidCatchingThrowable"/>
+        <exclude name="AvoidCatchingGenericException"/>
         <exclude name="AvoidDuplicateLiterals"/>
         <exclude name="AvoidLiteralsInIfCondition"/>
-        <exclude name="BeanMembersShouldSerialize"/>
-        <exclude name="DataflowAnomalyAnalysis"/>
         <exclude name="EmptyCatchBlock"/>
-        <exclude name="LoggerIsNotStaticFinal"/>
         <exclude name="MoreThanOneLogger"/>
         <exclude name="NullAssignment"/>
     </rule>
 
     <rule ref="category/java/performance.xml">
-        <exclude name="AvoidUsingShortType"/> <!-- also triggered by short[] -->
         <exclude name="RedundantFieldInitializer"/> <!-- correct, but eeeew -->
         <exclude name="UseStringBufferForStringAppends"/> <!-- outdated rule -->
     </rule>

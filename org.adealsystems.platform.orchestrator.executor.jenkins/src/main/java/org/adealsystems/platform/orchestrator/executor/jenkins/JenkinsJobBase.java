@@ -43,7 +43,7 @@ public abstract class JenkinsJobBase {
     protected abstract String getJenkinsJobName(Map<String, String> additionalParameters);
 
     protected String createCommand(String commandId, Map<String, String> additionalParameters) {
-        StringBuilder parameters = new StringBuilder();
+        StringBuilder parameters = new StringBuilder(100);
         if (additionalParameters != null && !additionalParameters.isEmpty()) {
             for (Map.Entry<String, String> entry : additionalParameters.entrySet()) {
                 String name = entry.getKey();

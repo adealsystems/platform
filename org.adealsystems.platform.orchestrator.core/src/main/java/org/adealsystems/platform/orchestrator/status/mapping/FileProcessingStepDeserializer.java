@@ -23,8 +23,10 @@ import org.adealsystems.platform.orchestrator.InternalEvent;
 import org.adealsystems.platform.orchestrator.status.FileProcessingStep;
 
 import java.io.IOException;
+import java.io.Serial;
 
 public class FileProcessingStepDeserializer extends StdDeserializer<FileProcessingStep> {
+    @Serial
     private static final long serialVersionUID = 2555073101219808266L;
 
     protected FileProcessingStepDeserializer() {

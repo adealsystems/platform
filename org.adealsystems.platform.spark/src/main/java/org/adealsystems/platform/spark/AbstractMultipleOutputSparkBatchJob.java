@@ -252,6 +252,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
      */
     protected abstract Map<DataIdentifier, Dataset<Row>> processData();
 
+    @SuppressWarnings("PMD.ExceptionAsFlowControl")
     @Override
     public void execute() {
         executionStartTimestamp = System.currentTimeMillis();
@@ -457,7 +458,6 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         throw new UnregisteredDataIdentifierException(dataIdentifier);
     }
 
-    @SuppressWarnings("PMD.CloseResource")
     private Dataset<Row> readJdbcInput(DataIdentifier dataId, JdbcConnectionProperties props) {
         Objects.requireNonNull(dataId, "dataId must not be null!");
 
@@ -465,14 +465,11 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
         SparkSession session = getSparkSession();
         DataFormat dataFormat = dataId.getDataFormat();
-        switch (dataFormat) {
-            case JDBC:
-                return readJdbc(session, properties);
-            case ATHENA:
-                return readAthenaJdbc(session, properties);
-            default:
-                throw new UnsupportedDataFormatException(dataFormat);
-        }
+        return switch (dataFormat) {
+            case JDBC -> readJdbc(session, properties);
+            case ATHENA -> readAthenaJdbc(session, properties);
+            default -> throw new UnsupportedDataFormatException(dataFormat);
+        };
     }
 
     /**

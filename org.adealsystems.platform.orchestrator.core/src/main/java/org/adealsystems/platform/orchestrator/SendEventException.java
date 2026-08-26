@@ -16,7 +16,10 @@
 
 package org.adealsystems.platform.orchestrator;
 
+import java.io.Serial;
+
 public class SendEventException extends IllegalArgumentException {
+    @Serial
     private static final long serialVersionUID = -1746698624084821571L;
 
     private final InternalEvent event;

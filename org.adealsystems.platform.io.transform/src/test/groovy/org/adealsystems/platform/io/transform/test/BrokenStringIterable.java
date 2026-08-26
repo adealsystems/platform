@@ -24,7 +24,7 @@ public class BrokenStringIterable implements Iterable<String> {
         return new BrokenIterator();
     }
 
-    private static class BrokenIterator implements Iterator<String> {
+    private static final class BrokenIterator implements Iterator<String> {
 
         private int counter;
 

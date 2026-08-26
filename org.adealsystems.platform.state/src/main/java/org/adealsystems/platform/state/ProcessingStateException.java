@@ -16,7 +16,10 @@
 
 package org.adealsystems.platform.state;
 
+import java.io.Serial;
+
 public class ProcessingStateException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = -1817499821270835574L;
 
     public ProcessingStateException() {

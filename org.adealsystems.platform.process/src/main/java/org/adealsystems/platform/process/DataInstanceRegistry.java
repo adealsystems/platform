@@ -127,7 +127,7 @@ public class DataInstanceRegistry {
         return new HashSet<>(dataInstanceContainers.keySet());
     }
 
-    private static class DataInstanceContainer {
+    private static final class DataInstanceContainer {
         private final Map<LocalDate, DataInstance> dateInstances = new HashMap<>();
         private DataInstance current;
 

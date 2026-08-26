@@ -25,11 +25,13 @@ import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 import org.adealsystems.platform.orchestrator.status.State;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 public class SessionProcessingStateDeserializer extends StdDeserializer<SessionProcessingState> {
+    @Serial
     private static final long serialVersionUID = -4641250437409122345L;
 
     protected SessionProcessingStateDeserializer() {
@@ -60,7 +62,8 @@ public class SessionProcessingStateDeserializer extends StdDeserializer<SessionP
         );
     }
 
-    private static class Root { // NOPMD
+    @SuppressWarnings({"PMD.ShortClassName", "PMD.ImmutableField"})
+    private static final class Root {
         public RunSpecification runSpec;
         public Map<String, String> configuration;
         public State state;

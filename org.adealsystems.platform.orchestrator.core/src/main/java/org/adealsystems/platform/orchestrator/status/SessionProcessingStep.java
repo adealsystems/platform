@@ -20,12 +20,14 @@ package org.adealsystems.platform.orchestrator.status;
 import org.adealsystems.platform.orchestrator.InternalEvent;
 import org.adealsystems.platform.orchestrator.SessionEventConstants;
 
+import java.io.Serial;
 import java.util.Objects;
 
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SESSION_STATE_ATTRIBUTE_NAME;
 import static org.adealsystems.platform.orchestrator.SessionEventConstants.SOURCE_EVENT_ATTRIBUTE_NAME;
 
 public class SessionProcessingStep extends EventProcessingStep {
+    @Serial
     private static final long serialVersionUID = -2205103557789816206L;
 
     private final String instanceRef;

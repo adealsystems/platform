@@ -61,6 +61,7 @@ public final class TimeHandling {
      * @param zoneId a ZoneId
      * @return a LocalDate
      */
+    @SuppressWarnings("PMD.ReplaceJavaUtilDate")
     public static LocalDate toLocalDate(Date date, ZoneId zoneId) {
         Objects.requireNonNull(date, "date must not be null!");
         Objects.requireNonNull(zoneId, "zoneId must not be null!");
@@ -75,6 +76,7 @@ public final class TimeHandling {
      * @param date a Date
      * @return a LocalDate
      */
+    @SuppressWarnings("PMD.ReplaceJavaUtilDate")
     public static LocalDate toLocalDate(Date date) {
         return toLocalDate(date, ZoneId.systemDefault());
     }
@@ -114,6 +116,7 @@ public final class TimeHandling {
     }
 
     // TODO: docs
+    @SuppressWarnings("PMD.ReplaceJavaUtilDate")
     public static LocalDate convertToLocalDate(Object input) {
         if (input == null) {
             return null;

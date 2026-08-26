@@ -384,7 +384,7 @@ public class DatasetLogger {
             Objects.requireNonNull(datasets[i], "datasets[" + i + "] must not be null!");
         }
 
-        StringBuilder builder = new StringBuilder();
+        StringBuilder builder = new StringBuilder(500);
 
         // message
         builder.append(message).append('\n');
@@ -436,8 +436,11 @@ public class DatasetLogger {
             Collections.sort(sortedColumns);
 
             String pattern = patternBuilder.toString();
-            builder.append(String.format(Locale.US, pattern, header)).append('\n');
-            builder.append(String.format(Locale.US, pattern, divider)).append('\n');
+            builder
+                .append(String.format(Locale.US, pattern, header))
+                .append('\n')
+                .append(String.format(Locale.US, pattern, divider))
+                .append('\n');
             for (String column : sortedColumns) {
                 Object[] line = new String[length + 1];  // NOPMD - checked against AvoidInstantiatingObjectsInLoops
                 line[0] = fillString(column + ' ', '.', maxColumnNameLength);
@@ -499,7 +502,7 @@ public class DatasetLogger {
             return;
         }
 
-        StringBuilder builder = new StringBuilder();
+        StringBuilder builder = new StringBuilder(200);
 
         // message
         builder.append(message).append(" [size: ").append(structType == null ? "N/A" : structType.size()).append("]:\n");
@@ -549,7 +552,7 @@ public class DatasetLogger {
             return;
         }
 
-        StringBuilder builder = new StringBuilder();
+        StringBuilder builder = new StringBuilder(100);
 
         Long totalCount = dataset == null ? null : dataset.count();
 
@@ -565,7 +568,7 @@ public class DatasetLogger {
 
         final int numberOfRows = ctx.getNumberOfRows();
 
-        StringBuilder contextBuilder = new StringBuilder();
+        StringBuilder contextBuilder = new StringBuilder(100);
         if (!currentColumns.isEmpty()) {
             for (Column column : currentColumns) {
                 boolean applied = true;
@@ -721,7 +724,7 @@ public class DatasetLogger {
         return new Context();
     }
 
-    public static class Context {
+    public static final class Context {
         public static final int DEFAULT_NUMBER_OF_ROWS = 20;
 
         private static final Context DEFAULT_CONTEXT = new Context();
@@ -739,7 +742,6 @@ public class DatasetLogger {
             // use DatasetLogger.newContext() factory method
         }
 
-        @SuppressWarnings("PMD.UnusedPrivateMethod") // false positive PMD 6.33.0
         private static Context getDefaultContext() {
             return DEFAULT_CONTEXT;
         }

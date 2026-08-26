@@ -42,7 +42,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-@SuppressWarnings("PMD.GuardLogStatement")
 public class SqlCollector<Q, R> {
     private static final Logger LOGGER = LoggerFactory.getLogger(SqlCollector.class);
 
@@ -293,19 +292,23 @@ public class SqlCollector<Q, R> {
             StringBuilder str = new StringBuilder(100)
                 .append("QueryEntity{query=")
                 .append(query)
-                .append(", timestamp=").append(timestamp)
-                .append(", duration=").append(duration);
+                .append(", timestamp=")
+                .append(timestamp)
+                .append(", duration=")
+                .append(duration);
             if (resultSize != null) {
-                str.append(", resultSize=");
-                str.append(resultSize);
+                str.append(", resultSize=")
+                    .append(resultSize);
             }
             if (throwable != null) {
-                str.append(", throwable=").append(throwable);
+                str.append(", throwable=")
+                    .append(throwable);
             }
             str.append('}');
             return str.toString();
         }
 
+        @SuppressWarnings("PMD.CompareObjectsWithEquals")
         private boolean isSentinel() {
             // not a bug, check for instance equality, i.e. "same"!
             return SqlCollector.this.sentinel == this;
@@ -348,7 +351,7 @@ public class SqlCollector<Q, R> {
         }
     }
 
-    private class Supervisor implements Runnable {
+    private final class Supervisor implements Runnable {
         private final Set<Worker> workers = new HashSet<>();
 
         private ExecutorService workerExecutor;
@@ -382,7 +385,7 @@ public class SqlCollector<Q, R> {
                 LOGGER.info("Stopping worker executors {}", runningWorkers);
                 for (Runnable runningWorker : runningWorkers) {
                     if (Worker.class.isAssignableFrom(runningWorker.getClass())) {
-                        SqlCollector<?, ?>.Worker worker = (SqlCollector<?, ?>.Worker)(runningWorker);
+                        SqlCollector<?, ?>.Worker worker = (SqlCollector<?, ?>.Worker) (runningWorker);
                         worker.shutdown();
                     }
                 }
@@ -454,13 +457,14 @@ public class SqlCollector<Q, R> {
         }
     }
 
-    private class Worker implements Runnable {
+    private final class Worker implements Runnable {
 
         private final QueryExecutionContext context = new QueryExecutionContext();
         private Q currentQuery = null;
         private boolean done = false;
         private boolean running = true;
 
+        @SuppressWarnings("PMD.ExceptionAsFlowControl")
         @Override
         public void run() {
             while (running) {
@@ -492,7 +496,7 @@ public class SqlCollector<Q, R> {
                     context.setCancelled(false);
                     currentQuery = query;
                     queryEntity.setTimestamp(startQueryTimestamp);
-                    long startTime = System.nanoTime(); // NOPMD
+                    long startTime = System.nanoTime();
                     ProcessingState state = ProcessingState.createSuccessState();
                     try {
                         long count = executeQuery(query, metricsDrain, context);

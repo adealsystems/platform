@@ -413,7 +413,7 @@ public class InternalEventHandlerRunnable implements Runnable {
         if (instanceRef == null) {
             // dynamic
             int pos = id.lastIndexOf('-');
-            instanceRef = new InstanceId(id.substring(0, pos)); // NOPMD
+            instanceRef = new InstanceId(id.substring(0, pos));
         }
 
         return instanceRef;

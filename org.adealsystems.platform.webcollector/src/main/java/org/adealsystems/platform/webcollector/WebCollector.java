@@ -80,7 +80,7 @@ public class WebCollector<Q, R> {
 
         boolean success = false;
         int producerRetryCountdown = retry ? 1 : 0;
-        while(producerRetryCountdown >= 0) {
+        while (producerRetryCountdown >= 0) {
             // clearing queues to enable multiple calls
             reset();
 
@@ -119,7 +119,8 @@ public class WebCollector<Q, R> {
 
                 if (LOGGER.isWarnEnabled()) LOGGER.warn("Awaiting termination failed!");
                 List<Runnable> incompleteTasks = producerExecutorService.shutdownNow();
-                if (LOGGER.isWarnEnabled()) LOGGER.warn("{} incomplete tasks: {}", incompleteTasks.size(), incompleteTasks);
+                if (LOGGER.isWarnEnabled())
+                    LOGGER.warn("{} incomplete tasks: {}", incompleteTasks.size(), incompleteTasks);
             } catch (InterruptedException e) {
                 if (LOGGER.isWarnEnabled()) LOGGER.warn("Awaiting termination interrupted!", e);
                 break;
@@ -269,26 +270,29 @@ public class WebCollector<Q, R> {
             StringBuilder str = new StringBuilder(100)
                 .append("QueryEntity{query=")
                 .append(query)
-                .append(", timestamp=").append(timestamp)
-                .append(", duration=").append(duration);
+                .append(", timestamp=")
+                .append(timestamp)
+                .append(", duration=")
+                .append(duration);
             if (result != null) {
-                str.append(", result.size()=");
-                str.append(result.size());
+                str.append(", result.size()=")
+                    .append(result.size());
             }
             if (throwable != null) {
-                str.append(", throwable=").append(throwable);
+                str.append(", throwable=")
+                    .append(throwable);
             }
             str.append('}');
             return str.toString();
         }
 
+        @SuppressWarnings("PMD.CompareObjectsWithEquals")
         private boolean isSentinel() {
             // not a bug, check for instance equality, i.e. "same"!
             return WebCollector.this.sentinel == this;
         }
     }
 
-    @SuppressWarnings("PMD.CloseResource")
     private List<R> executeQuery(Q query) {
         Throwable throwable = null;
         for (int i = 0; i < maxRetries; i++) {
@@ -335,7 +339,7 @@ public class WebCollector<Q, R> {
         }
     }
 
-    private class Producer implements Runnable {
+    private final class Producer implements Runnable {
         @Override
         public void run() {
             for (; ; ) {

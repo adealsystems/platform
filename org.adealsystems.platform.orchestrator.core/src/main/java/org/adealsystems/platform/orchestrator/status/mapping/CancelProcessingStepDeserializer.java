@@ -24,8 +24,10 @@ import org.adealsystems.platform.orchestrator.InternalEvent;
 import org.adealsystems.platform.orchestrator.status.CancelProcessingStep;
 
 import java.io.IOException;
+import java.io.Serial;
 
 public class CancelProcessingStepDeserializer extends StdDeserializer<CancelProcessingStep> {
+    @Serial
     private static final long serialVersionUID = 2444073101219808266L;
 
     protected CancelProcessingStepDeserializer() {

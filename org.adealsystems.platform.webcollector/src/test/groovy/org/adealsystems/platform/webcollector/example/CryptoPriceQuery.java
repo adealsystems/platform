@@ -26,6 +26,7 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.net.URIBuilder;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -59,7 +60,9 @@ public class CryptoPriceQuery implements HttpQuery<CryptoId, CryptoPrices> {
                 }
                 HttpEntity entity = response.getEntity();
 
-                PriceResponse priceResponse = objectMapper.readValue(entity.getContent(), PriceResponse.class);
+                Map<String, Map<String, Double>> priceResponse =
+                    objectMapper.readValue(entity.getContent(), PriceResponse.class);
+
                 for (Map.Entry<String, Map<String, Double>> current : priceResponse.entrySet()) {
                     String key = current.getKey();
                     Map<String, Double> value = current.getValue();
@@ -75,7 +78,8 @@ public class CryptoPriceQuery implements HttpQuery<CryptoId, CryptoPrices> {
     }
 
     @SuppressWarnings("checkstyle:IllegalType")
-    private static class PriceResponse extends HashMap<String, Map<String, Double>> {
+    private static final class PriceResponse extends HashMap<String, Map<String, Double>> {
+        @Serial
         private static final long serialVersionUID = -7242779284265985064L;
     }
 }

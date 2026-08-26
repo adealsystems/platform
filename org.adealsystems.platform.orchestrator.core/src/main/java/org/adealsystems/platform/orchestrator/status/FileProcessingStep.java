@@ -19,9 +19,11 @@ package org.adealsystems.platform.orchestrator.status;
 
 import org.adealsystems.platform.orchestrator.InternalEvent;
 
+import java.io.Serial;
 import java.util.Objects;
 
 public class FileProcessingStep extends EventProcessingStep {
+    @Serial
     private static final long serialVersionUID = 4110313907750714595L;
 
     private final String zone;

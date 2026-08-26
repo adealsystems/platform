@@ -19,6 +19,7 @@ package org.adealsystems.platform.orchestrator.status;
 
 import org.adealsystems.platform.orchestrator.InternalEvent;
 
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 
 public class MessageProcessingStep extends EventProcessingStep {
+    @Serial
     private static final long serialVersionUID = -5021237990561079026L;
 
     private final String instanceRef;

@@ -16,8 +16,10 @@
 
 package org.adealsystems.platform.sqlcollector;
 
-public class SqlCollectorException extends RuntimeException {
+import java.io.Serial;
 
+public class SqlCollectorException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = 4702167514211094257L;
 
     public SqlCollectorException(String message) {

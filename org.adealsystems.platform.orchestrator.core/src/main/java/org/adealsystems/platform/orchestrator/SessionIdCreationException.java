@@ -16,7 +16,10 @@
 
 package org.adealsystems.platform.orchestrator;
 
+import java.io.Serial;
+
 public class SessionIdCreationException extends IllegalArgumentException {
+    @Serial
     private static final long serialVersionUID = -4705139497112978561L;
 
     private final String value;

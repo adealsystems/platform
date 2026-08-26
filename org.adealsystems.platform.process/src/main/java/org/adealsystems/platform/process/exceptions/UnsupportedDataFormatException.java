@@ -18,7 +18,10 @@ package org.adealsystems.platform.process.exceptions;
 
 import org.adealsystems.platform.id.DataFormat;
 
+import java.io.Serial;
+
 public class UnsupportedDataFormatException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = -4600647743265281541L;
 
     private final DataFormat dataFormat;

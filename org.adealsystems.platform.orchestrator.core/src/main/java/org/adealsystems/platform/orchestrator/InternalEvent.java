@@ -24,6 +24,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateOperationModule;
 import org.adealsystems.platform.orchestrator.status.mapping.SessionProcessingStateModule;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -43,9 +44,11 @@ import static org.adealsystems.platform.orchestrator.SessionEventConstants.SOURC
 
 
 public final class InternalEvent implements Cloneable, Serializable, TimestampAware {
+    @Serial
     private static final long serialVersionUID = -1958300486266138089L;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     static {
         OBJECT_MAPPER.registerModule(new JavaTimeModule());
         OBJECT_MAPPER.registerModule(new SessionProcessingStateModule());
@@ -192,7 +195,7 @@ public final class InternalEvent implements Cloneable, Serializable, TimestampAw
     }
 
     public String toShortString() {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder(100);
         sb.append(type).append("-event (").append(id).append(')');
         if (instanceId != null) {
             sb.append(", instance: ").append(instanceId);

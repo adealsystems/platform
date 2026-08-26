@@ -16,10 +16,15 @@
 
 package org.adealsystems.platform.process;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-public class DataLocation {
+public class DataLocation implements Serializable {
+    @Serial
+    private static final long serialVersionUID = -3592652556245608734L;
+
     static final String NAME_PATTERN_STRING = "[a-z][0-9a-z]*(-[0-9a-z]+)*";
     private static final Pattern NAME_PATTERN = Pattern.compile(NAME_PATTERN_STRING);
 

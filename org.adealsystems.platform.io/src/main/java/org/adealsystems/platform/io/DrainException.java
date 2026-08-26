@@ -16,7 +16,10 @@
 
 package org.adealsystems.platform.io;
 
+import java.io.Serial;
+
 public class DrainException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = -714773114726860438L;
 
     public DrainException(String message) {

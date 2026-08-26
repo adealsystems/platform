@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -213,7 +214,7 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
 
                 // HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 String responsePayload = response.body();
-                TokenMap responseMap = objectMapper.readValue(responsePayload, TokenMap.class);
+                Map<String, String> responseMap = objectMapper.readValue(responsePayload, TokenMap.class);
                 String requestedToken = responseMap.get("access_token");
                 if (requestedToken == null || requestedToken.isBlank()) {
                     LOGGER.debug("HttpClient's token response did not contain an access token");
@@ -235,7 +236,7 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
         throw new AuthenticationTokenResolverException("Failed to retrieve response body!");
     }
 
-    @SuppressWarnings({"PMD.ExceptionAsFlowControl", "PMD.AvoidInstantiatingObjectsInLoops"})
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     private String requestAuthToken(CloseableHttpClient client) {
         String requestPayload = StringSubstitutor.replace(
             authTokenRequestPayload,
@@ -257,7 +258,7 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
                 request.setEntity(new StringEntity(requestPayload, ContentType.APPLICATION_FORM_URLENCODED));
                 try (CloseableHttpResponse response = client.execute(request)) {
                     String responsePayload = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
-                    TokenMap responseMap = objectMapper.readValue(responsePayload, TokenMap.class);
+                    Map<String, String> responseMap = objectMapper.readValue(responsePayload, TokenMap.class);
                     String requestedToken = responseMap.get("access_token");
                     if (requestedToken == null || requestedToken.isBlank()) {
                         LOGGER.debug("Apache CloseableHttpClient token response did not contain an access token");
@@ -334,7 +335,8 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
     }
 
     @SuppressWarnings("IllegalType")
-    private static class TokenMap extends HashMap<String, String> {
+    private static final class TokenMap extends HashMap<String, String> {
+        @Serial
         private static final long serialVersionUID = 6720739577283302699L;
     }
 
