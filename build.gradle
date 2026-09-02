@@ -6,15 +6,11 @@ buildscript {
     }
 
     dependencies {
-        classpath "org.springframework.boot:spring-boot-gradle-plugin:2.3.0.RELEASE"
-        classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:3.5.16"
         classpath "de.thetaphi:forbiddenapis:3.10"
         classpath "com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.6.1"
         classpath "com.gorylenko.gradle-git-properties:gradle-git-properties:2.5.4"
-        classpath "org.ajoberstar.grgit:grgit-core:5.2.2"
-        //classpath "dev.yumi:yumi-gradle-licenser:4.0.0" // TODO: activate
-        //classpath "gradle.plugin.org.cadixdev.gradle:licenser:0.6.1"
-        //classpath "gradle.plugin.org.ec4j.gradle:editorconfig-gradle-plugin:0.0.3"
+        classpath "dev.yumi:yumi-gradle-licenser:4.0.0"
     }
 }
 
@@ -48,7 +44,7 @@ allprojects {
     apply plugin: 'jacoco'
     apply plugin: 'java'
     apply plugin: 'maven-publish'
-    //apply plugin: 'org.ec4j.editorconfig'
+    apply plugin: 'dev.yumi.gradle.licenser'
 
     group = 'org.adealsystems'
     version = '0.52.0'
@@ -93,8 +89,18 @@ allprojects {
         options.addBooleanOption('Xdoclint:all,-missing', true)
     }
 
+
+    // https://github.com/YumiProject/yumi-gradle-licenser/issues/15
+    license {
+        rule(rootProject.file('license_header.txt'))
+
+        include("**/*.java")
+        include("**/*.groovy")
+        exclude("**/*.properties")
+    }
+
     // the tasks to be executed if no tasks are given explicitly.
-    defaultTasks 'build'//, 'licenseCheck'
+    defaultTasks 'build', 'checkLicenses'
 }
 
 // the block below configures all subprojects, i.e. the rootProject
@@ -105,12 +111,7 @@ subprojects {
     apply plugin: 'de.thetaphi.forbiddenapis'
     apply plugin: 'checkstyle'
     apply plugin: 'pmd'
-    //apply plugin: 'org.cadixdev.licenser'
 
-//    license {
-//        header = rootProject.file('license_header.txt')
-//        include '**/*.java', '**/*.groovy'
-//    }
 
     java {
         withJavadocJar()
@@ -189,9 +190,9 @@ subprojects {
 }
 
 configure(subprojects
-        -project(':org.adealsystems.platform.spark.example')
-        -project(':org.adealsystems.platform.spark.config.example')
-        -project(':org.adealsystems.platform.spark.app.example')
+        - project(':org.adealsystems.platform.spark.example')
+        - project(':org.adealsystems.platform.spark.config.example')
+        - project(':org.adealsystems.platform.spark.app.example')
 ) {
     apply plugin: 'maven-publish'
     apply plugin: 'signing'
