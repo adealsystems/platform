@@ -139,9 +139,9 @@ subprojects {
 
     forbiddenApis {
         bundledSignatures = [
-                'jdk-unsafe-1.8',
-                'jdk-deprecated-1.8',
-                'jdk-internal-1.8',
+                'jdk-unsafe',
+                'jdk-deprecated',
+                'jdk-internal',
                 'jdk-non-portable',
                 //'jdk-system-out',
                 'jdk-reflection',
