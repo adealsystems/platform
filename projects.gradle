@@ -17,8 +17,8 @@ project(':org.adealsystems.platform.http') {
     description = "HTTP client/tools related code"
     dependencies {
         implementation rootProject.libs.commons.text
-        implementation rootProject.libs.jackson.databind
-        implementation rootProject.libs.httpclient
+        implementation rootProject.libs.jackson2.databind
+        implementation rootProject.libs.apache.http.client5
     }
 }
 
@@ -79,6 +79,7 @@ project(':org.adealsystems.platform.io.csv') {
         implementation rootProject.libs.commons.csv
         implementation rootProject.libs.commons.io
         testImplementation project(':org.adealsystems.platform.io.test')
+        compileOnly rootProject.libs.spotbugs.annotations
     }
 }
 
@@ -87,7 +88,7 @@ project(':org.adealsystems.platform.io.json') {
         implementation project(':org.adealsystems.platform.io')
         implementation project(':org.adealsystems.platform.io.compression')
         implementation project(':org.adealsystems.platform.io.line')
-        implementation rootProject.libs.jackson.databind
+        implementation rootProject.libs.jackson2.databind
     }
 }
 
@@ -120,7 +121,7 @@ project(':org.adealsystems.platform.io.parquet') {
 project(':org.adealsystems.platform.state') {
     dependencies {
         implementation project(':org.adealsystems.platform.id')
-        implementation rootProject.libs.jackson.databind
+        implementation rootProject.libs.jackson2.databind
     }
 }
 
@@ -231,8 +232,8 @@ project(':org.adealsystems.platform.spark.app.example') {
         runtimeOnly project(':org.adealsystems.platform.spark.config.example')
         runtimeExcludedFromBootJar rootProject.libs.spark.core
         runtimeExcludedFromBootJar rootProject.libs.spark.sql // for SparkSession m(
-        runtimeOnly 'org.codehaus.janino:janino:3.0.9' // Spark sucks
-        runtimeOnly 'org.codehaus.janino:commons-compiler:3.0.9' // Spark sucks
+        runtimeOnly rootProject.libs.janino.main // Spark sucks
+        runtimeOnly rootProject.libs.janino.commons.compiler // Spark sucks
     }
 
     def firstLevelProvided = project.configurations.runtimeExcludedFromBootJar.getResolvedConfiguration().getFirstLevelModuleDependencies()
@@ -268,9 +269,9 @@ project(':org.adealsystems.platform.spark.app.example') {
 project(':org.adealsystems.platform.webcollector') {
     dependencies {
         implementation project(':org.adealsystems.platform.io')
-        implementation rootProject.libs.httpclient
-        runtimeOnly rootProject.libs.httpcore
-        testImplementation rootProject.libs.jackson.databind
+        implementation rootProject.libs.apache.http.client5
+        runtimeOnly rootProject.libs.apache.http.core5
+        testImplementation rootProject.libs.jackson2.databind
         testRuntimeOnly rootProject.libs.logback.classic
         testRuntimeOnly rootProject.libs.jcl.over.slf4j
     }
@@ -293,7 +294,7 @@ project(':org.adealsystems.platform.sqlcollector') {
 
 project(':org.adealsystems.platform.orchestrator.core') {
     dependencies {
-        implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
+        implementation rootProject.libs.jaxb.api
         implementation project(':org.adealsystems.platform.id')
         implementation project(':org.adealsystems.platform.io')
         implementation project(':org.adealsystems.platform.io.compression')
@@ -304,7 +305,7 @@ project(':org.adealsystems.platform.orchestrator.core') {
         implementation rootProject.libs.sulky.ulid
         implementation rootProject.libs.commons.lang
         implementation rootProject.libs.spring.context
-        implementation rootProject.libs.jackson.datatype.jsr310
+        implementation rootProject.libs.jackson2.datatype.jsr310
     }
 }
 
@@ -318,11 +319,11 @@ project(':org.adealsystems.platform.orchestrator.executor') {
         implementation project(':org.adealsystems.platform.state')
         implementation project(':org.adealsystems.platform.orchestrator.core')
 
-        implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
+        implementation rootProject.libs.jaxb.api
 
         implementation rootProject.libs.sulky.ulid
         implementation rootProject.libs.commons.lang
-        implementation rootProject.libs.jackson.datatype.jsr310
+        implementation rootProject.libs.jackson2.datatype.jsr310
     }
 }
 
@@ -337,7 +338,7 @@ project(':org.adealsystems.platform.orchestrator.executor.aws') {
         implementation project(':org.adealsystems.platform.orchestrator.executor')
         implementation project(':org.adealsystems.platform.orchestrator.core')
 
-        implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
+        implementation rootProject.libs.jaxb.api
 
         implementation rootProject.libs.aws.sdk.sns
         implementation rootProject.libs.aws.sdk.sqs
@@ -345,7 +346,7 @@ project(':org.adealsystems.platform.orchestrator.executor.aws') {
         implementation rootProject.libs.aws.sdk.sfn
         implementation rootProject.libs.commons.lang
         implementation rootProject.libs.spring.context
-        implementation rootProject.libs.jackson.datatype.jsr310
+        implementation rootProject.libs.jackson2.datatype.jsr310
     }
 }
 
@@ -360,10 +361,10 @@ project(':org.adealsystems.platform.orchestrator.executor.jenkins') {
         implementation project(':org.adealsystems.platform.orchestrator.executor')
         implementation project(':org.adealsystems.platform.orchestrator.core')
 
-        implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
+        implementation rootProject.libs.jaxb.api
 
         implementation rootProject.libs.commons.lang
-        implementation rootProject.libs.jackson.datatype.jsr310
+        implementation rootProject.libs.jackson2.datatype.jsr310
     }
 }
 
@@ -379,7 +380,7 @@ project(':org.adealsystems.platform.orchestrator.engine') {
         implementation project(':org.adealsystems.platform.orchestrator.executor.jenkins')
         implementation project(':org.adealsystems.platform.orchestrator.core')
 
-        implementation 'javax.xml.bind:jaxb-api:2.2.11' // outdated but necessary
+        implementation rootProject.libs.jaxb.api
 
         implementation rootProject.libs.spring.boot.starter.actuator, {
             exclude group: 'org.springframework.boot', module: 'spring-boot-starter'
@@ -401,7 +402,7 @@ project(':org.adealsystems.platform.orchestrator.engine') {
         implementation rootProject.libs.aws.sdk.s3
         implementation rootProject.libs.commons.lang
         implementation rootProject.libs.spring.context
-        implementation rootProject.libs.jackson.datatype.jsr310
+        implementation rootProject.libs.jackson2.datatype.jsr310
     }
 }
 

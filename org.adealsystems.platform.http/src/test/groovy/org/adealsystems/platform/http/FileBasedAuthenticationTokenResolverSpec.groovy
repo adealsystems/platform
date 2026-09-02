@@ -75,6 +75,7 @@ class FileBasedAuthenticationTokenResolverSpec extends Specification {
         }
         result == 'new-token'
         Files.readString(tokenFile) == 'new-token'
+        request != null
         request.method() == 'POST'
         request.uri().toString() == 'https://auth.example/token'
         request.headers().firstValue('Content-Type').get() == 'application/x-www-form-urlencoded'
@@ -146,11 +147,11 @@ class FileBasedAuthenticationTokenResolverSpec extends Specification {
         }
     }
 
-    private FileBasedAuthenticationTokenResolver resolverFor(Path tokenFile) {
+    private static FileBasedAuthenticationTokenResolver resolverFor(Path tokenFile) {
         resolverFor(tokenFile, 'https://auth.example/token')
     }
 
-    private FileBasedAuthenticationTokenResolver resolverFor(Path tokenFile, String authServiceUrl) {
+    private static FileBasedAuthenticationTokenResolver resolverFor(Path tokenFile, String authServiceUrl) {
         new FileBasedAuthenticationTokenResolver(
             tokenFile.toString(),
             authServiceUrl,

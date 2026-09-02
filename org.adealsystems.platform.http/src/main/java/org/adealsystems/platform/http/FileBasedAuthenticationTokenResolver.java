@@ -20,9 +20,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.core5.http.ContentType;
-import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.slf4j.Logger;
@@ -255,20 +254,40 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
 
             try {
                 HttpPost request = new HttpPost(authServiceUrl);
-                request.setEntity(new StringEntity(requestPayload, ContentType.APPLICATION_FORM_URLENCODED));
-                try (CloseableHttpResponse response = client.execute(request)) {
-                    String responsePayload = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
-                    Map<String, String> responseMap = objectMapper.readValue(responsePayload, TokenMap.class);
-                    String requestedToken = responseMap.get("access_token");
-                    if (requestedToken == null || requestedToken.isBlank()) {
-                        LOGGER.debug("Apache CloseableHttpClient token response did not contain an access token");
-                        continue;
+                request.setEntity(new StringEntity(
+                    requestPayload,
+                    ContentType.APPLICATION_FORM_URLENCODED
+                ));
+
+                String requestedToken = client.execute(request, response -> {
+                    HttpEntity entity = response.getEntity();
+
+                    if (entity == null) {
+                        return null;
                     }
 
-                    storeAuthToken(requestedToken);
-                    return requestedToken;
+                    String responsePayload = EntityUtils.toString(
+                        entity,
+                        StandardCharsets.UTF_8
+                    );
+
+                    Map<String, String> responseMap =
+                        objectMapper.readValue(responsePayload, TokenMap.class);
+
+                    return responseMap.get("access_token");
+                });
+
+                if (requestedToken == null || requestedToken.isBlank()) {
+                    LOGGER.debug(
+                        "Apache CloseableHttpClient token response did not contain an access token"
+                    );
+                    continue;
                 }
-            } catch (IOException | ParseException ex) {
+
+                storeAuthToken(requestedToken);
+                return requestedToken;
+
+            } catch (IOException ex) {
                 LOGGER.error("Failed to retrieve response body!", ex);
             }
         }

@@ -22,6 +22,7 @@ import org.adealsystems.platform.io.compression.Compression;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.io.ByteOrderMark;
 import org.apache.commons.io.input.BOMInputStream;
 
 import java.io.BufferedReader;
@@ -50,8 +51,18 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
 
     protected AbstractCsvWell(Class<E> clazz, InputStream inputStream, CSVFormat csvFormat, Compression compression)
         throws IOException {
-        this(clazz, Objects.requireNonNull(compression, "compression must not be null!").createReader(
-            new BOMInputStream(inputStream)), csvFormat);
+        this(clazz, Objects.requireNonNull(compression, "compression must not be null!")
+            .createReader(
+                createBOMInputStream(inputStream)
+            ), csvFormat);
+    }
+
+    private static InputStream createBOMInputStream(InputStream inputStream) throws IOException {
+        return BOMInputStream.builder()
+            .setInputStream(inputStream)
+            .setByteOrderMarks(ByteOrderMark.UTF_8)
+            .setInclude(false)
+            .get();
     }
 
     /*

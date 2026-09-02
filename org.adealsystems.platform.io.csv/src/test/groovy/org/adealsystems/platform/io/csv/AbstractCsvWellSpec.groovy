@@ -256,7 +256,7 @@ class AbstractCsvWellSpec extends Specification {
         then: 'at some point the expected exception is actually thrown'
         WellException ex = thrown()
         ex.message == "Exception while reading record!"
-        ex.cause instanceof IllegalStateException
+        ex.cause instanceof UncheckedIOException
         ex.cause.cause instanceof BrokenStreamException
     }
 

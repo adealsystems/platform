@@ -14,6 +14,10 @@ buildscript {
     }
 }
 
+plugins {
+    id("io.github.ben-manes.versions") version "0.61.0"
+}
+
 final int requiredJavaMajorVersion = 17
 final def requiredJavaVersion =
         JavaVersion.toVersion(requiredJavaMajorVersion)
@@ -133,6 +137,7 @@ subprojects {
         ruleSetFiles = files(rootProject.file('config/pmd/ruleSet.xml'))
         ruleSets = []
         toolVersion = '7.26.0'
+        //toolVersion = '7.27.0'
         incrementalAnalysis = true
         //ignoreFailures = true
     }
