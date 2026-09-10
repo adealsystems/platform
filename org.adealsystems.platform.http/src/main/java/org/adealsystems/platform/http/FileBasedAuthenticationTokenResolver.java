@@ -16,7 +16,6 @@
 
 package org.adealsystems.platform.http;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -26,9 +25,11 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
-import java.io.Serial;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -44,7 +45,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -57,6 +57,9 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
     private static final int MAX_RETRIES = 5;
     private static final int RETRY_DELAY = 10_000;
     private static final Duration REQUEST_TIMEOUT = Duration.ofMinutes(5);
+    private static final TypeReference<Map<String, String>> MAP_STRING_STRING_TYPE_REFERENCE =
+        new TypeReference<>() {
+        };
 
     private final String persistentAuthTokenFile;
     private final String authServiceUrl;
@@ -65,7 +68,7 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
     private final String authTokenRequestPayload;
     private final String username;
     private final String password;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final Path persistentAuthTokenPath;
     private final Path persistentAuthTokenLockPath;
 
@@ -77,7 +80,7 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
         String authTokenRequestPayload,
         String username,
         String password,
-        ObjectMapper objectMapper
+        JsonMapper jsonMapper
     ) {
         this.persistentAuthTokenFile = persistentAuthTokenFile;
         this.persistentAuthTokenPath = Paths.get(persistentAuthTokenFile);
@@ -86,7 +89,7 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
         this.authTokenRequestPayload = authTokenRequestPayload;
         this.username = URLEncoder.encode(username, StandardCharsets.ISO_8859_1);
         this.password = URLEncoder.encode(password, StandardCharsets.ISO_8859_1);
-        this.objectMapper = objectMapper;
+        this.jsonMapper = jsonMapper;
     }
 
     @Override
@@ -213,7 +216,7 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
 
                 // HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 String responsePayload = response.body();
-                Map<String, String> responseMap = objectMapper.readValue(responsePayload, TokenMap.class);
+                Map<String, String> responseMap = jsonMapper.readValue(responsePayload, MAP_STRING_STRING_TYPE_REFERENCE);
                 String requestedToken = responseMap.get("access_token");
                 if (requestedToken == null || requestedToken.isBlank()) {
                     LOGGER.debug("HttpClient's token response did not contain an access token");
@@ -229,6 +232,8 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
                 throw new AuthenticationTokenResolverException("Interrupted while retrieving response body!", ex);
             } catch (IOException ex) {
                 LOGGER.error("Failed to retrieve response body!", ex);
+            } catch (JacksonException ex) {
+                LOGGER.error("Failed to parse response body!", ex);
             }
         }
 
@@ -272,7 +277,7 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
                     );
 
                     Map<String, String> responseMap =
-                        objectMapper.readValue(responsePayload, TokenMap.class);
+                        jsonMapper.readValue(responsePayload, MAP_STRING_STRING_TYPE_REFERENCE);
 
                     return responseMap.get("access_token");
                 });
@@ -289,6 +294,8 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
 
             } catch (IOException ex) {
                 LOGGER.error("Failed to retrieve response body!", ex);
+            } catch (JacksonException ex) {
+                LOGGER.error("Failed to parse response body!", ex);
             }
         }
 
@@ -351,12 +358,6 @@ public class FileBasedAuthenticationTokenResolver implements AuthenticationToken
         } catch (IOException ex) {
             throw new AuthenticationTokenResolverException("Failed to acquire token refresh lock!", ex);
         }
-    }
-
-    @SuppressWarnings("IllegalType")
-    private static final class TokenMap extends HashMap<String, String> {
-        @Serial
-        private static final long serialVersionUID = 6720739577283302699L;
     }
 
     private void waitBeforeRetry() {

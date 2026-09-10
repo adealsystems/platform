@@ -16,24 +16,29 @@
 
 package org.adealsystems.platform.webcollector.example;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.adealsystems.platform.webcollector.HttpClientBundle;
 import org.adealsystems.platform.webcollector.HttpQuery;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.net.URIBuilder;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
-import java.io.Serial;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class CryptoPriceQuery implements HttpQuery<CryptoId, CryptoPrices> {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build();
+
+    private static final TypeReference<Map<String, Map<String, Double>>> MAP_STRING_MAP_STRING_DOUBLE_TYPE_REFERENCE =
+        new TypeReference<>() {
+        };
 
     @Override
     public List<CryptoPrices> perform(HttpClientBundle httpClientBundle, CryptoId query)
@@ -63,7 +68,7 @@ public class CryptoPriceQuery implements HttpQuery<CryptoId, CryptoPrices> {
                 }
 
                 Map<String, Map<String, Double>> priceResponse =
-                    objectMapper.readValue(entity.getContent(), PriceResponse.class);
+                    JSON_MAPPER.readValue(entity.getContent(), MAP_STRING_MAP_STRING_DOUBLE_TYPE_REFERENCE);
 
                 return priceResponse.entrySet()
                     .stream()
@@ -82,11 +87,5 @@ public class CryptoPriceQuery implements HttpQuery<CryptoId, CryptoPrices> {
         } catch (URISyntaxException e) {
             throw new IOException("URI FAIL!", e);
         }
-    }
-
-    @SuppressWarnings("checkstyle:IllegalType")
-    private static final class PriceResponse extends HashMap<String, Map<String, Double>> {
-        @Serial
-        private static final long serialVersionUID = -7242779284265985064L;
     }
 }

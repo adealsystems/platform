@@ -16,54 +16,46 @@
 
 package org.adealsystems.platform.orchestrator.status.mapping;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import org.adealsystems.platform.orchestrator.RunSpecification;
 import org.adealsystems.platform.orchestrator.status.ProcessingStep;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 import org.adealsystems.platform.orchestrator.status.State;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.deser.std.StdDeserializer;
 
-import java.io.IOException;
-import java.io.Serial;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 public class SessionProcessingStateDeserializer extends StdDeserializer<SessionProcessingState> {
-    @Serial
-    private static final long serialVersionUID = -4641250437409122345L;
-
     protected SessionProcessingStateDeserializer() {
-        this(null);
+        super(SessionProcessingState.class);
     }
 
-    protected SessionProcessingStateDeserializer(Class<?> vc) {
-        super(vc);
-    }
 
     @Override
-    public SessionProcessingState deserialize(JsonParser parser, DeserializationContext ctx) throws IOException {
-        Root root = parser.readValueAs(Root.class);
+    public SessionProcessingState deserialize(JsonParser parser, DeserializationContext ctx) {
+        RootNode rootNode = parser.readValueAs(RootNode.class);
         return new SessionProcessingState(
-            root.runSpec,
-            root.configuration,
-            root.state,
-            root.message,
-            root.started,
-            root.terminated,
-            root.lastUpdated,
-            root.progressMaxValue,
-            root.progressCurrentStep,
-            root.progressFailedSteps,
-            root.flags,
-            root.steps,
-            root.stateAttributes
+            rootNode.runSpec,
+            rootNode.configuration,
+            rootNode.state,
+            rootNode.message,
+            rootNode.started,
+            rootNode.terminated,
+            rootNode.lastUpdated,
+            rootNode.progressMaxValue,
+            rootNode.progressCurrentStep,
+            rootNode.progressFailedSteps,
+            rootNode.flags,
+            rootNode.steps,
+            rootNode.stateAttributes
         );
     }
 
-    @SuppressWarnings({"PMD.ShortClassName", "PMD.ImmutableField"})
-    private static final class Root {
+    @SuppressWarnings("PMD.ImmutableField")
+    private static final class RootNode {
         public RunSpecification runSpec;
         public Map<String, String> configuration;
         public State state;

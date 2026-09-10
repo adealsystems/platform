@@ -16,14 +16,14 @@
 
 package org.adealsystems.platform.orchestrator;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateOperation;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateOperationModule;
 import org.adealsystems.platform.orchestrator.status.mapping.SessionProcessingStateModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,16 +62,13 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
     private static final DateTimeFormatter SESSION_UPDATE_FORMATTER
         = DateTimeFormatter.ofPattern("HH:mm:ss.SSS", Locale.ROOT);
 
-    private static final ObjectMapper OBJECT_MAPPER;
-
-    static {
-        OBJECT_MAPPER = new ObjectMapper();
-        OBJECT_MAPPER.enable(SerializationFeature.INDENT_OUTPUT);
-        OBJECT_MAPPER.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
-        OBJECT_MAPPER.registerModule(new JavaTimeModule());
-        OBJECT_MAPPER.registerModule(new SessionProcessingStateModule());
-        OBJECT_MAPPER.registerModule(new SessionUpdateOperationModule());
-    }
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .enable(SerializationFeature.INDENT_OUTPUT)
+            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+            .addModule(new SessionProcessingStateModule())
+            .addModule(new SessionUpdateOperationModule())
+            .build();
 
     private static final Pattern FILE_PATTERN
         = Pattern.compile("(?<timestamp>[0-9]{14}_)?(?<id>" + SessionId.PATTERN_STRING + ")\\.json");
@@ -481,7 +478,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
 
     private Session readSession(File sessionFile) {
         try {
-            Session session = OBJECT_MAPPER.readValue(sessionFile, Session.class);
+            Session session = JSON_MAPPER.readValue(sessionFile, Session.class);
             if (instanceId.equals(session.getInstanceId())) {
                 LOGGER.debug("Returning original loaded session for {}: {}", instanceId, session);
                 return session;
@@ -498,7 +495,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
             );
             LOGGER.warn("Correcting InstanceId of {} to {}: {}", session.getId(), instanceId, session);
             return session;
-        } catch (IOException ex) {
+        } catch (JacksonException ex) {
             throw new IllegalStateException("Unable to read session file '" + sessionFile + "'!", ex);
         }
     }
@@ -508,7 +505,7 @@ public class SynchronizedFileBasedSessionRepository implements SessionRepository
         Path tempPath = null;
         try {
             tempPath = Files.createTempFile(sessionPath.getParent(), sessionFile.getName() + '.', ".tmp");
-            OBJECT_MAPPER.writeValue(tempPath.toFile(), session);
+            JSON_MAPPER.writeValue(tempPath.toFile(), session);
             Files.move(
                 tempPath,
                 sessionPath,

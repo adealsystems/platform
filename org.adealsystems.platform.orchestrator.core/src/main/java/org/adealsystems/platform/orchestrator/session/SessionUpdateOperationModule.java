@@ -16,8 +16,8 @@
 
 package org.adealsystems.platform.orchestrator.session;
 
-import com.fasterxml.jackson.core.Version;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.core.Version;
+import tools.jackson.databind.module.SimpleModule;
 
 import java.io.Serial;
 

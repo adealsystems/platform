@@ -16,13 +16,13 @@
 
 package org.adealsystems.platform.orchestrator;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.adealsystems.platform.io.Drain;
 import org.adealsystems.platform.io.Well;
 import org.adealsystems.platform.io.json.JsonlDrain;
 import org.adealsystems.platform.io.json.JsonlWell;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -64,21 +64,21 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource, R
     private final File baseDirectory;
     private final TimestampFactory timestampFactory;
     private final RunRepository runRepository;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
 
-    public FileBasedEventHistory(File baseDirectory, RunRepository runRepository, ObjectMapper objectMapper) {
-        this(baseDirectory, new SystemTimestampFactory(), runRepository, objectMapper);
+    public FileBasedEventHistory(File baseDirectory, RunRepository runRepository, JsonMapper jsonMapper) {
+        this(baseDirectory, new SystemTimestampFactory(), runRepository, jsonMapper);
     }
 
     public FileBasedEventHistory(
         File baseDirectory,
         TimestampFactory timestampFactory,
         RunRepository runRepository,
-        ObjectMapper objectMapper
+        JsonMapper jsonMapper
     ) {
         this.timestampFactory = Objects.requireNonNull(timestampFactory, "timestampFactory must not be null!");
         this.runRepository = Objects.requireNonNull(runRepository, "runRepository must not be null!");
-        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null!");
+        this.jsonMapper = Objects.requireNonNull(jsonMapper, "jsonMapper must not be null!");
 
         Objects.requireNonNull(baseDirectory, "baseDirectory must not be null!");
         if (!baseDirectory.exists()) {
@@ -221,8 +221,7 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource, R
                 lines++;
             }
             return lines;
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             LOGGER.warn("Error reading orphan events for instanceId {}!", instanceId, ex);
             return -1;
         }
@@ -283,15 +282,15 @@ public class FileBasedEventHistory implements EventHistory, OrphanEventSource, R
     private Drain<InternalEvent> createDrain(EventAffiliation eventAffiliation) throws IOException {
         File file = createFile(eventAffiliation);
         LOGGER.debug("Creating file drain '{}' for {}.", file, eventAffiliation);
-        return createDrain(file, objectMapper);
+        return createDrain(file, jsonMapper);
     }
 
     private Well<InternalEvent> createWell(File orphanFile) throws IOException {
-        return new JsonlWell<>(InternalEvent.class, Files.newInputStream(orphanFile.toPath()), objectMapper);
+        return new JsonlWell<>(InternalEvent.class, Files.newInputStream(orphanFile.toPath()), jsonMapper);
     }
 
-    private static Drain<InternalEvent> createDrain(File file, ObjectMapper objectMapper) throws IOException {
-        return new JsonlDrain<>(Files.newOutputStream(file.toPath(), CREATE, APPEND), objectMapper);
+    private static Drain<InternalEvent> createDrain(File file, JsonMapper jsonMapper) throws IOException {
+        return new JsonlDrain<>(Files.newOutputStream(file.toPath(), CREATE, APPEND), jsonMapper);
     }
 
     File createFile(EventAffiliation key) {

@@ -16,10 +16,10 @@
 
 package org.adealsystems.platform.http
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.hc.client5.http.impl.classic.HttpClients
 import spock.lang.Specification
 import spock.lang.TempDir
+import tools.jackson.databind.json.JsonMapper
 
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -36,7 +36,9 @@ import java.util.concurrent.atomic.AtomicReference
 
 class FileBasedAuthenticationTokenResolverSpec extends Specification {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build()
 
     @TempDir
     Path temporaryDirectory
@@ -158,7 +160,7 @@ class FileBasedAuthenticationTokenResolverSpec extends Specification {
             'client_id=gateway&grant_type=password&username=${username}&password=${password}',
             'user@example.com',
             'p@ss',
-            OBJECT_MAPPER
+            JSON_MAPPER
         )
     }
 

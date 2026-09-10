@@ -16,14 +16,14 @@
 
 package org.adealsystems.platform.orchestrator;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 import java.util.Objects;
@@ -31,7 +31,9 @@ import java.util.Objects;
 public class InternalEventReceiverRunnable implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(InternalEventReceiverRunnable.class);
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build();
 
     private final String queueName;
 
@@ -58,8 +60,7 @@ public class InternalEventReceiverRunnable implements Runnable {
                 List<Message> messages;
                 try {
                     messages = sqsClient.receiveMessage(receiveMessageRequest).messages();
-                }
-                catch (Exception ex) {
+                } catch (Exception ex) {
                     LOGGER.error("Failed to receive messages!", ex);
                     continue;
                 }
@@ -75,9 +76,8 @@ public class InternalEventReceiverRunnable implements Runnable {
                     String messageBody = message.body();
                     InternalEvent event;
                     try {
-                        event = OBJECT_MAPPER.readValue(messageBody, InternalEvent.class);
-                    }
-                    catch (JsonProcessingException ex) {
+                        event = JSON_MAPPER.readValue(messageBody, InternalEvent.class);
+                    } catch (JacksonException ex) {
                         LOGGER.error("Error reading message body {}!", messageBody, ex);
                         deleteMessage(message);
                         continue;
@@ -86,8 +86,7 @@ public class InternalEventReceiverRunnable implements Runnable {
                     LOGGER.info("About to send event {}", event);
                     try {
                         eventSender.sendEvent(event);
-                    }
-                    catch (Exception ex) {
+                    } catch (Exception ex) {
                         LOGGER.error("Error sending event {}!", event, ex);
                     }
 
@@ -95,12 +94,10 @@ public class InternalEventReceiverRunnable implements Runnable {
                 }
 
                 sleep(100);
-            }
-            catch (InterruptedException ex) {
+            } catch (InterruptedException ex) {
                 LOGGER.info("Interrupting thread!", ex);
                 break;
-            }
-            catch (Throwable th) {
+            } catch (Throwable th) {
                 LOGGER.error("Unexpected error occurred", th);
             }
         }

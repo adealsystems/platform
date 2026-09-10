@@ -16,7 +16,6 @@
 
 package org.adealsystems.platform.orchestrator.executor.aws
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.adealsystems.platform.id.DataFormat
 import org.adealsystems.platform.id.DataIdentifier
 import org.adealsystems.platform.orchestrator.AwsCredentialsOrchestrator
@@ -26,10 +25,18 @@ import software.amazon.awssdk.services.sfn.SfnClient
 import software.amazon.awssdk.services.sfn.model.StartExecutionRequest
 import software.amazon.awssdk.services.sfn.model.StartExecutionResponse
 import spock.lang.Specification
+import tools.jackson.core.type.TypeReference
+import tools.jackson.databind.json.JsonMapper
 
 class StepFunctionSequencedJobExecutorSpec extends Specification {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build()
+
+    private static final TypeReference<Map<String, String>> MAP_STRING_STRING_TYPE_REFERENCE =
+        new TypeReference<Map<String, String>>() {}
+
     private static final String STATE_MACHINE_ARN = 'arn:aws:states:eu-central-1:123456789012:stateMachine:test'
     private static final DataIdentifier FIRST_DATA_ID = new DataIdentifier('source', 'first', DataFormat.JSON)
     private static final DataIdentifier SECOND_DATA_ID = new DataIdentifier('source', 'second', DataFormat.JSON)
@@ -37,7 +44,7 @@ class StepFunctionSequencedJobExecutorSpec extends Specification {
 
     def 'sequenced executor starts all jobs with the same command id'() {
         given:
-        def requests = []
+        List<StartExecutionRequest> requests = []
         def client = Mock(SfnClient)
         def executor = new TestStepFunctionSequencedJobExecutor(
             new TestStepFunctionJobFactory(),
@@ -62,10 +69,20 @@ class StepFunctionSequencedJobExecutorSpec extends Specification {
 
         and:
         requests.size() == 2
-        def firstPayload = OBJECT_MAPPER.readValue(requests[0].input(), Map)
+
+        when:
+        def firstPayload = JSON_MAPPER.readValue(
+            requests[0].input(),
+            MAP_STRING_STRING_TYPE_REFERENCE
+        )
+        def secondPayload = JSON_MAPPER.readValue(
+            requests[1].input(),
+            MAP_STRING_STRING_TYPE_REFERENCE
+        )
+
+        then:
         firstPayload.use_case == 'first'
         firstPayload.commandId == 'sequence-1'
-        def secondPayload = OBJECT_MAPPER.readValue(requests[1].input(), Map)
         secondPayload.use_case == 'second'
         secondPayload.commandId == 'sequence-1'
     }

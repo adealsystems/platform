@@ -16,7 +16,6 @@
 
 package org.adealsystems.platform.state.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.adealsystems.platform.id.DataFormat;
 import org.adealsystems.platform.id.DataIdentifier;
 import org.adealsystems.platform.id.DataInstance;
@@ -26,6 +25,8 @@ import org.adealsystems.platform.state.ProcessingStateException;
 import org.adealsystems.platform.state.ProcessingStateRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,14 +37,16 @@ import java.util.Optional;
 
 public class ProcessingStateRepositoryImpl implements ProcessingStateRepository {
     private static final Logger LOGGER = LoggerFactory.getLogger(ProcessingStateRepositoryImpl.class);
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build();
 
     @Override
     public void setProcessingState(DataInstance dataInstance, ProcessingState state) {
         Objects.requireNonNull(state, "state must not be null!");
         DataInstance derived = deriveStateInstance(dataInstance);
         try (OutputStream os = derived.getOutputStream()) {
-            OBJECT_MAPPER.writeValue(os, state);
+            JSON_MAPPER.writeValue(os, state);
         } catch (IOException e) {
             throw new ProcessingStateException("Exception while writing processing state for " + derived + "!", e);
         }
@@ -53,9 +56,12 @@ public class ProcessingStateRepositoryImpl implements ProcessingStateRepository 
     public Optional<ProcessingState> getProcessingState(DataInstance dataInstance) {
         DataInstance derived = deriveStateInstance(dataInstance);
         try (InputStream is = derived.getInputStream()) {
-            return Optional.of(OBJECT_MAPPER.readValue(is, ProcessingState.class));
-        } catch (IOException e) {
-            LOGGER.warn("Exception while reading processing state for {}!", derived, e);
+            return Optional.of(JSON_MAPPER.readValue(is, ProcessingState.class));
+        } catch (IOException ex) {
+            LOGGER.warn("Exception while reading processing state for {}!", derived, ex);
+            return Optional.empty();
+        } catch (JacksonException ex) {
+            LOGGER.warn("Exception while parsing processing state for {}!", derived, ex);
             return Optional.empty();
         }
     }

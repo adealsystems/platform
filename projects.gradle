@@ -17,7 +17,7 @@ project(':org.adealsystems.platform.http') {
     description = "HTTP client/tools related code"
     dependencies {
         implementation rootProject.libs.commons.text
-        implementation rootProject.libs.jackson2.databind
+        implementation rootProject.libs.jackson3.databind
         implementation rootProject.libs.apache.http.client5
     }
 }
@@ -88,7 +88,7 @@ project(':org.adealsystems.platform.io.json') {
         implementation project(':org.adealsystems.platform.io')
         implementation project(':org.adealsystems.platform.io.compression')
         implementation project(':org.adealsystems.platform.io.line')
-        implementation rootProject.libs.jackson2.databind
+        implementation rootProject.libs.jackson3.databind
     }
 }
 
@@ -121,7 +121,7 @@ project(':org.adealsystems.platform.io.parquet') {
 project(':org.adealsystems.platform.state') {
     dependencies {
         implementation project(':org.adealsystems.platform.id')
-        implementation rootProject.libs.jackson2.databind
+        implementation rootProject.libs.jackson3.databind
     }
 }
 
@@ -271,7 +271,7 @@ project(':org.adealsystems.platform.webcollector') {
         implementation project(':org.adealsystems.platform.io')
         implementation rootProject.libs.apache.http.client5
         runtimeOnly rootProject.libs.apache.http.core5
-        testImplementation rootProject.libs.jackson2.databind
+        testImplementation rootProject.libs.jackson3.databind
         testRuntimeOnly rootProject.libs.logback.classic
         testRuntimeOnly rootProject.libs.jcl.over.slf4j
     }
@@ -294,7 +294,6 @@ project(':org.adealsystems.platform.sqlcollector') {
 
 project(':org.adealsystems.platform.orchestrator.core') {
     dependencies {
-        implementation rootProject.libs.jaxb.api
         implementation project(':org.adealsystems.platform.id')
         implementation project(':org.adealsystems.platform.io')
         implementation project(':org.adealsystems.platform.io.compression')
@@ -304,8 +303,8 @@ project(':org.adealsystems.platform.orchestrator.core') {
 
         implementation rootProject.libs.sulky.ulid
         implementation rootProject.libs.commons.lang
+        implementation rootProject.libs.jackson3.databind
         implementation rootProject.libs.spring.context
-        implementation rootProject.libs.jackson2.datatype.jsr310
     }
 }
 
@@ -319,11 +318,10 @@ project(':org.adealsystems.platform.orchestrator.executor') {
         implementation project(':org.adealsystems.platform.state')
         implementation project(':org.adealsystems.platform.orchestrator.core')
 
-        implementation rootProject.libs.jaxb.api
+        implementation rootProject.libs.jackson3.databind
 
         implementation rootProject.libs.sulky.ulid
         implementation rootProject.libs.commons.lang
-        implementation rootProject.libs.jackson2.datatype.jsr310
     }
 }
 
@@ -338,7 +336,7 @@ project(':org.adealsystems.platform.orchestrator.executor.aws') {
         implementation project(':org.adealsystems.platform.orchestrator.executor')
         implementation project(':org.adealsystems.platform.orchestrator.core')
 
-        implementation rootProject.libs.jaxb.api
+        implementation rootProject.libs.jackson3.databind
 
         implementation rootProject.libs.aws.sdk.sns
         implementation rootProject.libs.aws.sdk.sqs
@@ -346,7 +344,6 @@ project(':org.adealsystems.platform.orchestrator.executor.aws') {
         implementation rootProject.libs.aws.sdk.sfn
         implementation rootProject.libs.commons.lang
         implementation rootProject.libs.spring.context
-        implementation rootProject.libs.jackson2.datatype.jsr310
     }
 }
 
@@ -361,10 +358,7 @@ project(':org.adealsystems.platform.orchestrator.executor.jenkins') {
         implementation project(':org.adealsystems.platform.orchestrator.executor')
         implementation project(':org.adealsystems.platform.orchestrator.core')
 
-        implementation rootProject.libs.jaxb.api
-
         implementation rootProject.libs.commons.lang
-        implementation rootProject.libs.jackson2.datatype.jsr310
     }
 }
 
@@ -380,8 +374,6 @@ project(':org.adealsystems.platform.orchestrator.engine') {
         implementation project(':org.adealsystems.platform.orchestrator.executor.jenkins')
         implementation project(':org.adealsystems.platform.orchestrator.core')
 
-        implementation rootProject.libs.jaxb.api
-
         implementation rootProject.libs.spring.boot.starter.actuator, {
             exclude group: 'org.springframework.boot', module: 'spring-boot-starter'
         }
@@ -396,13 +388,13 @@ project(':org.adealsystems.platform.orchestrator.engine') {
 //            exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
 //        }
 
+        implementation rootProject.libs.jackson3.databind
         implementation rootProject.libs.sulky.ulid
         implementation rootProject.libs.aws.sdk.sns
         implementation rootProject.libs.aws.sdk.sqs
         implementation rootProject.libs.aws.sdk.s3
         implementation rootProject.libs.commons.lang
         implementation rootProject.libs.spring.context
-        implementation rootProject.libs.jackson2.datatype.jsr310
     }
 }
 

@@ -17,22 +17,22 @@
 package org.adealsystems.platform.orchestrator.executor.email;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.adealsystems.platform.orchestrator.InternalEvent;
 import org.adealsystems.platform.orchestrator.Session;
-
-import java.io.IOException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 public final class EmailParamMapper {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    static {
-        MAPPER.registerModule(new JavaTimeModule());
-        MAPPER.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        MAPPER.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
-    }
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            // below disable is now default
+            .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .changeDefaultPropertyInclusion(inclusion ->
+                inclusion
+                    .withValueInclusion(JsonInclude.Include.NON_NULL)
+                    .withContentInclusion(JsonInclude.Include.NON_EMPTY))
+            .build();
 
     private EmailParamMapper() {
     }
@@ -55,8 +55,8 @@ public final class EmailParamMapper {
 
     private static String internalSerialize(EmailParameter parameter) {
         try {
-            return MAPPER.writeValueAsString(parameter);
-        } catch (IOException ex) {
+            return JSON_MAPPER.writeValueAsString(parameter);
+        } catch (JacksonException ex) {
             throw new IllegalStateException("Unable to serialize email parameter", ex);
         }
     }

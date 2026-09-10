@@ -16,8 +16,6 @@
 
 package org.adealsystems.platform.orchestrator.status.mapping;
 
-import com.fasterxml.jackson.core.Version;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.adealsystems.platform.orchestrator.status.CancelProcessingStep;
 import org.adealsystems.platform.orchestrator.status.EventProcessingStep;
 import org.adealsystems.platform.orchestrator.status.FileProcessingStep;
@@ -25,6 +23,8 @@ import org.adealsystems.platform.orchestrator.status.MessageProcessingStep;
 import org.adealsystems.platform.orchestrator.status.ProcessingStep;
 import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 import org.adealsystems.platform.orchestrator.status.TimerProcessingStep;
+import tools.jackson.core.Version;
+import tools.jackson.databind.module.SimpleModule;
 
 import java.io.Serial;
 

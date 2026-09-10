@@ -16,20 +16,22 @@
 
 package org.adealsystems.platform.orchestrator
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import org.adealsystems.platform.io.ListDrain
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import spock.lang.Ignore
 import spock.lang.Specification
 import spock.lang.TempDir
+import tools.jackson.databind.json.JsonMapper
 
 import java.time.LocalDateTime
 
 @Ignore
 class FileBasedEventHistorySpec extends Specification {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedEventHistorySpec)
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build()
 
     @TempDir
     File baseDirectory
@@ -66,7 +68,7 @@ class FileBasedEventHistorySpec extends Specification {
 
             @Override
             Optional<RunSpecification> getCurrentRun() {
-                return Optional.of(new RunSpecification(RunType.ACTIVE, "2023-03-23"));
+                return Optional.of(new RunSpecification(RunType.ACTIVE, "2023-03-23"))
             }
 
             @Override
@@ -75,7 +77,13 @@ class FileBasedEventHistorySpec extends Specification {
             }
         }
 
-        FileBasedEventHistory instance = new FileBasedEventHistory(baseDirectory, new TimestampFactoryStub(), runRepository, createObjectMapper())
+        FileBasedEventHistory instance =
+            new FileBasedEventHistory(
+                baseDirectory,
+                new TimestampFactoryStub(),
+                runRepository,
+                JSON_MAPPER
+            )
         InstanceId instanceId1 = new InstanceId("0001-instance-1")
         InstanceId instanceId2 = new InstanceId("0002-instance-2")
         SessionId sessionId = new SessionId("SESSION")
@@ -203,11 +211,6 @@ class FileBasedEventHistorySpec extends Specification {
         return file.readLines()
     }
 
-    private static createObjectMapper() {
-        ObjectMapper objectMapper = new ObjectMapper()
-        objectMapper.registerModule(new JavaTimeModule())
-        return objectMapper
-    }
 
     static class TimestampFactoryStub implements TimestampFactory {
         @Override

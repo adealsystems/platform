@@ -18,11 +18,10 @@ package org.adealsystems.platform.orchestrator;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.adealsystems.platform.orchestrator.session.SessionUpdateOperationModule;
 import org.adealsystems.platform.orchestrator.status.mapping.SessionProcessingStateModule;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -47,13 +46,11 @@ public final class InternalEvent implements Cloneable, Serializable, TimestampAw
     @Serial
     private static final long serialVersionUID = -1958300486266138089L;
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    static {
-        OBJECT_MAPPER.registerModule(new JavaTimeModule());
-        OBJECT_MAPPER.registerModule(new SessionProcessingStateModule());
-        OBJECT_MAPPER.registerModule(new SessionUpdateOperationModule());
-    }
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .addModule(new SessionProcessingStateModule())
+            .addModule(new SessionUpdateOperationModule())
+            .build();
 
     public static final String ATTR_RUN_ID = "run-id";
 
@@ -65,10 +62,10 @@ public final class InternalEvent implements Cloneable, Serializable, TimestampAw
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private boolean processed;
 
+    private ConcurrentMap<String, String> attributes;
+
     @JsonProperty("timestamp")
     private LocalDateTime timestamp;
-
-    private ConcurrentMap<String, String> attributes;
 
 
     public String getId() {
@@ -166,14 +163,15 @@ public final class InternalEvent implements Cloneable, Serializable, TimestampAw
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof InternalEvent)) return false;
-        InternalEvent that = (InternalEvent) o;
-        return processed == that.processed
-            && Objects.equals(id, that.id)
-            && type == that.type
-            && Objects.equals(instanceId, that.instanceId)
-            && Objects.equals(sessionId, that.sessionId)
-            && Objects.equals(attributes, that.attributes);
+        if (o instanceof InternalEvent that) {
+            return processed == that.processed
+                && Objects.equals(id, that.id)
+                && type == that.type
+                && Objects.equals(instanceId, that.instanceId)
+                && Objects.equals(sessionId, that.sessionId)
+                && Objects.equals(attributes, that.attributes);
+        }
+        return false;
     }
 
     @Override
@@ -211,8 +209,6 @@ public final class InternalEvent implements Cloneable, Serializable, TimestampAw
         try {
             InternalEvent clone = (InternalEvent) super.clone();
             clone.timestamp = timestamp;
-            //clone.instanceId = instanceId;
-            //clone.sessionId = sessionId;
             if (attributes != null) {
                 clone.setAttributes(new HashMap<>(attributes));
             }
@@ -247,8 +243,8 @@ public final class InternalEvent implements Cloneable, Serializable, TimestampAw
         Objects.requireNonNull(sourceEvent, "sourceEvent must not be null!");
 
         try {
-            event.setAttributeValue(SOURCE_EVENT_ATTRIBUTE_NAME, OBJECT_MAPPER.writeValueAsString(sourceEvent));
-        } catch (JsonProcessingException ex) {
+            event.setAttributeValue(SOURCE_EVENT_ATTRIBUTE_NAME, JSON_MAPPER.writeValueAsString(sourceEvent));
+        } catch (JacksonException ex) {
             throw new IllegalStateException("Error serializing source event as JSON!", ex);
         }
     }
@@ -261,8 +257,8 @@ public final class InternalEvent implements Cloneable, Serializable, TimestampAw
         }
 
         try {
-            return Optional.of(OBJECT_MAPPER.readValue(oSourceEvent.get(), InternalEvent.class));
-        } catch (JsonProcessingException ex) {
+            return Optional.of(JSON_MAPPER.readValue(oSourceEvent.get(), InternalEvent.class));
+        } catch (JacksonException ex) {
             throw new IllegalStateException("Error deserializing source event from JSON!", ex);
         }
     }
@@ -275,8 +271,8 @@ public final class InternalEvent implements Cloneable, Serializable, TimestampAw
         sessionClone.setSessionUpdates(null);
 
         try {
-            event.setAttributeValue(SESSION_STATE_ATTRIBUTE_NAME, OBJECT_MAPPER.writeValueAsString(sessionClone));
-        } catch (JsonProcessingException ex) {
+            event.setAttributeValue(SESSION_STATE_ATTRIBUTE_NAME, JSON_MAPPER.writeValueAsString(sessionClone));
+        } catch (JacksonException ex) {
             throw new IllegalStateException("Error serializing session as JSON!", ex);
         }
     }
@@ -289,8 +285,8 @@ public final class InternalEvent implements Cloneable, Serializable, TimestampAw
         }
 
         try {
-            return Optional.of(OBJECT_MAPPER.readValue(oSession.get(), Session.class));
-        } catch (JsonProcessingException ex) {
+            return Optional.of(JSON_MAPPER.readValue(oSession.get(), Session.class));
+        } catch (JacksonException ex) {
             throw new IllegalStateException("Error deserializing session from JSON!", ex);
         }
     }

@@ -18,9 +18,6 @@ package org.adealsystems.platform.orchestrator;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.adealsystems.platform.orchestrator.session.SessionAddStepOperation;
 import org.adealsystems.platform.orchestrator.session.SessionSetProgressMaxValueOperation;
 import org.adealsystems.platform.orchestrator.session.SessionTimestamp;
@@ -37,6 +34,8 @@ import org.adealsystems.platform.orchestrator.status.SessionProcessingState;
 import org.adealsystems.platform.orchestrator.status.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.beans.ConstructorProperties;
 import java.io.Serial;
@@ -90,12 +89,13 @@ public final class Session implements Serializable {
     private static final DateTimeFormatter TIMER_FORMATTER =
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT);
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    static {
-        OBJECT_MAPPER.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
-        OBJECT_MAPPER.registerModule(new JavaTimeModule());
-    }
+    private static final JsonMapper JSON_MAPPER = JsonMapper.builder()
+        .changeDefaultPropertyInclusion(inclusion ->
+            inclusion
+                .withValueInclusion(JsonInclude.Include.NON_NULL)
+                .withContentInclusion(JsonInclude.Include.NON_EMPTY)
+        )
+        .build();
 
     private final InstanceId instanceId;
     private final SessionId id;
@@ -456,8 +456,8 @@ public final class Session implements Serializable {
         }
 
         try {
-            return OBJECT_MAPPER.readValue(value.get(), beanClass);
-        } catch (JsonProcessingException ex) {
+            return JSON_MAPPER.readValue(value.get(), beanClass);
+        } catch (JacksonException ex) {
             throw new IllegalArgumentException("Error deserializing bean " + beanClass, ex);
         }
     }
@@ -466,9 +466,9 @@ public final class Session implements Serializable {
         Objects.requireNonNull(bean, "bean must not be null!");
 
         try {
-            String value = OBJECT_MAPPER.writeValueAsString(bean);
+            String value = JSON_MAPPER.writeValueAsString(bean);
             setStateValue(key, value);
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             throw new IllegalArgumentException("Error serializing bean " + bean, ex);
         }
     }
@@ -511,7 +511,7 @@ public final class Session implements Serializable {
 
         StringBuilder builder = new StringBuilder();
         for (String entry : registry) {
-            if (builder.length() > 0) {
+            if (!builder.isEmpty()) {
                 builder.append(',');
             }
             builder.append(entry);
@@ -780,13 +780,14 @@ public final class Session implements Serializable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Session)) return false;
-        Session session = (Session) o;
-        return Objects.equals(instanceId, session.instanceId)
-            && Objects.equals(id, session.id)
-            && Objects.equals(instanceConfiguration, session.instanceConfiguration)
-            && Objects.equals(state, session.state)
-            && Objects.equals(processingState, session.processingState);
+        if (o instanceof Session session) {
+            return Objects.equals(instanceId, session.instanceId)
+                && Objects.equals(id, session.id)
+                && Objects.equals(instanceConfiguration, session.instanceConfiguration)
+                && Objects.equals(state, session.state)
+                && Objects.equals(processingState, session.processingState);
+        }
+        return false;
     }
 
     @Override

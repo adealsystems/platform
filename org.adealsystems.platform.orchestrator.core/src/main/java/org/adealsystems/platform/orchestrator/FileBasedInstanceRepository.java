@@ -16,13 +16,13 @@
 
 package org.adealsystems.platform.orchestrator;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
@@ -36,13 +36,11 @@ import java.util.stream.Collectors;
 public class FileBasedInstanceRepository implements InstanceRepository {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedInstanceRepository.class);
 
-    private static final ObjectMapper OBJECT_MAPPER;
-
-    static {
-        OBJECT_MAPPER = new ObjectMapper();
-        OBJECT_MAPPER.enable(SerializationFeature.INDENT_OUTPUT);
-        OBJECT_MAPPER.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
-    }
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .enable(SerializationFeature.INDENT_OUTPUT)
+            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+            .build();
 
     private static final Pattern FILE_PATTERN = Pattern.compile('(' + InstanceId.PATTERN_STRING + ")\\.json");
 
@@ -87,8 +85,7 @@ public class FileBasedInstanceRepository implements InstanceRepository {
                 .collect(Collectors.toSet());
 
             return allMatchings.stream().findFirst();
-        }
-        finally {
+        } finally {
             readLock.unlock();
         }
     }
@@ -113,8 +110,7 @@ public class FileBasedInstanceRepository implements InstanceRepository {
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        }
-        finally {
+        } finally {
             readLock.unlock();
         }
     }
@@ -133,8 +129,7 @@ public class FileBasedInstanceRepository implements InstanceRepository {
             }
 
             writeInstance(instanceFile, instance);
-        }
-        finally {
+        } finally {
             writeLock.unlock();
         }
 
@@ -153,8 +148,7 @@ public class FileBasedInstanceRepository implements InstanceRepository {
             }
 
             return Optional.of(readInstance(instanceFile, id));
-        }
-        finally {
+        } finally {
             readLock.unlock();
         }
     }
@@ -173,8 +167,7 @@ public class FileBasedInstanceRepository implements InstanceRepository {
             Instance instance = new Instance(id);
             writeInstance(instanceFile, instance);
             return instance;
-        }
-        finally {
+        } finally {
             writeLock.unlock();
         }
     }
@@ -194,8 +187,7 @@ public class FileBasedInstanceRepository implements InstanceRepository {
             }
 
             writeInstance(instanceFile, instance);
-        }
-        finally {
+        } finally {
             writeLock.unlock();
         }
     }
@@ -208,8 +200,7 @@ public class FileBasedInstanceRepository implements InstanceRepository {
         writeLock.lock();
         try {
             return instanceFile.delete();
-        }
-        finally {
+        } finally {
             writeLock.unlock();
         }
     }
@@ -221,7 +212,7 @@ public class FileBasedInstanceRepository implements InstanceRepository {
 
     private Instance readInstance(File instanceFile, InstanceId id) {
         try {
-            Instance stored = OBJECT_MAPPER.readValue(instanceFile, Instance.class);
+            Instance stored = JSON_MAPPER.readValue(instanceFile, Instance.class);
             InstanceId storedId = stored.getId();
             if (storedId.equals(id)) {
                 return stored;
@@ -236,17 +227,15 @@ public class FileBasedInstanceRepository implements InstanceRepository {
             Instance result = new Instance(id);
             result.setConfiguration(stored.getConfiguration());
             return result;
-        }
-        catch (IOException ex) {
+        } catch (JacksonException ex) {
             throw new IllegalStateException("Unable to read instance file '" + instanceFile + "'!", ex);
         }
     }
 
     private void writeInstance(File instanceFile, Instance instance) {
         try {
-            OBJECT_MAPPER.writeValue(instanceFile, instance);
-        }
-        catch (IOException ex) {
+            JSON_MAPPER.writeValue(instanceFile, instance);
+        } catch (JacksonException ex) {
             throw new IllegalStateException("Unable to write instance file '" + instanceFile + "'!", ex);
         }
     }

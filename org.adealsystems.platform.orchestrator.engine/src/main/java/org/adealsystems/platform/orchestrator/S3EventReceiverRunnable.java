@@ -16,14 +16,14 @@
 
 package org.adealsystems.platform.orchestrator;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -37,7 +37,9 @@ import java.util.Objects;
 public class S3EventReceiverRunnable implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(S3EventReceiverRunnable.class);
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build();
 
     private final String queueName;
 
@@ -64,8 +66,7 @@ public class S3EventReceiverRunnable implements Runnable {
                 List<Message> messages;
                 try {
                     messages = sqsClient.receiveMessage(receiveMessageRequest).messages();
-                }
-                catch (Exception ex) {
+                } catch (Exception ex) {
                     LOGGER.error("Failed to receive messages!", ex);
                     continue;
                 }
@@ -85,13 +86,11 @@ public class S3EventReceiverRunnable implements Runnable {
                             LOGGER.info("About to send event {}", event);
                             try {
                                 eventSender.sendEvent(event);
-                            }
-                            catch (Exception ex) {
+                            } catch (Exception ex) {
                                 LOGGER.error("Error sending event {}!", event, ex);
                             }
                         }
-                    }
-                    catch (Exception ex) {
+                    } catch (Exception ex) {
                         LOGGER.error("Error reading message body {}!", messageBody, ex);
                         deleteMessage(message);
                         continue;
@@ -101,12 +100,10 @@ public class S3EventReceiverRunnable implements Runnable {
                 }
 
                 sleep(100);
-            }
-            catch (InterruptedException ex) {
+            } catch (InterruptedException ex) {
                 LOGGER.info("Interrupting thread!", ex);
                 break;
-            }
-            catch (Throwable ex) {
+            } catch (Throwable ex) {
                 LOGGER.error("Error occurred inside thread loop!", ex);
             }
         }
@@ -117,7 +114,7 @@ public class S3EventReceiverRunnable implements Runnable {
     }
 
     static List<InternalEvent> convertNotification(String messageBody) throws Exception {
-        JsonNode root = OBJECT_MAPPER.readTree(messageBody);
+        JsonNode root = JSON_MAPPER.readTree(messageBody);
         JsonNode records = root.get("Records");
         if (records == null || !records.isArray()) {
             return Collections.emptyList();
@@ -189,7 +186,7 @@ public class S3EventReceiverRunnable implements Runnable {
         if (child == null || child.isNull()) {
             return null;
         }
-        return child.asText();
+        return child.asString();
     }
 
     private void deleteMessage(Message message) {

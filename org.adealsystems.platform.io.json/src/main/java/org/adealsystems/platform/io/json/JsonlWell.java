@@ -16,11 +16,12 @@
 
 package org.adealsystems.platform.io.json;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.adealsystems.platform.io.Well;
 import org.adealsystems.platform.io.WellException;
 import org.adealsystems.platform.io.compression.Compression;
 import org.adealsystems.platform.io.line.LineWell;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,40 +29,43 @@ import java.util.Iterator;
 import java.util.Objects;
 
 public class JsonlWell<E> implements Well<E> {
-    private static final ObjectMapper DEFAULT_OBJECT_MAPPER = new ObjectMapper();
-    private final ObjectMapper objectMapper;
+    private static final JsonMapper DEFAULT_JSON_MAPPER =
+        JsonMapper.builder()
+            .build();
+
+    private final JsonMapper jsonMapper;
     private final Class<E> clazz;
     private Well<String> stringWell;
     private boolean consumed;
 
     public JsonlWell(Class<E> clazz, InputStream inputStream)
         throws IOException {
-        this(clazz, inputStream, Compression.NONE, DEFAULT_OBJECT_MAPPER);
+        this(clazz, inputStream, Compression.NONE, DEFAULT_JSON_MAPPER);
     }
 
     public JsonlWell(Class<E> clazz, InputStream inputStream, Compression compression)
         throws IOException {
-        this(clazz, inputStream, compression, DEFAULT_OBJECT_MAPPER);
+        this(clazz, inputStream, compression, DEFAULT_JSON_MAPPER);
     }
 
-    public JsonlWell(Class<E> clazz, InputStream inputStream, ObjectMapper objectMapper)
+    public JsonlWell(Class<E> clazz, InputStream inputStream, JsonMapper jsonMapper)
         throws IOException {
-        this(clazz, inputStream, Compression.NONE, objectMapper);
+        this(clazz, inputStream, Compression.NONE, jsonMapper);
     }
 
-    public JsonlWell(Class<E> clazz, InputStream inputStream, Compression compression, ObjectMapper objectMapper)
+    public JsonlWell(Class<E> clazz, InputStream inputStream, Compression compression, JsonMapper jsonMapper)
         throws IOException {
-        this(clazz, new LineWell(inputStream, compression), objectMapper);
+        this(clazz, new LineWell(inputStream, compression), jsonMapper);
     }
 
     public JsonlWell(Class<E> clazz, Well<String> stringWell) {
-        this(clazz, stringWell, DEFAULT_OBJECT_MAPPER);
+        this(clazz, stringWell, DEFAULT_JSON_MAPPER);
     }
 
-    public JsonlWell(Class<E> clazz, Well<String> stringWell, ObjectMapper objectMapper) {
+    public JsonlWell(Class<E> clazz, Well<String> stringWell, JsonMapper jsonMapper) {
         this.clazz = Objects.requireNonNull(clazz, "clazz must not be null!");
         this.stringWell = Objects.requireNonNull(stringWell, "stringWell must not be null!");
-        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null!");
+        this.jsonMapper = Objects.requireNonNull(jsonMapper, "jsonMapper must not be null!");
     }
 
     @Override
@@ -86,6 +90,7 @@ public class JsonlWell<E> implements Well<E> {
         }
     }
 
+    @SuppressWarnings("NullableProblems") // as if
     @Override
     public Iterator<E> iterator() {
         if (consumed) {
@@ -114,8 +119,8 @@ public class JsonlWell<E> implements Well<E> {
             }
             String line = iterator.next();
             try {
-                return objectMapper.readValue(line, clazz);
-            } catch (IOException e) {
+                return jsonMapper.readValue(line, clazz);
+            } catch (JacksonException e) {
                 throw new WellException("Failed to parse JSON!", e);
             }
         }

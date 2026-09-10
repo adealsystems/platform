@@ -16,8 +16,6 @@
 
 package org.adealsystems.platform.orchestrator;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.adealsystems.platform.id.DataIdentifier;
 import org.adealsystems.platform.orchestrator.executor.MultipleJobExecutor;
 import org.slf4j.Logger;
@@ -26,6 +24,8 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,7 +36,9 @@ import java.util.Objects;
 public class JobReceiverRunnable implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(JobReceiverRunnable.class);
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build();
 
     private static final int DEFAULT_WAITING_INTERVAL = 10_000;
     private static final int DEFAULT_JOB_BUNDLE_SIZE = 20;
@@ -64,6 +66,7 @@ public class JobReceiverRunnable implements Runnable {
         this.jobBundleSize = jobBundleSize;
     }
 
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     @Override
     public void run() {
         LOGGER.info("Starting async job event receiver thread");
@@ -78,11 +81,7 @@ public class JobReceiverRunnable implements Runnable {
                 for (Map.Entry<String, MultipleJobExecutor> entry : asyncJobExecutors.entrySet()) {
                     String queueName = entry.getKey();
                     MultipleJobExecutor jobExecutor = entry.getValue();
-                    List<JobMessage> jobs = allJobs.get(queueName);
-                    if (jobs == null) {
-                        jobs = new ArrayList<>(); // NOPMD
-                        allJobs.put(queueName, jobs);
-                    }
+                    List<JobMessage> jobs = allJobs.computeIfAbsent(queueName, k -> new ArrayList<>());
 
                     ReceiveMessageRequest receiveMessageRequest = ReceiveMessageRequest
                         .builder()
@@ -92,8 +91,7 @@ public class JobReceiverRunnable implements Runnable {
                     List<Message> messages;
                     try {
                         messages = sqsClient.receiveMessage(receiveMessageRequest).messages();
-                    }
-                    catch (Exception ex) {
+                    } catch (Exception ex) {
                         LOGGER.error("Failed to receive messages from queue {}!", queueName, ex);
                         continue;
                     }
@@ -115,13 +113,11 @@ public class JobReceiverRunnable implements Runnable {
                             String messageBody = message.body();
                             JobMessage job;
                             try {
-                                job = OBJECT_MAPPER.readValue(messageBody, JobMessage.class);
-                            }
-                            catch (JsonProcessingException ex) {
+                                job = JSON_MAPPER.readValue(messageBody, JobMessage.class);
+                            } catch (JacksonException ex) {
                                 LOGGER.error("Error reading message body {}!", messageBody, ex);
                                 continue;
-                            }
-                            finally {
+                            } finally {
                                 deleteMessage(message, queueName);
                             }
 
@@ -132,12 +128,10 @@ public class JobReceiverRunnable implements Runnable {
 
                 // delay before next check
                 sleep(waitingMode ? waitingInterval : 100);
-            }
-            catch (InterruptedException ex) {
+            } catch (InterruptedException ex) {
                 LOGGER.info("Interrupting thread!", ex);
                 break;
-            }
-            catch(Throwable th) {
+            } catch (Throwable th) {
                 LOGGER.error("Error occurred inside thread loop!", th);
             }
         }
@@ -153,8 +147,7 @@ public class JobReceiverRunnable implements Runnable {
 
         try {
             jobExecutor.execute(dataIds);
-        }
-        catch(Throwable th) {
+        } catch (Throwable th) {
             LOGGER.error("Error executing job(s) {}", jobs, th);
         }
     }
@@ -172,8 +165,7 @@ public class JobReceiverRunnable implements Runnable {
 
         try {
             sqsClient.deleteMessage(request);
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             LOGGER.error("Failed to delete message {}", message, ex);
         }
     }

@@ -16,7 +16,6 @@
 
 package org.adealsystems.platform.orchestrator.executor.aws
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.adealsystems.platform.id.DataFormat
 import org.adealsystems.platform.id.DataIdentifier
 import org.adealsystems.platform.orchestrator.AwsCredentialsOrchestrator
@@ -26,19 +25,27 @@ import software.amazon.awssdk.services.sfn.SfnClient
 import software.amazon.awssdk.services.sfn.model.StartExecutionRequest
 import software.amazon.awssdk.services.sfn.model.StartExecutionResponse
 import spock.lang.Specification
+import tools.jackson.core.type.TypeReference
+import tools.jackson.databind.json.JsonMapper
 
 import java.time.LocalDate
 
 class StepFunctionSpecialDateSingleJobExecutorSpec extends Specification {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build()
+
+    private static final TypeReference<Map<String, String>> MAP_STRING_STRING_TYPE_REFERENCE =
+        new TypeReference<Map<String, String>>() {}
+
     private static final String STATE_MACHINE_ARN = 'arn:aws:states:eu-central-1:123456789012:stateMachine:test'
     private static final DataIdentifier DATA_ID = new DataIdentifier('source', 'usecase', DataFormat.JSON)
     private static final AwsCredentialsOrchestrator CREDENTIALS = new AwsCredentialsOrchestrator('access', 'secret', 'eu-central-1')
 
     def 'special date executor forwards input date through json input'() {
         given:
-        def requests = []
+        List<StartExecutionRequest> requests = []
         def client = Mock(SfnClient)
         def executor = new TestStepFunctionSpecialDateSingleJobExecutor(
             new TestStepFunctionSpecialDateJobFactory(),
@@ -64,7 +71,14 @@ class StepFunctionSpecialDateSingleJobExecutorSpec extends Specification {
         and:
         requests.size() == 1
         requests[0].stateMachineArn() == STATE_MACHINE_ARN
-        def payload = OBJECT_MAPPER.readValue(requests[0].input(), Map)
+
+        when:
+        def payload = JSON_MAPPER.readValue(
+            requests[0].input(),
+            MAP_STRING_STRING_TYPE_REFERENCE
+        )
+
+        then:
         payload.INPUTDATE == '2026-05-27'
         payload.job == 'source:usecase:JSON'
         payload.commandId == 'special-1'

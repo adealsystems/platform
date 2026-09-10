@@ -16,13 +16,13 @@
 
 package org.adealsystems.platform.io.json;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import org.adealsystems.platform.io.Drain;
 import org.adealsystems.platform.io.DrainException;
 import org.adealsystems.platform.io.compression.Compression;
 import org.adealsystems.platform.io.line.LineDrain;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -36,40 +36,43 @@ import java.util.Objects;
  * @param <E> the type this Drain can handle.
  */
 public class JsonlDrain<E> implements Drain<E> {
-    private static final ObjectMapper DEFAULT_OBJECT_MAPPER = new ObjectMapper();
-    private final ObjectMapper objectMapper;
+    private static final JsonMapper DEFAULT_JSON_MAPPER =
+        JsonMapper.builder()
+            .build();
+
+    private final JsonMapper jsonMapper;
     private Drain<String> stringDrain;
 
     public JsonlDrain(OutputStream outputStream)
         throws IOException {
-        this(outputStream, Compression.NONE, DEFAULT_OBJECT_MAPPER);
+        this(outputStream, Compression.NONE, DEFAULT_JSON_MAPPER);
     }
 
     public JsonlDrain(OutputStream outputStream, Compression compression)
         throws IOException {
-        this(outputStream, compression, DEFAULT_OBJECT_MAPPER);
+        this(outputStream, compression, DEFAULT_JSON_MAPPER);
     }
 
-    public JsonlDrain(OutputStream outputStream, ObjectMapper objectMapper)
+    public JsonlDrain(OutputStream outputStream, JsonMapper jsonMapper)
         throws IOException {
-        this(outputStream, Compression.NONE, objectMapper);
+        this(outputStream, Compression.NONE, jsonMapper);
     }
 
-    public JsonlDrain(OutputStream outputStream, Compression compression, ObjectMapper objectMapper)
+    public JsonlDrain(OutputStream outputStream, Compression compression, JsonMapper jsonMapper)
         throws IOException {
-        this(new LineDrain(outputStream, compression), objectMapper);
+        this(new LineDrain(outputStream, compression), jsonMapper);
     }
 
     public JsonlDrain(Drain<String> stringDrain) {
-        this(stringDrain, DEFAULT_OBJECT_MAPPER);
+        this(stringDrain, DEFAULT_JSON_MAPPER);
     }
 
-    public JsonlDrain(Drain<String> stringDrain, ObjectMapper objectMapper) {
-        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null!");
+    public JsonlDrain(Drain<String> stringDrain, JsonMapper jsonMapper) {
+        this.jsonMapper = Objects.requireNonNull(jsonMapper, "jsonMapper must not be null!");
         this.stringDrain = Objects.requireNonNull(stringDrain, "stringDrain must not be null!");
-        // ensure that objectMapper is not pretty-printing
-        if (objectMapper.isEnabled(SerializationFeature.INDENT_OUTPUT)) {
-            throw new IllegalArgumentException("objectMapper must not have INDENT_OUTPUT feature enabled!");
+        // ensure that JsonMapper is not pretty-printing
+        if (jsonMapper.isEnabled(SerializationFeature.INDENT_OUTPUT)) {
+            throw new IllegalArgumentException("jsonMapper must not have INDENT_OUTPUT feature enabled!");
         }
     }
 
@@ -81,8 +84,8 @@ public class JsonlDrain<E> implements Drain<E> {
         }
 
         try {
-            stringDrain.add(objectMapper.writeValueAsString(entry));
-        } catch (JsonProcessingException e) {
+            stringDrain.add(jsonMapper.writeValueAsString(entry));
+        } catch (JacksonException e) {
             throw new DrainException("Failed to write entry as JSON!", e);
         }
     }

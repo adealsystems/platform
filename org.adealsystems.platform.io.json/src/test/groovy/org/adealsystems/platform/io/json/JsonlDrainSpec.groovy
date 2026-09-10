@@ -16,15 +16,18 @@
 
 package org.adealsystems.platform.io.json
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
 import org.adealsystems.platform.io.Drain
 import org.adealsystems.platform.io.DrainException
 import org.adealsystems.platform.io.compression.Compression
 import org.adealsystems.platform.io.line.LineDrain
 import spock.lang.Specification
+import tools.jackson.databind.SerializationFeature
+import tools.jackson.databind.json.JsonMapper
 
 class JsonlDrainSpec extends Specification {
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build()
 
     def 'adding to the drain with compression #compression works'(Compression compression) {
         given:
@@ -61,7 +64,7 @@ class JsonlDrainSpec extends Specification {
     def 'this constructor also works'() {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
-        JsonlDrain<Entry> instance = new JsonlDrain<>(bos, new ObjectMapper())
+        JsonlDrain<Entry> instance = new JsonlDrain<>(bos, JSON_MAPPER)
 
         when:
         instance.add(new Entry("Entry 1"))
@@ -156,18 +159,20 @@ class JsonlDrainSpec extends Specification {
         ex.message == "entries must not contain null!"
     }
 
-    def 'creating instance with indenting ObjectMapper fails'() {
+    def 'creating instance with indenting JsonMapper fails'() {
         given:
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
-        ObjectMapper objectMapper = new ObjectMapper()
-        objectMapper.enable(SerializationFeature.INDENT_OUTPUT)
+        JsonMapper jsonMapper =
+            JsonMapper.builder()
+                .enable(SerializationFeature.INDENT_OUTPUT)
+                .build()
 
         when:
-        new JsonlDrain<>(bos, objectMapper)
+        new JsonlDrain<>(bos, jsonMapper)
 
         then:
         IllegalArgumentException ex = thrown()
-        ex.message == "objectMapper must not have INDENT_OUTPUT feature enabled!"
+        ex.message == "jsonMapper must not have INDENT_OUTPUT feature enabled!"
     }
 
     def "closing twice is ok"() {
@@ -233,12 +238,10 @@ class JsonlDrainSpec extends Specification {
         return compression.createReader(new ByteArrayInputStream(bytes)).readLines()
     }
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-
     private static List<Entry> parseLines(List<String> lines) {
         List<Entry> result = new ArrayList<>()
         for (String line : lines) {
-            result.add(OBJECT_MAPPER.readValue(line, Entry.class))
+            result.add(JSON_MAPPER.readValue(line, Entry.class))
         }
         return result
     }

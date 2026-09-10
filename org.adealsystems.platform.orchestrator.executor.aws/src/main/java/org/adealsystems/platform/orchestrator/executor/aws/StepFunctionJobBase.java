@@ -16,8 +16,8 @@
 
 package org.adealsystems.platform.orchestrator.executor.aws;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -26,7 +26,9 @@ import java.util.Objects;
 public class StepFunctionJobBase {
     public static final String DEFAULT_COMMAND_ID_PARAM_NAME = "commandId";
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build();
 
     private final String stateMachineArn;
 
@@ -55,8 +57,8 @@ public class StepFunctionJobBase {
         }
 
         try {
-            return OBJECT_MAPPER.writeValueAsString(payload);
-        } catch (JsonProcessingException ex) {
+            return JSON_MAPPER.writeValueAsString(payload);
+        } catch (JacksonException ex) {
             throw new IllegalArgumentException("Unable to serialize Step Functions input payload!", ex);
         }
     }

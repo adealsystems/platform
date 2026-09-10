@@ -16,7 +16,6 @@
 
 package org.adealsystems.platform.orchestrator.executor.sns
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.adealsystems.platform.orchestrator.AwsCredentialsOrchestrator
 import org.adealsystems.platform.orchestrator.executor.ExecutorExitCode
 import org.adealsystems.platform.orchestrator.executor.email.EmailType
@@ -24,16 +23,24 @@ import software.amazon.awssdk.services.sns.SnsClient
 import software.amazon.awssdk.services.sns.model.PublishRequest
 import software.amazon.awssdk.services.sns.model.PublishResponse
 import spock.lang.Specification
+import tools.jackson.core.type.TypeReference
+import tools.jackson.databind.json.JsonMapper
 
 class SnsEmailSenderSpec extends Specification {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build()
+
+    private static final TypeReference<Map<String, String>> MAP_STRING_STRING_TYPE_REFERENCE =
+        new TypeReference<Map<String, String>>() {}
+
     private static final AwsCredentialsOrchestrator CREDENTIALS = new AwsCredentialsOrchestrator('access', 'secret', 'eu-central-1')
     private static final String TOPIC_ARN = 'arn:aws:sns:eu-central-1:123456789012:customer'
 
     def 'sender publishes email request as json to sns topic'() {
         given:
-        def requests = []
+        List<PublishRequest> requests = []
         def client = Mock(SnsClient)
         def sender = new TestSnsEmailSender(client)
 
@@ -53,7 +60,14 @@ class SnsEmailSenderSpec extends Specification {
         and:
         requests.size() == 1
         requests[0].topicArn() == TOPIC_ARN
-        def payload = OBJECT_MAPPER.readValue(requests[0].message(), Map)
+        when:
+        def payload =
+            JSON_MAPPER.readValue(
+                requests[0].message(),
+                MAP_STRING_STRING_TYPE_REFERENCE
+            )
+
+        then:
         payload.environment == 'DEV'
         payload.type == 'INFO'
         payload.subject == 'Price report'
@@ -65,7 +79,7 @@ class SnsEmailSenderSpec extends Specification {
 
     def 'sender includes attachment values in sns payload'() {
         given:
-        def requests = []
+        List<PublishRequest> requests = []
         def client = Mock(SnsClient)
         def sender = new TestSnsEmailSender(client)
 
@@ -80,8 +94,13 @@ class SnsEmailSenderSpec extends Specification {
         1 * client.close()
         result.result == ExecutorExitCode.SUCCESS
 
-        and:
-        def payload = OBJECT_MAPPER.readValue(requests[0].message(), Map)
+        when:
+        def payload =
+            JSON_MAPPER.readValue(requests[0].message(),
+                MAP_STRING_STRING_TYPE_REFERENCE
+            )
+
+        then:
         payload.parameter == 'param'
         payload.filename == 'result.csv'
         payload.attachmentName == 'Results'
@@ -89,7 +108,7 @@ class SnsEmailSenderSpec extends Specification {
 
     def 'sender replaces link token and includes link values in sns payload'() {
         given:
-        def requests = []
+        List<PublishRequest> requests = []
         def client = Mock(SnsClient)
         def sender = new TestSnsEmailSender(client)
 
@@ -104,8 +123,13 @@ class SnsEmailSenderSpec extends Specification {
         1 * client.close()
         result.result == ExecutorExitCode.SUCCESS
 
-        and:
-        def payload = OBJECT_MAPPER.readValue(requests[0].message(), Map)
+        when:
+        def payload = JSON_MAPPER.readValue(
+            requests[0].message(),
+            MAP_STRING_STRING_TYPE_REFERENCE
+        )
+
+        then:
         payload.message == 'Open <a href="s3://bucket/key.csv">key.csv</a>'
         payload.linkTarget == 's3://bucket/key.csv'
         payload.linkName == 'key.csv'

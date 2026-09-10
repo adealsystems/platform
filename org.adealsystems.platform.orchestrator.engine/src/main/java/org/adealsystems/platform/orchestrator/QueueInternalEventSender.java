@@ -16,8 +16,6 @@
 
 package org.adealsystems.platform.orchestrator;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -25,6 +23,8 @@ import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
 import software.amazon.awssdk.services.sqs.model.GetQueueAttributesResponse;
 import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Map;
 import java.util.Objects;
@@ -32,7 +32,9 @@ import java.util.Objects;
 public class QueueInternalEventSender implements InternalEventSender {
     private static final Logger LOGGER = LoggerFactory.getLogger(QueueInternalEventSender.class);
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build();
 
     private final String queueName;
 
@@ -71,7 +73,7 @@ public class QueueInternalEventSender implements InternalEventSender {
         Objects.requireNonNull(event, "event must not be null!");
 
         try {
-            String serialized = OBJECT_MAPPER.writeValueAsString(event);
+            String serialized = JSON_MAPPER.writeValueAsString(event);
             LOGGER.info("Sending internal event for {}", serialized);
             SendMessageRequest message = SendMessageRequest.builder()
                 .queueUrl(queueName)
@@ -79,7 +81,7 @@ public class QueueInternalEventSender implements InternalEventSender {
                 .build();
 
             sqsClient.sendMessage(message);
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             LOGGER.error("Error writing message body {}!", event, ex);
         }
     }

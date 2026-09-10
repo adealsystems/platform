@@ -16,24 +16,28 @@
 
 package org.adealsystems.platform.orchestrator
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import spock.lang.Specification
+import tools.jackson.databind.MapperFeature
+import tools.jackson.databind.json.JsonMapper
 
 class InternalEventSpec extends Specification {
     def 'serialization works'() {
         given:
         InternalEvent event = new InternalEvent()
-        ObjectMapper objectMapper = new ObjectMapper()
+        JsonMapper jsonMapper =
+            JsonMapper.builder()
+                .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+                .build()
 
         when:
-        def json = objectMapper.writeValueAsString(event)
+        def json = jsonMapper.writeValueAsString(event)
 
         then:
         json == '{"id":null,"type":null,"instanceId":null,"sessionId":null,"attributes":null,"timestamp":null}'
 
         when:
         event = InternalEvent.deriveProcessedInstance(event)
-        json = objectMapper.writeValueAsString(event)
+        json = jsonMapper.writeValueAsString(event)
 
         then:
         json == '{"id":null,"type":null,"instanceId":null,"sessionId":null,"processed":true,"attributes":null,"timestamp":null}'

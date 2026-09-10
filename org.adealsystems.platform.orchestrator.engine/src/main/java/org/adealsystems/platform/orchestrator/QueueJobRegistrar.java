@@ -16,20 +16,22 @@
 
 package org.adealsystems.platform.orchestrator;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.adealsystems.platform.id.DataIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Objects;
 
 public class QueueJobRegistrar implements JobRegistrar {
     private static final Logger LOGGER = LoggerFactory.getLogger(QueueJobRegistrar.class);
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build();
 
     private final String queueName;
 
@@ -48,7 +50,7 @@ public class QueueJobRegistrar implements JobRegistrar {
         procMessage.setDataIdentifier(dataIdentifier.toString());
 
         try {
-            String serialized = OBJECT_MAPPER.writeValueAsString(procMessage);
+            String serialized = JSON_MAPPER.writeValueAsString(procMessage);
             LOGGER.info("Sending queue request message for {}", serialized);
             SendMessageRequest message = SendMessageRequest.builder()
                 .queueUrl(queueName)
@@ -56,7 +58,7 @@ public class QueueJobRegistrar implements JobRegistrar {
                 .build();
 
             sqsClient.sendMessage(message);
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             LOGGER.error("Error writing message body {}!", procMessage, ex);
         }
     }

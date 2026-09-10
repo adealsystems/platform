@@ -16,7 +16,6 @@
 
 package org.adealsystems.platform.orchestrator.executor.aws
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.adealsystems.platform.id.DataFormat
 import org.adealsystems.platform.id.DataIdentifier
 import org.adealsystems.platform.orchestrator.AwsCredentialsOrchestrator
@@ -26,10 +25,14 @@ import software.amazon.awssdk.services.sfn.SfnClient
 import software.amazon.awssdk.services.sfn.model.StartExecutionRequest
 import software.amazon.awssdk.services.sfn.model.StartExecutionResponse
 import spock.lang.Specification
+import tools.jackson.databind.json.JsonMapper
 
 class StepFunctionJobExecutorSpec extends Specification {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build()
+
     private static final String STATE_MACHINE_ARN = 'arn:aws:states:eu-central-1:123456789012:stateMachine:test'
     private static final String EXECUTION_ARN = 'arn:aws:states:eu-central-1:123456789012:execution:test:execution'
     private static final DataIdentifier DATA_ID = new DataIdentifier('source', 'usecase', DataFormat.JSON)
@@ -37,7 +40,7 @@ class StepFunctionJobExecutorSpec extends Specification {
 
     def 'single job executor starts step function with expected json input'() {
         given:
-        def requests = []
+        List<StartExecutionRequest> requests = []
         def client = Mock(SfnClient)
         def executor = new TestStepFunctionJobExecutor(
             new TestStepFunctionJobFactory(new TestStepFunctionJob()),
@@ -64,7 +67,14 @@ class StepFunctionJobExecutorSpec extends Specification {
         and:
         requests.size() == 1
         requests[0].stateMachineArn() == STATE_MACHINE_ARN
-        def payload = OBJECT_MAPPER.readValue(requests[0].input(), Map)
+
+        when:
+        def payload = JSON_MAPPER.readValue(
+            requests[0].input(),
+            Map // better type?
+        )
+
+        then:
         payload.task_version == '1.2.0'
         payload.jar_version == '2.5.1'
         payload.additional_properties.triggered_by == 'orchestrator'

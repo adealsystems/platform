@@ -16,7 +16,7 @@
 
 package org.adealsystems.platform.orchestrator;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -29,12 +29,12 @@ public class TestFileBasedEventHistory extends FileBasedEventHistory {
 
     private final List<InternalEvent> consumedEvents = new ArrayList<>();
 
-    public TestFileBasedEventHistory(File baseDirectory, ObjectMapper objectMapper) {
-        super(baseDirectory, new FileBasedRunRepository(new File(".")), objectMapper);
+    public TestFileBasedEventHistory(File baseDirectory, JsonMapper jsonMapper) {
+        super(baseDirectory, new FileBasedRunRepository(new File(".")), jsonMapper);
     }
 
-    public TestFileBasedEventHistory(File baseDirectory, TimestampFactory timestampFactory, RunRepository runRepository, ObjectMapper objectMapper) {
-        super(baseDirectory, timestampFactory, runRepository, objectMapper);
+    public TestFileBasedEventHistory(File baseDirectory, TimestampFactory timestampFactory, RunRepository runRepository, JsonMapper jsonMapper) {
+        super(baseDirectory, timestampFactory, runRepository, jsonMapper);
     }
 
     public List<InternalEvent> getConsumedEvents() {

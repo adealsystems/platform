@@ -17,12 +17,12 @@
 package org.adealsystems.platform.orchestrator;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,7 +40,9 @@ public class FileBasedActiveSessionIdRepository implements ActiveSessionIdReposi
 
     private static final Pattern ACTIVE_FILE_PATTERN = Pattern.compile('(' + InstanceId.PATTERN_STRING + ")\\.json");
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build();
 
     private final ReentrantLock lock = new ReentrantLock();
 
@@ -164,8 +166,8 @@ public class FileBasedActiveSessionIdRepository implements ActiveSessionIdReposi
 
     private SessionId readSessionId(File instanceFile) {
         try {
-            return OBJECT_MAPPER.readValue(instanceFile, SessionIdHolder.class).getSessionId();
-        } catch (IOException ex) {
+            return JSON_MAPPER.readValue(instanceFile, SessionIdHolder.class).getSessionId();
+        } catch (JacksonException ex) {
             throw new IllegalStateException("Unable to read instance file '" + instanceFile + "'!", ex);
         }
     }
@@ -173,13 +175,13 @@ public class FileBasedActiveSessionIdRepository implements ActiveSessionIdReposi
     private void writeSessionId(File instanceFile, SessionId sessionId) {
         try {
             SessionIdHolder sessionIdHolder = new SessionIdHolder(sessionId);
-            OBJECT_MAPPER.writeValue(instanceFile, sessionIdHolder);
-            SessionIdHolder reloadedIdHolder = OBJECT_MAPPER.readValue(instanceFile, SessionIdHolder.class);
+            JSON_MAPPER.writeValue(instanceFile, sessionIdHolder);
+            SessionIdHolder reloadedIdHolder = JSON_MAPPER.readValue(instanceFile, SessionIdHolder.class);
             if (!sessionIdHolder.equals(reloadedIdHolder)) {
                 throw new IllegalStateException("Error verifying active session id file!" +
                     " Stored content " + sessionIdHolder + " is not equal to reloaded content " + reloadedIdHolder);
             }
-        } catch (IOException ex) {
+        } catch (JacksonException ex) {
             throw new IllegalStateException("Unable to write instance file '" + instanceFile + "'!", ex);
         }
     }

@@ -16,34 +16,24 @@
 
 package org.adealsystems.platform.orchestrator.status.mapping;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import org.adealsystems.platform.orchestrator.InternalEvent;
 import org.adealsystems.platform.orchestrator.status.MessageProcessingStep;
-
-import java.io.IOException;
-import java.io.Serial;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.deser.std.StdDeserializer;
 
 public class MessageProcessingStepDeserializer extends StdDeserializer<MessageProcessingStep> {
-    @Serial
-    private static final long serialVersionUID = 2333073101219808266L;
-
     protected MessageProcessingStepDeserializer() {
-        this(null);
-    }
-
-    protected MessageProcessingStepDeserializer(Class<?> vc) {
-        super(vc);
+        super(MessageProcessingStep.class);
     }
 
     @Override
-    public MessageProcessingStep deserialize(JsonParser parser, DeserializationContext ctx) throws IOException {
-        Root root = parser.readValueAs(Root.class);
-        return new MessageProcessingStep(root.success, root.event, root.instanceRef, root.message);
+    public MessageProcessingStep deserialize(JsonParser parser, DeserializationContext ctx) {
+        RootNode rootNode = parser.readValueAs(RootNode.class);
+        return new MessageProcessingStep(rootNode.success, rootNode.event, rootNode.instanceRef, rootNode.message);
     }
 
-    private static class Root { // NOPMD
+    private static final class RootNode {
         public boolean success;
         public InternalEvent event;
         public String message;

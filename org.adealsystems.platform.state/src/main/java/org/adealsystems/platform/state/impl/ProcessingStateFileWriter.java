@@ -16,9 +16,9 @@
 
 package org.adealsystems.platform.state.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.adealsystems.platform.state.ProcessingState;
 import org.adealsystems.platform.state.ProcessingStateException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,7 +27,9 @@ import java.nio.file.Files;
 import java.util.Objects;
 
 public final class ProcessingStateFileWriter {
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build();
 
     private ProcessingStateFileWriter() {
     }
@@ -37,7 +39,7 @@ public final class ProcessingStateFileWriter {
         Objects.requireNonNull(file, "file must not be null!");
 
         try (OutputStream os = Files.newOutputStream(file.toPath())) {
-            OBJECT_MAPPER.writeValue(os, state);
+            JSON_MAPPER.writeValue(os, state);
         } catch (IOException e) {
             throw new ProcessingStateException("Exception while writing processing state " + state + "!", e);
         }

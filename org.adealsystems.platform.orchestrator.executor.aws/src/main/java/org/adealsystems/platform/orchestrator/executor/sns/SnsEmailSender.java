@@ -16,8 +16,6 @@
 
 package org.adealsystems.platform.orchestrator.executor.sns;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.adealsystems.platform.orchestrator.AwsCredentialsOrchestrator;
 import org.adealsystems.platform.orchestrator.executor.ExecutorExitCode;
 import org.adealsystems.platform.orchestrator.executor.ExecutorResult;
@@ -31,6 +29,8 @@ import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
 import software.amazon.awssdk.services.sns.model.PublishResponse;
 import software.amazon.awssdk.services.sns.model.SnsException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -41,7 +41,10 @@ import static org.adealsystems.platform.orchestrator.executor.ExecutorExitCode.S
 
 public class SnsEmailSender implements EmailSender {
     private static final Logger LOGGER = LoggerFactory.getLogger(SnsEmailSender.class);
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build();
+
     public static final String LINK_TOKEN = "<link>";
 
     private final String environment;
@@ -104,7 +107,7 @@ public class SnsEmailSender implements EmailSender {
         String payload;
         try {
             payload = createPayload(subject, message, parameter, filename, attachmentName, linkTarget, linkName);
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             LOGGER.error("Unable to serialize SNS email request for subject '{}'!", subject, ex);
             return new ExecutorResult<>(ERROR, topicArn, "Unable to serialize SNS email request!", ex);
         }
@@ -134,7 +137,7 @@ public class SnsEmailSender implements EmailSender {
         String attachmentName,
         String linkTarget,
         String linkName
-    ) throws JsonProcessingException {
+    ) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("environment", environment);
         payload.put("type", type.name());
@@ -145,7 +148,7 @@ public class SnsEmailSender implements EmailSender {
         putIfNotNull(payload, "attachmentName", attachmentName);
         putIfNotNull(payload, "linkTarget", linkTarget);
         putIfNotNull(payload, "linkName", linkName);
-        return OBJECT_MAPPER.writeValueAsString(payload);
+        return JSON_MAPPER.writeValueAsString(payload);
     }
 
     private void putIfNotNull(Map<String, Object> payload, String key, Object value) {

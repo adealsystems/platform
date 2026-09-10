@@ -16,16 +16,19 @@
 
 package org.adealsystems.platform.io.json
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.adealsystems.platform.io.ListWell
 import org.adealsystems.platform.io.Well
 import org.adealsystems.platform.io.WellException
 import org.adealsystems.platform.io.compression.Compression
 import spock.lang.Specification
+import tools.jackson.databind.json.JsonMapper
 
 import java.nio.charset.StandardCharsets
 
 class JsonlWellSpec extends Specification {
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .build()
 
     def 'iterating over data with compression #compression works'(Compression compression) {
         given:
@@ -77,7 +80,12 @@ class JsonlWellSpec extends Specification {
 
     def 'and even this constructor works'() {
         when:
-        JsonlWell<Entry> instance = new JsonlWell<>(Entry, new ByteArrayInputStream(getExampleBytes()), new ObjectMapper())
+        JsonlWell<Entry> instance = new JsonlWell<>(
+            Entry,
+            new ByteArrayInputStream(getExampleBytes()),
+            JSON_MAPPER
+        )
+
         then:
         !instance.isConsumed()
 
@@ -172,7 +180,12 @@ class JsonlWellSpec extends Specification {
 
     def 'empty input works as expected'() {
         when:
-        JsonlWell<Entry> instance = new JsonlWell<>(Entry, new ByteArrayInputStream(new byte[0]), new ObjectMapper())
+        JsonlWell<Entry> instance = new JsonlWell<>(
+            Entry,
+            new ByteArrayInputStream(new byte[0]),
+            JSON_MAPPER
+        )
+
         then:
         !instance.isConsumed()
 

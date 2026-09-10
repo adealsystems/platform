@@ -16,14 +16,13 @@
 
 package org.adealsystems.platform.orchestrator;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.File;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
@@ -34,14 +33,11 @@ public class FileBasedRunRepository implements RunRepository {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedRunRepository.class);
 
-    private static final ObjectMapper OBJECT_MAPPER;
-
-    static {
-        OBJECT_MAPPER = new ObjectMapper();
-        OBJECT_MAPPER.enable(SerializationFeature.INDENT_OUTPUT);
-        OBJECT_MAPPER.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
-        OBJECT_MAPPER.registerModule(new JavaTimeModule());
-    }
+    private static final JsonMapper JSON_MAPPER =
+        JsonMapper.builder()
+            .enable(SerializationFeature.INDENT_OUTPUT)
+            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+            .build();
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
@@ -191,8 +187,7 @@ public class FileBasedRunRepository implements RunRepository {
             if (state.waitingRun.equals(state.activeRun)) {
                 LOGGER.debug("waitingRun is equal to activeRun");
                 state.waitingRun = CurrentRunState.NOT_AVAILABLE;
-            }
-            else {
+            } else {
                 LOGGER.debug("waitingRun is not equal to activeRun");
                 state.waitingRun = state.activeRun;
             }
@@ -209,16 +204,16 @@ public class FileBasedRunRepository implements RunRepository {
 
     private CurrentRunState readCurrentRunState(File runFile) {
         try {
-            return OBJECT_MAPPER.readValue(runFile, CurrentRunState.class);
-        } catch (IOException ex) {
+            return JSON_MAPPER.readValue(runFile, CurrentRunState.class);
+        } catch (JacksonException ex) {
             throw new IllegalStateException("Unable to read current run state file '" + runFile + "'!", ex);
         }
     }
 
     private void writeCurrentRunState(File runFile, CurrentRunState state) {
         try {
-            OBJECT_MAPPER.writeValue(runFile, state);
-        } catch (IOException ex) {
+            JSON_MAPPER.writeValue(runFile, state);
+        } catch (JacksonException ex) {
             throw new IllegalStateException("Unable to write current run state file '" + runFile + "'!", ex);
         }
     }
