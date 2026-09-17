@@ -3,7 +3,7 @@ apacheHttpClient5 = '5.6.4'
 apacheHttpCore5 = '5.4.3'
 avro = '1.12.2'
 awsSdk = '2.41.32' # EMR 8
-bytebuddy = '1.18.13'
+bytebuddy = '1.18.14'
 commonsCompress = '1.28.0'
 commonsCsv = '1.14.1'
 commonsIo = '2.22.0'
@@ -29,7 +29,7 @@ spring = '7.0.9' # version used in spring-boot
 springboot = '4.1.1'
 sulky = '8.3.0'
 xz = '1.12'
-zstd = '1.5.7-16'
+zstd = '1.5.7-17'
 
 [libraries]
 apache-http-client5 = { module = 'org.apache.httpcomponents.client5:httpclient5', version.ref = 'apacheHttpClient5' }
