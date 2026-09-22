@@ -7,7 +7,7 @@ buildscript {
 
     dependencies {
         classpath "org.springframework.boot:spring-boot-gradle-plugin:4.1.1"
-        classpath "de.thetaphi:forbiddenapis:3.10"
+        classpath "de.thetaphi:forbiddenapis:3.11"
         classpath "com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.6.1"
         classpath "com.gorylenko.gradle-git-properties:gradle-git-properties:4.0.1"
         classpath "dev.yumi:yumi-gradle-licenser:4.0.0"

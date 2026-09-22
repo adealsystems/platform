@@ -9,9 +9,9 @@ commonsCsv = '1.14.1'
 commonsIo = '2.22.0'
 commonsLang3 = '3.20.0'
 commonsText = '1.15.0'
-groovy = '5.1.2'
+groovy = '5.1.3'
 hadoop = '3.5.0'
-jackson3 = '3.2.2'
+jackson3 = '3.2.3'
 jacksonAnnotations = '2.22'
 janino = '3.1.12'
 jspecify = '1.0.1'
@@ -29,7 +29,7 @@ spring = '7.0.9' # version used in spring-boot
 springboot = '4.1.1'
 sulky = '8.3.0'
 xz = '1.12'
-zstd = '1.5.7-17'
+zstd = '1.5.7-18'
 
 [libraries]
 apache-http-client5 = { module = 'org.apache.httpcomponents.client5:httpclient5', version.ref = 'apacheHttpClient5' }
