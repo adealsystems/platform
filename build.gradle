@@ -51,7 +51,7 @@ allprojects {
     apply plugin: 'dev.yumi.gradle.licenser'
 
     group = 'com.github.adealsystems.platform'
-    version = '0.53.0'
+    version = '0.53.1'
     def prereleaseIdentifier = System.properties.'prerelease'
     if (prereleaseIdentifier) {
         version = version + '-' + prereleaseIdentifier
