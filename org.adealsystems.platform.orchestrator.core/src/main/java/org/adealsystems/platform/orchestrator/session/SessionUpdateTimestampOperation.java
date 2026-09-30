@@ -39,7 +39,7 @@ public class SessionUpdateTimestampOperation implements SessionUpdateOperation {
     public SessionUpdateTimestampOperation(
         @JsonProperty("timestamp") LocalDateTime timestamp,
         @JsonProperty("producer") String producer,
-        @JsonProperty("ts-type") SessionTimestamp timestampType,
+        @JsonProperty("timestampType") SessionTimestamp timestampType,
         @JsonProperty("value") LocalDateTime value
     ) {
         this.timestamp = timestamp;
