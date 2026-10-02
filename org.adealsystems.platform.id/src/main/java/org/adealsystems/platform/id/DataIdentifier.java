@@ -23,8 +23,7 @@ import java.util.Optional;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
-public final class DataIdentifier
-    implements Comparable<DataIdentifier>, Serializable {
+public final class DataIdentifier implements Comparable<DataIdentifier>, Serializable {
     @Serial
     private static final long serialVersionUID = 8425282101767414414L;
 
@@ -126,6 +125,23 @@ public final class DataIdentifier
         }
         builder.append(dataFormat);
         return builder.toString();
+    }
+
+    public static String value(String source, String useCase, DataFormat dataFormat) {
+        return value(source, useCase, null, dataFormat);
+    }
+
+    public static String value(String source, String useCase, String configuration, DataFormat dataFormat) {
+        checkElement("source", source, PATTERN, false);
+        checkElement("useCase", useCase, PATTERN, false);
+        checkElement("configuration", configuration, CONFIGURATION_PATTERN, true);
+        if (dataFormat == null) {
+            throw new DataIdentifierCreationException("dataFormat must not be null!");
+        }
+
+        return configuration == null
+            ? String.join(SEPARATOR, source, useCase, dataFormat.name())
+            : String.join(SEPARATOR, source, useCase, configuration, dataFormat.name());
     }
 
     public static DataIdentifier fromString(String input) {

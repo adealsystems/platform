@@ -59,6 +59,33 @@ class DataIdentifierSpec extends Specification {
         "source"  | "use_case" | "_broken"     | CSV_COMMA  | DataIdentifierCreationException | "configuration value doesn't match the pattern '" + DataIdentifier.CONFIGURATION_PATTERN_STRING + "': '_broken'!" | "_broken"
     }
 
+    def 'value formats valid identifiers consistently with toString'() {
+        expect:
+        DataIdentifier.value('source', 'use_case', CSV_COMMA) == new DataIdentifier('source', 'use_case', CSV_COMMA).toString()
+        DataIdentifier.value('source', 'use_case', null, CSV_COMMA) == new DataIdentifier('source', 'use_case', CSV_COMMA).toString()
+        DataIdentifier.value('source', 'use_case', 'config', CSV_SEMICOLON) ==
+            new DataIdentifier('source', 'use_case', 'config', CSV_SEMICOLON).toString()
+    }
+
+    def 'value rejects invalid components like the constructor'() {
+        when:
+        DataIdentifier.value(source, useCase, configuration, dataFormat)
+
+        then:
+        DataIdentifierCreationException ex = thrown()
+        ex.message == expectedMessage
+        ex.value == errorValue
+
+        where:
+        source    | useCase    | configuration | dataFormat | expectedMessage                                                                                                   | errorValue
+        null      | 'use_case' | null          | CSV_COMMA  | 'source must not be null!'                                                                                        | null
+        'source'  | null       | null          | CSV_COMMA  | 'useCase must not be null!'                                                                                       | null
+        '_broken' | 'use_case' | null          | CSV_COMMA  | "source value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "': '_broken'!"                     | '_broken'
+        'source'  | '_broken'  | null          | CSV_COMMA  | "useCase value doesn't match the pattern '" + DataIdentifier.PATTERN_STRING + "': '_broken'!"                    | '_broken'
+        'source'  | 'use_case' | '_broken'     | CSV_COMMA  | "configuration value doesn't match the pattern '" + DataIdentifier.CONFIGURATION_PATTERN_STRING + "': '_broken'!" | '_broken'
+        'source'  | 'use_case' | null          | null       | 'dataFormat must not be null!'                                                                                    | null
+    }
+
     def '#original withConfiguration(#configuration) returns #expectedResult.'() {
         when:
         def result = original.withConfiguration(configuration)
