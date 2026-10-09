@@ -16,7 +16,7 @@ buildscript {
 
 plugins {
     id 'maven-publish'
-    id("io.github.ben-manes.versions") version "0.64.0"
+    id("io.github.ben-manes.versions") version "0.65.0"
 }
 
 final int requiredJavaMajorVersion = 17
@@ -137,9 +137,8 @@ subprojects {
         consoleOutput = true
         ruleSetFiles = files(rootProject.file('config/pmd/ruleSet.xml'))
         ruleSets = []
-        toolVersion = '7.26.0'
+        toolVersion = '7.28.0'
         // https://github.com/pmd/pmd/issues/7056
-        //toolVersion = '7.27.0'
         incrementalAnalysis = true
         //ignoreFailures = true
     }
