@@ -35,7 +35,7 @@ if (JavaVersion.current() < requiredJavaVersion) {
 // Using those scripts ensures that the correct Gradle version
 // is used (and downloaded automatically).
 wrapper {
-    gradleVersion = '9.7.1'
+    gradleVersion = '9.8.1'
 }
 
 // https://github.com/kt3k/coveralls-gradle-plugin
