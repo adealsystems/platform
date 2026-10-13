@@ -95,7 +95,6 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
     private JobFinalizer jobFinalizer;
 
-    private final Logger logger;
     private final DatasetLogger datasetLogger;
 
     public AbstractSingleOutputSparkBatchJob(
@@ -118,10 +117,11 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
 
         this.storeAsSingleFile = storeAsSingleFile;
 
-        this.logger = LoggerFactory.getLogger(getClass());
         setWriteMode(WriteMode.DATE);
         DatasetLogger.Context dlc = DatasetLogger.newContext();
-        dlc.setLogger(logger);
+        dlc.setLogger(
+            LoggerFactory.getLogger(getClass())
+        );
         this.datasetLogger = new DatasetLogger(dlc, sparkContext);
     }
 
@@ -269,30 +269,33 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
      */
     protected abstract Dataset<Row> processData();
 
-    @SuppressWarnings("PMD.ExceptionAsFlowControl")
     @Override
     public void execute() {
         executionStartTimestamp = System.currentTimeMillis();
 
+        if (!initSuccessful) {
+            setProcessingErrorState();
+            throw new JobInitializationFailureException(initErrorMessage);
+        }
         try {
-            if (!initSuccessful) {
-                throw new JobInitializationFailureException(initErrorMessage);
-            }
-
             writeOutput(processData());
         } catch (Throwable th) {
-            for (DataIdentifier dataId : getOutputIdentifiers()) {
-                registerProcessingStatus(dataId, STATE_PROCESSING_ERROR);
-            }
+            setProcessingErrorState();
+            LOGGER.warn("Exception occurred while processing data!", th);
+            throw new JobExecutionFailureException(th);
+        }
+    }
 
-            throw th;
+    private void setProcessingErrorState() {
+        for (DataIdentifier dataId : getOutputIdentifiers()) {
+            registerProcessingStatus(dataId, STATE_PROCESSING_ERROR);
         }
     }
 
     @Override
     public void finalizeJob() {
         if (jobFinalizer == null) {
-            logger.info("No job finalizer defined. Returning...");
+            LOGGER.info("No job finalizer defined. Returning...");
             return;
         }
 
@@ -300,7 +303,9 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             throw new IllegalStateException("Job can only be finalized after spark session has been closed!");
         }
 
+        LOGGER.info("Executing job finalizer {}.", jobFinalizer);
         jobFinalizer.finalizeJob(this);
+        LOGGER.debug("Finished executing job finalizer.");
     }
 
     @Override
@@ -324,7 +329,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
     @Override
     public void close() {
         if (sparkContext != null) {
-            logger.debug("Closing JavaSparkContext...");
+            LOGGER.debug("Closing JavaSparkContext...");
 
             sparkContext.close();
             sparkContext = null;
@@ -565,7 +570,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             try {
                 return Optional.of(readInput(dataIdentifier));
             } catch (Throwable t) {
-                logger.debug("Reading {} failed. Returning Optional.empty().", dataIdentifier, t);
+                LOGGER.debug("Reading {} failed. Returning Optional.empty().", dataIdentifier, t);
                 return Optional.empty();
             }
         }
@@ -658,7 +663,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             try {
                 result.put(current, readInput(current));
             } catch (Throwable t) {
-                logger.debug("Reading {} failed.", current, t);
+                LOGGER.debug("Reading {} failed.", current, t);
             }
         }
 
@@ -669,7 +674,7 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
         Objects.requireNonNull(dataInstance, "dataInstance must not be null!");
         String path = dataInstance.getPath();
         DataFormat dataFormat = dataInstance.getDataFormat();
-        logger.info("Reading {} from '{}'.", dataInstance, path);
+        LOGGER.info("Reading {} from '{}'.", dataInstance, path);
 
         SparkSession session = getSparkSession();
         return switch (dataFormat) {
@@ -725,9 +730,9 @@ public abstract class AbstractSingleOutputSparkBatchJob implements SparkDataProc
             DataInstance dateInstance = dataResolver.createDateInstance(outputIdentifier, invocationDate);
 
             if (resultWriterInterceptor == null) {
-                logger.info("NOT registering result of {} because resultWriterInterceptor is null!", dateInstance);
+                LOGGER.info("NOT registering result of {} because resultWriterInterceptor is null!", dateInstance);
             } else {
-                logger.info("Registering result of {} with resultWriterInterceptor.", dateInstance);
+                LOGGER.info("Registering result of {} with resultWriterInterceptor.", dateInstance);
                 dateInstance = resultWriterInterceptor.registerResult(outputLocation, dateInstance, outputDataset);
             }
 

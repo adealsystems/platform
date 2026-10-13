@@ -240,7 +240,7 @@ public class EventRegistry {
         }
 
         Optional<String> oInstanceId = event.getAttributeValue(INSTANCE_ID_ATTRIBUTE_NAME);
-        if (!oInstanceId.isPresent()) {
+        if (oInstanceId.isEmpty()) {
             // Event does not have an instance-id attribute
             return Optional.empty();
         }

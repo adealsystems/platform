@@ -215,7 +215,7 @@ public class OrchestratorRuntime {
             Collection<InstanceId> instanceIds = instanceRepository.retrieveInstanceIds();
             for (InstanceId instanceId : instanceIds) {
                 Optional<InstanceEventHandler> oEventHandler = instanceEventHandlerResolver.resolveHandler(instanceId);
-                if (!oEventHandler.isPresent()) {
+                if (oEventHandler.isEmpty()) {
                     LOGGER.warn("No instance event handler found for instance '{}'!", instanceId);
                     continue;
                 }
@@ -255,8 +255,7 @@ public class OrchestratorRuntime {
                 asyncEventHandlerThread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
                 LOGGER.info("Starting {} thread", asyncEventHandlerThread.getName());
                 asyncEventHandlerThread.start();
-            }
-            else {
+            } else {
                 LOGGER.info("No async job receiver runnable configured. No corresponding thread will be started.");
             }
 

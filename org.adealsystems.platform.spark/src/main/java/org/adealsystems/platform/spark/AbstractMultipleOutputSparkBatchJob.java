@@ -93,7 +93,6 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
     private JobFinalizer jobFinalizer;
 
-    private final Logger logger;
     private final DatasetLogger datasetLogger;
 
     public AbstractMultipleOutputSparkBatchJob(DataResolverRegistry dataResolverRegistry, DataLocation outputLocation, Collection<DataIdentifier> outputIdentifiers, LocalDate invocationDate, boolean storeAsSingleFile) {
@@ -106,10 +105,11 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
         this.storeAsSingleFile = storeAsSingleFile;
 
-        this.logger = LoggerFactory.getLogger(getClass());
         setWriteMode(WriteMode.DATE);
         DatasetLogger.Context dlc = DatasetLogger.newContext();
-        dlc.setLogger(logger);
+        dlc.setLogger(
+            LoggerFactory.getLogger(getClass())
+        );
         this.datasetLogger = new DatasetLogger(dlc, sparkContext);
     }
 
@@ -252,16 +252,15 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
      */
     protected abstract Map<DataIdentifier, Dataset<Row>> processData();
 
-    @SuppressWarnings("PMD.ExceptionAsFlowControl")
     @Override
     public void execute() {
         executionStartTimestamp = System.currentTimeMillis();
 
+        if (!initSuccessful) {
+            setProcessingErrorState();
+            throw new JobInitializationFailureException(initErrorMessage);
+        }
         try {
-            if (!initSuccessful) {
-                throw new JobInitializationFailureException(initErrorMessage);
-            }
-
             Map<DataIdentifier, Dataset<Row>> results = processData();
             for (Map.Entry<DataIdentifier, Dataset<Row>> entry : results.entrySet()) {
                 DataIdentifier outputIdentifier = entry.getKey();
@@ -269,18 +268,22 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
                 writeOutput(outputIdentifier, dataset);
             }
         } catch (Throwable th) {
-            for (DataIdentifier dataId : getOutputIdentifiers()) {
-                registerProcessingStatus(dataId, STATE_PROCESSING_ERROR);
-            }
+            setProcessingErrorState();
+            LOGGER.warn("Exception occurred while processing data!", th);
+            throw new JobExecutionFailureException(th);
+        }
+    }
 
-            throw th;
+    private void setProcessingErrorState() {
+        for (DataIdentifier dataId : getOutputIdentifiers()) {
+            registerProcessingStatus(dataId, STATE_PROCESSING_ERROR);
         }
     }
 
     @Override
     public void finalizeJob() {
         if (jobFinalizer == null) {
-            logger.info("No job finalizer defined. Returning...");
+            LOGGER.info("No job finalizer defined. Returning...");
             return;
         }
 
@@ -288,7 +291,9 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
             throw new IllegalStateException("Job can only be finalized after spark session has been closed!");
         }
 
+        LOGGER.info("Executing job finalizer {}.", jobFinalizer);
         jobFinalizer.finalizeJob(this);
+        LOGGER.debug("Finished executing job finalizer.");
     }
 
     @Override
@@ -312,7 +317,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
     @Override
     public void close() {
         if (sparkContext != null) {
-            logger.debug("Closing JavaSparkContext...");
+            LOGGER.debug("Closing JavaSparkContext...");
             sparkContext.close();
             sparkContext = null;
             sparkSession = null;
@@ -552,7 +557,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
             try {
                 return Optional.of(readInput(dataIdentifier));
             } catch (Throwable t) {
-                logger.debug("Reading {} failed. Returning Optional.empty().", dataIdentifier, t);
+                LOGGER.debug("Reading {} failed. Returning Optional.empty().", dataIdentifier, t);
                 return Optional.empty();
             }
         }
@@ -580,7 +585,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
 
         for (DataIdentifier dataIdentifier : dataIdentifiers) {
             Optional<Dataset<Row>> oCurrentDataset = readOptionalInput(dataIdentifier);
-            if (!oCurrentDataset.isPresent()) {
+            if (oCurrentDataset.isEmpty()) {
                 continue;
             }
 
@@ -646,7 +651,7 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
             try {
                 result.put(current, readInput(current));
             } catch (Throwable t) {
-                logger.debug("Reading {} failed.", current, t);
+                LOGGER.debug("Reading {} failed.", current, t);
             }
         }
 
@@ -657,23 +662,16 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
         Objects.requireNonNull(dataInstance, "dataInstance must not be null!");
         String path = dataInstance.getPath();
         DataFormat dataFormat = dataInstance.getDataFormat();
-        logger.info("Reading {} from '{}'.", dataInstance, path);
-        switch (dataFormat) {
-            case CSV_COMMA:
-                return readCsvAsDataset(getSparkSession(), COMMA, path);
-            case CSV_SEMICOLON:
-                return readCsvAsDataset(getSparkSession(), SEMICOLON, path);
-            case CSV_PIPE:
-                return readCsvAsDataset(getSparkSession(), PIPE, path);
-            case JSON:
-                return readJsonAsDataset(getSparkSession(), path);
-            case AVRO:
-                return readAvroAsDataset(getSparkSession(), path);
-            case PARQUET:
-                return readParquetAsDataset(getSparkSession(), path);
-            default:
-                throw new UnsupportedDataFormatException(dataFormat);
-        }
+        LOGGER.info("Reading {} from '{}'.", dataInstance, path);
+        return switch (dataFormat) {
+            case CSV_COMMA -> readCsvAsDataset(getSparkSession(), COMMA, path);
+            case CSV_SEMICOLON -> readCsvAsDataset(getSparkSession(), SEMICOLON, path);
+            case CSV_PIPE -> readCsvAsDataset(getSparkSession(), PIPE, path);
+            case JSON -> readJsonAsDataset(getSparkSession(), path);
+            case AVRO -> readAvroAsDataset(getSparkSession(), path);
+            case PARQUET -> readParquetAsDataset(getSparkSession(), path);
+            default -> throw new UnsupportedDataFormatException(dataFormat);
+        };
     }
 
     @Override
@@ -697,9 +695,9 @@ public abstract class AbstractMultipleOutputSparkBatchJob implements SparkDataPr
             DataInstance dateInstance = dataResolver.createDateInstance(outputIdentifier, invocationDate);
 
             if (resultWriterInterceptor == null) {
-                logger.info("NOT registering result of {} because resultWriterInterceptor is null!", dateInstance);
+                LOGGER.info("NOT registering result of {} because resultWriterInterceptor is null!", dateInstance);
             } else {
-                logger.info("Registering result of {} with resultWriterInterceptor.", dateInstance);
+                LOGGER.info("Registering result of {} with resultWriterInterceptor.", dateInstance);
                 dateInstance = resultWriterInterceptor.registerResult(outputLocation, dateInstance, outputDataset);
             }
 

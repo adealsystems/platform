@@ -18,7 +18,6 @@ package org.adealsystems.platform.orchestrator;
 
 import de.huxhorn.sulky.ulid.ULID;
 
-import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class UlidSessionIdGenerator implements SessionIdGenerator {
@@ -35,23 +34,13 @@ public class UlidSessionIdGenerator implements SessionIdGenerator {
         try {
             if (previousUlid == null) {
                 previousUlid = ulid.nextValue();
-                return new SessionId(previousUlid.toString());
+            } else {
+                previousUlid =
+                    ulid.nextStrictlyMonotonicValue(previousUlid)
+                        .orElseGet(ulid::nextValue);
             }
 
-            for (; ; ) {
-                Optional<ULID.Value> oNextUlid = ulid.nextStrictlyMonotonicValue(previousUlid);
-                if (oNextUlid.isPresent()) {
-                    previousUlid = oNextUlid.get();
-                    return new SessionId(previousUlid.toString());
-                }
-
-                try {
-                    //noinspection BusyWait
-                    Thread.sleep(10);
-                } catch (InterruptedException ex) {
-                    // ignore
-                }
-            }
+            return new SessionId(previousUlid.toString());
         } finally {
             lock.unlock();
         }
