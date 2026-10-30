@@ -1,5 +1,7 @@
 # README
 
+[platform on jitpack](https://jitpack.io/#adealsystems/platform)
+
 ## Java
 
 Download Java from [adoptopenjdk.net](https://adoptopenjdk.net/).

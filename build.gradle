@@ -6,7 +6,7 @@ buildscript {
     }
 
     dependencies {
-        classpath "org.springframework.boot:spring-boot-gradle-plugin:4.1.1"
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:4.1.2"
         classpath "de.thetaphi:forbiddenapis:3.11"
         classpath "com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.6.1"
         classpath "com.gorylenko.gradle-git-properties:gradle-git-properties:4.0.1"
@@ -35,7 +35,7 @@ if (JavaVersion.current() < requiredJavaVersion) {
 // Using those scripts ensures that the correct Gradle version
 // is used (and downloaded automatically).
 wrapper {
-    gradleVersion = '9.8.1'
+    gradleVersion = '9.8.2'
 }
 
 // https://github.com/kt3k/coveralls-gradle-plugin
@@ -66,7 +66,7 @@ allprojects {
     }
 
     jacoco {
-        toolVersion = '0.8.15'
+        toolVersion = '0.8.16'
     }
 
     repositories {
