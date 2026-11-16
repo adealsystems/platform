@@ -169,6 +169,73 @@ class InternalEventHandlerRunnableSpec extends Specification {
         sessionRepository.retrieveSession(existingSessionId).get().getProcessingState().getState() == State.DONE
     }
 
+    @Unroll
+    def 'routes #eventId to active sessions without creating sessions or broadcasting named timers'() {
+        given:
+        def instanceId = new InstanceId('0060-hotel-recommendations')
+        def staticId = new SessionId('STATIC')
+        def fueId = new SessionId('FUE')
+        def creteId = new SessionId('CRETE')
+        def closedId = new SessionId('CLOSED')
+        def inactiveId = new SessionId('INACTIVE')
+        def foreignId = new SessionId('FOREIGN')
+        def sessions = [:]
+        [staticId, fueId, creteId, closedId, inactiveId].each {
+            sessions[it] = runningSession(instanceId, it)
+        }
+        sessions[fueId].setStateValue('__dynamic_content', 'fue_s27')
+        sessions[creteId].setStateValue('__dynamic_content', 'crete_s27')
+        sessions[closedId].setStateValue('__dynamic_content', 'closed_s27')
+        sessions[closedId].updateState(State.DONE)
+        sessions[inactiveId].setStateValue('__dynamic_content', 'inactive_s27')
+        sessions[foreignId] = runningSession(new InstanceId('0060-hotel-recommendations-other'), foreignId)
+        sessions[foreignId].setStateValue('__dynamic_content', 'foreign_s27')
+        def active = new InMemoryActiveSessionIdRepository([
+            (instanceId): staticId,
+            (new InstanceId(instanceId.id + '-fue_s27')): fueId,
+            (new InstanceId(instanceId.id + '-crete_s27')): creteId,
+            (new InstanceId(instanceId.id + '-closed_s27')): closedId,
+            (new InstanceId(instanceId.id + '-other-foreign_s27')): foreignId
+        ], [])
+        def repository = new InMemorySessionRepository(instanceId, sessions)
+        List<InternalEvent> history = []
+        List<InternalEvent> queued = []
+        InternalEventClassifier classifier = Stub() {
+            isRelevant(_ as InternalEvent) >> { InternalEvent e -> e.id == 'gaps' }
+            isValid(_ as InternalEvent) >> true
+            getCurrentRun() >> Optional.empty()
+            determineDynamicContent(_ as InternalEvent) >> { InternalEvent e -> InternalEvent.getDynamicContentAttribute(e) }
+            isSessionStartEvent(_ as InternalEvent) >> false
+            isSessionStopEvent(_ as InternalEvent, _ as Session) >> false
+        }
+        def event = new InternalEvent()
+        event.type = InternalEventType.TIMER
+        event.id = eventId
+        event.timestamp = LocalDateTime.of(2026, 6, 17, 10, 15)
+        if (content != null) {
+            InternalEvent.setDynamicContentAttribute(event, content)
+        }
+
+        when:
+        createRunnable(classifier, event, instanceId, active, repository, history, queued).run()
+
+        then:
+        queued*.sessionId.toSet() == expectedSessions.collect { new SessionId(it) }.toSet()
+        queued.size() == expectedSessions.size()
+        queued.every { it.instanceId == instanceId && it.id == eventId }
+        queued.findAll { it.sessionId != staticId }.every {
+            InternalEvent.getDynamicContentAttribute(it).isPresent()
+        }
+        repository.sessions.size() == 6
+        lifecycleAttributes(history).empty
+
+        where:
+        eventId | content    | expectedSessions
+        '10:15' | null       | ['STATIC', 'FUE', 'CRETE']
+        '10:15' | 'fue_s27'  | ['FUE', 'CRETE']
+        'gaps'  | 'fue_s27'  | ['FUE']
+    }
+
     private InternalEventHandlerRunnable createRunnable(
         InternalEventClassifier classifier,
         InternalEvent triggerEvent,

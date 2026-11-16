@@ -473,6 +473,9 @@ public class InternalEventHandlerRunnable implements Runnable {
         List<InternalEvent> sessionStateEvents = new ArrayList<>();
 
         boolean assigned = false;
+        Collection<InstanceId> activeTimerInstances = isMinuteTimerEvent(event)
+            ? activeSessionIdRepository.listAllActiveInstances()
+            : Collections.emptyList();
         Map<InstanceId, InternalEventClassifier> eventClassifierMapping = eventClassifierMappingResolver.resolveMapping();
         for (Map.Entry<InstanceId, InternalEventClassifier> entry : eventClassifierMapping.entrySet()) {
             InternalEventClassifier eventClassifier = entry.getValue();
@@ -520,6 +523,10 @@ public class InternalEventHandlerRunnable implements Runnable {
                 }
                 LOGGER.info("Initializing event with dynamic content {}: '{}'", clonedEvent.toShortString(), content);
                 setDynamicContentAttribute(clonedEvent, content);
+            }
+
+            if (isMinuteTimerEvent(clonedEvent)) {
+                registerDynamicMinuteTimerEvents(clonedEvent, entry.getKey(), activeTimerInstances);
             }
 
             // Outdated events check (run specific)
@@ -716,6 +723,53 @@ public class InternalEventHandlerRunnable implements Runnable {
         }
 
         return sessionStateEvents;
+    }
+
+    private void registerDynamicMinuteTimerEvents(
+        InternalEvent event,
+        InstanceId instanceId,
+        Collection<InstanceId> activeInstances
+    ) {
+        if (activeInstances == null || activeInstances.isEmpty()) {
+            return;
+        }
+
+        SessionRepository repository = sessionRepositoryFactory.retrieveSessionRepository(instanceId);
+        String prefix = instanceId.getId() + '-';
+        Optional<String> originalContent = getDynamicContentAttribute(event);
+        for (InstanceId activeInstance : activeInstances) {
+            if (!activeInstance.getId().startsWith(prefix)) {
+                continue;
+            }
+
+            Optional<Session> oSession = activeSessionIdRepository.retrieveActiveSessionId(activeInstance)
+                .flatMap(repository::retrieveSession);
+            if (oSession.isEmpty()) {
+                continue;
+            }
+
+            Session session = oSession.get();
+            if (!instanceId.equals(session.getInstanceId())
+                || FINAL_STATES.contains(session.getProcessingState().getState())) {
+                continue;
+            }
+
+            Optional<String> content = session.getStateValue(DYNAMIC_CONTENT_ATTRIBUTE_NAME);
+            if (content.isEmpty() || content.equals(originalContent)) {
+                // A tick with this dynamic content is already handled by the regular routing below.
+                continue;
+            }
+            String expectedId = prefix + normalizeDynamicContent(content.get());
+            if (!expectedId.equals(activeInstance.getId())) {
+                continue;
+            }
+
+            InternalEvent tick = event.clone();
+            tick.setInstanceId(instanceId);
+            tick.setSessionId(session.getId());
+            setDynamicContentAttribute(tick, content.get());
+            registerInstanceEvent(tick, instanceEventSenderResolver, eventHistory);
+        }
     }
 
     private static Optional<InternalEvent> deriveSessionStateEvent(InternalEvent event) {
