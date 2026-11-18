@@ -16,7 +16,7 @@ buildscript {
 
 plugins {
     id 'maven-publish'
-    id("io.github.ben-manes.versions") version "0.66.0"
+    id("io.github.ben-manes.versions") version "0.67.0"
 }
 
 final int requiredJavaMajorVersion = 17
@@ -35,7 +35,7 @@ if (JavaVersion.current() < requiredJavaVersion) {
 // Using those scripts ensures that the correct Gradle version
 // is used (and downloaded automatically).
 wrapper {
-    gradleVersion = '9.8.2'
+    gradleVersion = '9.9.1'
 }
 
 // https://github.com/kt3k/coveralls-gradle-plugin
@@ -137,7 +137,7 @@ subprojects {
         consoleOutput = true
         ruleSetFiles = files(rootProject.file('config/pmd/ruleSet.xml'))
         ruleSets = []
-        toolVersion = '7.28.0'
+        toolVersion = '7.29.0'
         // https://github.com/pmd/pmd/issues/7056
         incrementalAnalysis = true
         //ignoreFailures = true

@@ -54,6 +54,7 @@
         <exclude name="EmptyMethodInAbstractClassShouldBeAbstract"/>
         <exclude name="LinguisticNaming"/>
         <exclude name="LocalVariableCouldBeFinal"/>
+        <exclude name="LocalVariableDeclarationShouldBeAtStartOfBlock"/>
         <exclude name="LongVariable"/>
         <exclude name="MethodArgumentCouldBeFinal"/>
         <exclude name="OnlyOneReturn"/>
