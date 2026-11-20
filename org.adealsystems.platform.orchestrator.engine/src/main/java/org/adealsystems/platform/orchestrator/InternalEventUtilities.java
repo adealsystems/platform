@@ -23,18 +23,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class InternalEventUtilities {
-    public static final String CLEANSER_DATE_FORMAT = "yyyy.MM.dd";
+    private static final String DATE_FORMAT = "yyyy.MM.dd";
 
     private InternalEventUtilities() {
     }
 
     public static boolean isFileSizeZero(InternalEvent event) {
-        Integer size = getFileSize(event);
+        Long size = getFileSize(event);
         return size != null && size == 0;
     }
 
     public static boolean hasStateFileContent(InternalEvent event) {
-        Integer size = getFileSize(event);
+        Long size = getFileSize(event);
         return size != null && size > 2;
     }
 
@@ -45,10 +45,10 @@ public final class InternalEventUtilities {
         return matcher.matches();
     }
 
-    private static Integer getFileSize(InternalEvent event) {
+    private static Long getFileSize(InternalEvent event) {
         Optional<String> oSize = event.getAttributeValue(S3Constants.FILE_SIZE);
         if (oSize.isPresent()) {
-            return Integer.parseInt(oSize.get());
+            return Long.parseLong(oSize.get());
         }
 
         return null;
@@ -56,7 +56,7 @@ public final class InternalEventUtilities {
 
     public static LocalDate getEventDate(InternalEvent event) {
         String stringDate = event.getId().split("/")[0];
-        return DateTimeUtility.parseDate(stringDate, CLEANSER_DATE_FORMAT);
+        return DateTimeUtility.parseDate(stringDate, DATE_FORMAT);
     }
 
     public static Object getStateFileContent(InternalEvent event) {
