@@ -1,6 +1,6 @@
 [versions]
 apacheHttpClient5 = '5.6.5'
-apacheHttpCore5 = '5.4.4'
+apacheHttpCore5 = '5.5'
 avro = '1.12.2'
 # awsSdk = '2.41.32' # EMR 8.0
 awsSdk = '2.44.5' # EMR 8.1
@@ -12,10 +12,9 @@ commonsLang3 = '3.22.0'
 commonsText = '1.15.0'
 groovy = '6.0.0'
 hadoop = '3.4.2' # EMR 8.0/8.1
-# jackson3 = '3.2.4'
-jackson3 = '3.1.8' # latest 3.1.x
-# jackson3 = '3.1.7' # in spring-boot 4.1.2
-# jacksonAnnotations = '2.22'
+# jackson3 = '3.3.0'
+jackson3 = '3.1.8' # in spring-boot 4.2.0
+# jacksonAnnotations = '2.23'
 jacksonAnnotations = '2.21' # in jackson 3.1.8 bom
 janino = '3.1.12'
 jspecify = '1.0.1'
@@ -30,8 +29,8 @@ spark = '4.1.1' # EMR 8.1
 spock = '2.5-groovy-6.0'
 spotbugs = '4.10.5'
 # via https://repo1.maven.org/maven2/org/springframework/boot/spring-boot-dependencies/4.1.1/spring-boot-dependencies-4.1.1.pom
-spring = '7.0.10' # version used in spring-boot
-springboot = '4.1.2'
+spring = '7.1.0' # version used in spring-boot
+springboot = '4.2.0'
 sulky = '8.3.0'
 xz = '1.12'
 zstd = '1.5.7-28'
