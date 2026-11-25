@@ -33,7 +33,7 @@ spring = '7.1.0' # version used in spring-boot
 springboot = '4.2.0'
 sulky = '8.3.0'
 xz = '1.12'
-zstd = '1.5.7-29'
+zstd = '1.6.0-1'
 
 [libraries]
 apache-http-client5 = { module = 'org.apache.httpcomponents.client5:httpclient5', version.ref = 'apacheHttpClient5' }
