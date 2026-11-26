@@ -2,6 +2,8 @@
 
 [platform on jitpack](https://jitpack.io/#adealsystems/platform)
 
+[jitpack maven repo example link](https://maven-central.storage.googleapis.com/maven2/tools/jackson/core/jackson-databind/3.1.9/jackson-databind-3.1.9.pom)
+
 ## Java
 
 Download Java from [adoptopenjdk.net](https://adoptopenjdk.net/).
