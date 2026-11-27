@@ -16,26 +16,48 @@
 
 package org.adealsystems.platform.io.csv
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import org.adealsystems.platform.io.WellException
 import org.adealsystems.platform.io.compression.Compression
 import org.adealsystems.platform.io.test.BrokenInputStream
 import org.adealsystems.platform.io.test.BrokenStreamException
 import org.apache.commons.csv.CSVFormat
+import org.slf4j.LoggerFactory
 import spock.lang.Specification
 
 class AbstractCsvWellSpec extends Specification {
+    private Logger logger
+    private ListAppender<ILoggingEvent> appender
+
     final CSVFormat OUTPUT_CSV_FORMAT = CSVFormat.Builder.create()
         .setHeader("key", "value")
         .setDelimiter(CsvConstants.CSV_DELIMITER_SEMICOLON)
         .setEscape(CsvConstants.CSV_ESCAPE_CHARACTER)
-        .build()
+        .get()
 
     final CSVFormat INPUT_CSV_FORMAT = CSVFormat.Builder.create()
         .setHeader()
         .setSkipHeaderRecord(true)
         .setDelimiter(CsvConstants.CSV_DELIMITER_SEMICOLON)
         .setEscape(CsvConstants.CSV_ESCAPE_CHARACTER)
-        .build()
+        .get()
+
+    @SuppressWarnings('unused')
+    def setup() {
+        logger = (Logger) LoggerFactory.getLogger(AbstractCsvWell)
+        appender = new ListAppender<>()
+        appender.start()
+        logger.addAppender(appender)
+    }
+
+    @SuppressWarnings('unused')
+    def cleanup() {
+        logger.detachAppender(appender)
+        appender.stop()
+    }
 
     def 'iterating over data with compression #compression works'(Compression compression) {
         given:
@@ -76,6 +98,7 @@ class AbstractCsvWellSpec extends Specification {
             "Value 1;Key 1\n" +
             "Value 2;Key 2\n" +
             "Value 3;Key 3\n"
+
         ByteArrayOutputStream bos = new ByteArrayOutputStream()
         def writer = Compression.NONE.createWriter(bos)
         writer.write(content)
@@ -97,6 +120,40 @@ class AbstractCsvWellSpec extends Specification {
         ]
         and:
         instance.isConsumed()
+    }
+
+    def 'iterating over data with unknown column works'() {
+        given:
+        String content = "value;key;foo\n" +
+            "Value 1;Key 1;Foo 1\n" +
+            "Value 2;Key 2;Foo 2\n" +
+            "Value 3;Key 3;Foo 3\n"
+
+        ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        def writer = Compression.NONE.createWriter(bos)
+        writer.write(content)
+        writer.close()
+
+        when:
+        EntryCsvWell instance = new EntryCsvWell(new ByteArrayInputStream(bos.toByteArray()), INPUT_CSV_FORMAT)
+        then:
+        !instance.isConsumed()
+
+        when:
+        List<Entry> objects = instance.iterator().collect()
+
+        then:
+        objects == [
+            new Entry("Key 1", "Value 1"),
+            new Entry("Key 2", "Value 2"),
+            new Entry("Key 3", "Value 3"),
+        ]
+        and:
+        instance.isConsumed()
+        and: 'expected log message is generated exactly once'
+        appender.list.size() == 1
+        appender.list[0].formattedMessage == "Unknown column name 'foo' in org.adealsystems.platform.io.csv.EntryCsvWell!"
+        appender.list[0].level == Level.WARN
     }
 
     def "calling iterator() twice throws exception"() {

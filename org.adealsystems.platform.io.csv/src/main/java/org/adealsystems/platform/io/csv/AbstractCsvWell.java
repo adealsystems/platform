@@ -24,18 +24,26 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.ByteOrderMark;
 import org.apache.commons.io.input.BOMInputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 
 public abstract class AbstractCsvWell<E> implements Well<E> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractCsvWell.class);
+
+    private final Set<String> unknownHeaderNames = new HashSet<>();
+
     private final Class<E> clazz;
     private final CSVFormat csvFormat;
     private CSVParser parser;
@@ -144,15 +152,37 @@ public abstract class AbstractCsvWell<E> implements Well<E> {
 
             CSVRecord record = parserIterator.next();
             for (String headerName : header) {
+                // header was initialized from CSV header of input stream
+                // headerName will always be a valid name
                 setValue(result, headerName, record.get(headerName));
             }
         } catch (NoSuchElementException ex) {
+            // rethrow instead of handling hasNext() outside try
+            // since parserIterator.hasNext() can throw other exceptions
+            // like UncheckedIOException
             throw ex;
         } catch (Throwable t) {
             throw new WellException("Exception while reading record!", t);
         }
 
         return result;
+    }
+
+    /**
+     * Logs the given unknown columnName, but only once.
+     * <p>
+     * This method can be used in the default case while implementing setValue
+     * if forward-compatibility is desired behavior instead of throwing
+     * a WellException or ignoring the problem entirely.
+     *
+     * @param columnName the unknown column name to be logged
+     */
+    protected void logUnknownColumnName(String columnName) {
+        if (!unknownHeaderNames.contains(columnName)) {
+            // only print first warning instead of once per row
+            unknownHeaderNames.add(columnName);
+            LOGGER.warn("Unknown column name '{}' in {}!", columnName, getClass().getName());
+        }
     }
 
     private class WellIterator implements Iterator<E> {

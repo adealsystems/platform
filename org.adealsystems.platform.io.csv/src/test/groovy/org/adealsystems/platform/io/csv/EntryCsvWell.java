@@ -55,8 +55,9 @@ public class EntryCsvWell extends AbstractCsvWell<Entry> {
                 entry.setValue(value);
                 break;
             default:
-                // ignore
-                // other implementations might want to be harsher
+                // log the unknown column name
+                logUnknownColumnName(columnName);
+                // other implementations might want to ignore or throw exception instead
                 break;
         }
     }

@@ -26,9 +26,11 @@ class AbstractCsvDrainSpec extends Specification {
         .setHeader("key", "value")
         .setDelimiter(CsvConstants.CSV_DELIMITER_SEMICOLON)
         .setEscape(CsvConstants.CSV_ESCAPE_CHARACTER)
-        .build()
+        .get()
 
-    static final char ESCAPE_CHARACTER = CsvConstants.CSV_ESCAPE_CHARACTER == null ? '"' as char : CsvConstants.CSV_ESCAPE_CHARACTER
+    static final char FALLBACK_ESCAPE_CHARACTER = '"'
+    static final char ESCAPE_CHARACTER = CsvConstants.CSV_ESCAPE_CHARACTER == null ?
+        FALLBACK_ESCAPE_CHARACTER : CsvConstants.CSV_ESCAPE_CHARACTER
 
     def 'adding to the drain with compression #compression works'(Compression compression) {
         given:
